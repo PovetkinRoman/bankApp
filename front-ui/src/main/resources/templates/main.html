@@ -89,9 +89,9 @@
             </tr>
             <tr th:each="account : ${accounts}">
                 <td style="font-weight:bold;" th:text="${account.getCurrency().getTitle()}"/>
-                <td th:text="${account.isExists() ? (account.getValue()+' '+account.getCurrency().name()) : ''}"/>
+                <td th:text="${account.isExists() ? (account.getValue()+' '+account.getCurrency().name()) : 'Счет не создан'}"/>
                 <td style="text-align:right">
-                    <input name="account" type="checkbox" th:checked="${account.isExists()}" th:value="${account.getCurrency().name()}"/>
+                    <input name="account" type="checkbox" th:checked="${account.isExists()}" th:value="${account.getCurrency().name()}" th:disabled="${account.isExists()}"/>
                 </td>
             </tr>
             <tr>

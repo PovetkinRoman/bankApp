@@ -10,11 +10,16 @@ import ru.rpovetkin.front_ui.dto.AuthenticationRequest;
 import ru.rpovetkin.front_ui.dto.AuthenticationResponse;
 import ru.rpovetkin.front_ui.dto.ChangePasswordRequest;
 import ru.rpovetkin.front_ui.dto.ChangePasswordResponse;
+import ru.rpovetkin.front_ui.dto.AccountDto;
+import ru.rpovetkin.front_ui.dto.Currency;
 import ru.rpovetkin.front_ui.dto.UpdateUserDataRequest;
 import ru.rpovetkin.front_ui.dto.UpdateUserDataResponse;
 import ru.rpovetkin.front_ui.dto.UserDto;
 import ru.rpovetkin.front_ui.dto.UserRegistrationRequest;
 import ru.rpovetkin.front_ui.dto.UserRegistrationResponse;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -161,6 +166,111 @@ public class AccountsService {
                     .success(false)
                     .message("Service unavailable")
                     .build();
+        }
+    }
+    
+    public List<AccountDto> getUserAccounts(String login) {
+        log.info("Getting user accounts for: {}", login);
+        
+        try {
+            WebClient webClient = webClientBuilder.build();
+            
+            Mono<List> responseMono = webClient
+                    .get()
+                    .uri(accountsServiceUrl + "/api/accounts/" + login)
+                    .retrieve()
+                    .bodyToMono(List.class);
+                    
+            List<Object> response = responseMono.block();
+            
+            if (response != null) {
+                List<AccountDto> accounts = response.stream()
+                        .map(this::convertToAccountDto)
+                        .toList();
+                
+                log.info("Retrieved {} accounts for user: {}", accounts.size(), login);
+                return accounts;
+            }
+            
+            log.warn("No accounts found for user: {}", login);
+            return createEmptyAccountsList();
+            
+        } catch (Exception e) {
+            log.error("Error getting user accounts: {}", e.getMessage(), e);
+            return createEmptyAccountsList();
+        }
+    }
+    
+    private AccountDto convertToAccountDto(Object accountData) {
+        try {
+            if (accountData instanceof java.util.Map) {
+                @SuppressWarnings("unchecked")
+                java.util.Map<String, Object> map = (java.util.Map<String, Object>) accountData;
+                
+                Object idObj = map.get("id");
+                Long id = idObj != null ? ((Number) idObj).longValue() : null;
+                
+                String currencyStr = (String) map.get("currency");
+                Currency currency = Currency.valueOf(currencyStr);
+                
+                Object balanceObj = map.get("balance");
+                BigDecimal balance = balanceObj != null ? new BigDecimal(balanceObj.toString()) : BigDecimal.ZERO;
+                
+                Boolean exists = (Boolean) map.get("exists");
+                
+                return AccountDto.builder()
+                        .id(id)
+                        .currency(currency)
+                        .balance(balance)
+                        .exists(exists != null ? exists : false)
+                        .build();
+            }
+        } catch (Exception e) {
+            log.error("Error converting account data: {}", e.getMessage(), e);
+        }
+        
+        return null;
+    }
+    
+    private List<AccountDto> createEmptyAccountsList() {
+        return List.of(
+            AccountDto.builder().currency(Currency.RUB).balance(BigDecimal.ZERO).exists(false).build(),
+            AccountDto.builder().currency(Currency.USD).balance(BigDecimal.ZERO).exists(false).build(),
+            AccountDto.builder().currency(Currency.CNY).balance(BigDecimal.ZERO).exists(false).build()
+        );
+    }
+    
+    public boolean createAccount(String login, String currencyStr) {
+        log.info("Creating account for user {} in currency {}", login, currencyStr);
+        
+        try {
+            Currency currency = Currency.valueOf(currencyStr);
+            
+            WebClient webClient = webClientBuilder.build();
+            
+            String requestBody = String.format("{\"login\":\"%s\",\"currency\":\"%s\"}", login, currency.name());
+            
+            Mono<String> responseMono = webClient
+                    .post()
+                    .uri(accountsServiceUrl + "/api/accounts/create")
+                    .header("Content-Type", "application/json")
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(String.class);
+                    
+            String response = responseMono.block();
+            
+            if (response != null && response.contains("\"success\":true")) {
+                log.info("Successfully created {} account for user: {}", currency, login);
+                return true;
+            } else {
+                log.warn("Failed to create {} account for user {}: {}", currency, login, response);
+                return false;
+            }
+            
+        } catch (Exception e) {
+            log.error("Error creating account for user {}: {}", login, e.getMessage(), e);
+            return false;
         }
     }
 }

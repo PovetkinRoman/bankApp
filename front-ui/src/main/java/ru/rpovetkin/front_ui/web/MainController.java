@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import ru.rpovetkin.front_ui.dto.AccountDto;
 import ru.rpovetkin.front_ui.dto.ChangePasswordRequest;
 import ru.rpovetkin.front_ui.dto.ChangePasswordResponse;
 import ru.rpovetkin.front_ui.dto.UpdateUserDataRequest;
@@ -17,6 +18,7 @@ import ru.rpovetkin.front_ui.dto.UpdateUserDataResponse;
 import ru.rpovetkin.front_ui.dto.UserDto;
 import ru.rpovetkin.front_ui.service.AccountsService;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Controller
@@ -54,10 +56,8 @@ public class MainController {
             model.addAttribute("birthdate", "");
         }
         
-        // Здесь должны быть добавлены реальные данные:
-        // - accounts (счета пользователя)
-        // - currency (доступные валюты)
-        // - users (список пользователей для переводов)
+        // Добавляем счета пользователя
+        addAccountsToModel(model, username);
         
         return "main";
     }
@@ -120,6 +120,9 @@ public class MainController {
             model.addAttribute("birthdate", "");
         }
         
+        // Добавляем счета пользователя
+        addAccountsToModel(model, username);
+        
         return "main";
     }
     
@@ -128,6 +131,7 @@ public class MainController {
             @PathVariable String login,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String birthdate,
+            @RequestParam(required = false) List<String> account,
             Model model) {
         
         log.info("User data update request for user: {}", login);
@@ -143,8 +147,27 @@ public class MainController {
         }
         
         // Проверяем, что хотя бы одно поле заполнено
-        if ((name == null || name.trim().isEmpty()) && (birthdate == null || birthdate.trim().isEmpty())) {
-            model.addAttribute("userAccountsErrors", List.of("Необходимо заполнить хотя бы одно поле"));
+        // Если нет ни данных для обновления, ни счетов для создания
+        boolean hasUserDataToUpdate = (name != null && !name.trim().isEmpty()) || (birthdate != null && !birthdate.trim().isEmpty());
+        boolean hasAccountsToCreate = account != null && !account.isEmpty();
+        
+        if (!hasUserDataToUpdate && !hasAccountsToCreate) {
+            model.addAttribute("userAccountsErrors", List.of("Необходимо заполнить хотя бы одно поле или выбрать счета для создания"));
+            return loadMainPageWithUserData(model, currentUser);
+        }
+        
+        // Сначала обрабатываем создание счетов
+        if (hasAccountsToCreate) {
+            List<String> accountCreationErrors = createSelectedAccounts(login, account);
+            if (!accountCreationErrors.isEmpty()) {
+                model.addAttribute("userAccountsErrors", accountCreationErrors);
+                return loadMainPageWithUserData(model, currentUser);
+            }
+        }
+        
+        // Если нет данных для обновления пользователя, завершаем здесь
+        if (!hasUserDataToUpdate) {
+            model.addAttribute("userAccountsSuccess", "Счета успешно созданы");
             return loadMainPageWithUserData(model, currentUser);
         }
         
@@ -192,6 +215,42 @@ public class MainController {
         }
         
         return "main";
+    }
+    
+    /**
+     * Добавить счета пользователя в модель для отображения на странице
+     */
+    private void addAccountsToModel(Model model, String username) {
+        try {
+            List<AccountDto> accounts = accountsService.getUserAccounts(username);
+            model.addAttribute("accounts", accounts);
+            log.debug("Added {} accounts to model for user: {}", accounts.size(), username);
+        } catch (Exception e) {
+            log.error("Error getting accounts for user {}: {}", username, e.getMessage(), e);
+            // Добавляем пустой список счетов в случае ошибки
+            model.addAttribute("accounts", accountsService.getUserAccounts(username));
+        }
+    }
+    
+    /**
+     * Создать выбранные пользователем счета
+     */
+    private List<String> createSelectedAccounts(String login, List<String> selectedCurrencies) {
+        List<String> errors = new ArrayList<>();
+        
+        for (String currencyStr : selectedCurrencies) {
+            try {
+                boolean success = accountsService.createAccount(login, currencyStr);
+                if (!success) {
+                    errors.add("Не удалось создать счет в валюте " + currencyStr);
+                }
+            } catch (Exception e) {
+                log.error("Error creating account {} for user {}: {}", currencyStr, login, e.getMessage(), e);
+                errors.add("Ошибка при создании счета в валюте " + currencyStr);
+            }
+        }
+        
+        return errors;
     }
     
 }
