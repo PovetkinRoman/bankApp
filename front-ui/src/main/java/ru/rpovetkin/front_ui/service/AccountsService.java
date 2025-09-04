@@ -8,6 +8,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import ru.rpovetkin.front_ui.dto.AuthenticationRequest;
 import ru.rpovetkin.front_ui.dto.AuthenticationResponse;
+import ru.rpovetkin.front_ui.dto.ChangePasswordRequest;
+import ru.rpovetkin.front_ui.dto.ChangePasswordResponse;
 import ru.rpovetkin.front_ui.dto.UserDto;
 import ru.rpovetkin.front_ui.dto.UserRegistrationRequest;
 import ru.rpovetkin.front_ui.dto.UserRegistrationResponse;
@@ -97,6 +99,36 @@ public class AccountsService {
         } catch (Exception e) {
             log.error("Error getting user by login: {}", e.getMessage(), e);
             return null;
+        }
+    }
+    
+    public ChangePasswordResponse changePassword(ChangePasswordRequest request) {
+        log.info("Sending change password request for user: {}", request.getLogin());
+        
+        try {
+            WebClient webClient = webClientBuilder.build();
+            
+            Mono<ChangePasswordResponse> responseMono = webClient
+                    .post()
+                    .uri(accountsServiceUrl + "/api/users/change-password")
+                    .bodyValue(request)
+                    .retrieve()
+                    .bodyToMono(ChangePasswordResponse.class)
+                    .onErrorReturn(ChangePasswordResponse.builder()
+                            .success(false)
+                            .message("Service unavailable")
+                            .build());
+                            
+            ChangePasswordResponse response = responseMono.block();
+            log.info("Received change password response for user {}: {}", request.getLogin(), response.isSuccess());
+            return response;
+            
+        } catch (Exception e) {
+            log.error("Error changing password: {}", e.getMessage(), e);
+            return ChangePasswordResponse.builder()
+                    .success(false)
+                    .message("Service unavailable")
+                    .build();
         }
     }
 }

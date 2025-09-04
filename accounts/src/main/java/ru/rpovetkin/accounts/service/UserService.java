@@ -2,9 +2,11 @@ package ru.rpovetkin.accounts.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.rpovetkin.accounts.dto.ChangePasswordRequest;
+import ru.rpovetkin.accounts.dto.ChangePasswordResponse;
 import ru.rpovetkin.accounts.dto.UserRegistrationRequest;
 import ru.rpovetkin.accounts.dto.UserRegistrationResponse;
 import ru.rpovetkin.accounts.entity.User;
@@ -21,7 +23,7 @@ import java.util.Optional;
 public class UserService {
     
     private final UserRepository userRepository;
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final PasswordEncoder passwordEncoder;
     
     @Transactional
     public UserRegistrationResponse registerUser(UserRegistrationRequest request) {
@@ -110,5 +112,68 @@ public class UserService {
         return userRepository.findByLogin(login)
                 .map(user -> passwordEncoder.matches(password, user.getPasswordHash()))
                 .orElse(false);
+    }
+    
+    @Transactional
+    public ChangePasswordResponse changePassword(ChangePasswordRequest request) {
+        log.info("Attempting to change password for user: {}", request.getLogin());
+        
+        List<String> errors = validateChangePasswordRequest(request);
+        
+        if (!errors.isEmpty()) {
+            return ChangePasswordResponse.builder()
+                    .success(false)
+                    .message("Validation failed")
+                    .errors(errors)
+                    .build();
+        }
+        
+        try {
+            Optional<User> userOpt = userRepository.findByLogin(request.getLogin());
+            if (userOpt.isEmpty()) {
+                return ChangePasswordResponse.builder()
+                        .success(false)
+                        .message("User not found")
+                        .errors(List.of("User not found"))
+                        .build();
+            }
+            
+            User user = userOpt.get();
+            user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+            userRepository.save(user);
+            
+            log.info("Successfully changed password for user: {}", request.getLogin());
+            
+            return ChangePasswordResponse.builder()
+                    .success(true)
+                    .message("Password changed successfully")
+                    .build();
+                    
+        } catch (Exception e) {
+            log.error("Error changing password for user {}: {}", request.getLogin(), e.getMessage(), e);
+            return ChangePasswordResponse.builder()
+                    .success(false)
+                    .message("Password change failed")
+                    .errors(List.of("Internal server error"))
+                    .build();
+        }
+    }
+    
+    private List<String> validateChangePasswordRequest(ChangePasswordRequest request) {
+        List<String> errors = new ArrayList<>();
+        
+        if (request.getLogin() == null || request.getLogin().trim().isEmpty()) {
+            errors.add("Login is required");
+        }
+        
+        if (request.getNewPassword() == null || request.getNewPassword().length() < 6) {
+            errors.add("Password must be at least 6 characters long");
+        }
+        
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            errors.add("Passwords do not match");
+        }
+        
+        return errors;
     }
 }

@@ -6,6 +6,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.rpovetkin.accounts.dto.AuthenticationRequest;
 import ru.rpovetkin.accounts.dto.AuthenticationResponse;
+import ru.rpovetkin.accounts.dto.ChangePasswordRequest;
+import ru.rpovetkin.accounts.dto.ChangePasswordResponse;
 import ru.rpovetkin.accounts.dto.UserDto;
 import ru.rpovetkin.accounts.dto.UserRegistrationRequest;
 import ru.rpovetkin.accounts.dto.UserRegistrationResponse;
@@ -77,6 +79,19 @@ public class UserController {
                     .success(false)
                     .message("Invalid credentials")
                     .build());
+        }
+    }
+    
+    @PostMapping("/change-password")
+    public ResponseEntity<ChangePasswordResponse> changePassword(@RequestBody ChangePasswordRequest request) {
+        log.info("Password change request for user: {}", request.getLogin());
+        
+        ChangePasswordResponse response = userService.changePassword(request);
+        
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.badRequest().body(response);
         }
     }
 }
