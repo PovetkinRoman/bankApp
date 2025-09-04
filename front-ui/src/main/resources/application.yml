@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: front-ui
+
+accounts:
+  service:
+    url: http://${ACCOUNTS_HOST:localhost}:${ACCOUNTS_PORT:8081}

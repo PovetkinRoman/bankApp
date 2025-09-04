@@ -1,0 +1,82 @@
+package ru.rpovetkin.accounts.web;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import ru.rpovetkin.accounts.dto.AuthenticationRequest;
+import ru.rpovetkin.accounts.dto.AuthenticationResponse;
+import ru.rpovetkin.accounts.dto.UserDto;
+import ru.rpovetkin.accounts.dto.UserRegistrationRequest;
+import ru.rpovetkin.accounts.dto.UserRegistrationResponse;
+import ru.rpovetkin.accounts.service.UserService;
+
+@RestController
+@RequestMapping("/api/users")
+@RequiredArgsConstructor
+@Slf4j
+@CrossOrigin(origins = "*") // Для взаимодействия между модулями
+public class UserController {
+    
+    private final UserService userService;
+    
+    @PostMapping("/register")
+    public ResponseEntity<UserRegistrationResponse> registerUser(@RequestBody UserRegistrationRequest request) {
+        log.info("Received registration request for login: {}", request.getLogin());
+        
+        UserRegistrationResponse response = userService.registerUser(request);
+        
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+    
+    @GetMapping("/check/{login}")
+    public ResponseEntity<Boolean> checkUserExists(@PathVariable String login) {
+        boolean exists = userService.findByLogin(login).isPresent();
+        return ResponseEntity.ok(exists);
+    }
+    
+    @GetMapping("/{login}")
+    public ResponseEntity<UserDto> getUserByLogin(@PathVariable String login) {
+        return userService.findByLogin(login)
+                .map(user -> ResponseEntity.ok(UserDto.builder()
+                        .id(user.getId())
+                        .login(user.getLogin())
+                        .name(user.getName())
+                        .birthdate(user.getBirthdate())
+                        .build()))
+                .orElse(ResponseEntity.notFound().build());
+    }
+    
+    @PostMapping("/authenticate")
+    public ResponseEntity<AuthenticationResponse> authenticateUser(@RequestBody AuthenticationRequest request) {
+        log.info("Authentication attempt for user: {}", request.getLogin());
+        
+        boolean isAuthenticated = userService.authenticateUser(request.getLogin(), request.getPassword());
+        
+        if (isAuthenticated) {
+            UserDto userDto = userService.findByLogin(request.getLogin())
+                    .map(user -> UserDto.builder()
+                            .id(user.getId())
+                            .login(user.getLogin())
+                            .name(user.getName())
+                            .birthdate(user.getBirthdate())
+                            .build())
+                    .orElse(null);
+                    
+            return ResponseEntity.ok(AuthenticationResponse.builder()
+                    .success(true)
+                    .message("Authentication successful")
+                    .user(userDto)
+                    .build());
+        } else {
+            return ResponseEntity.badRequest().body(AuthenticationResponse.builder()
+                    .success(false)
+                    .message("Invalid credentials")
+                    .build());
+        }
+    }
+}
