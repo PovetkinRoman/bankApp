@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import ru.rpovetkin.front_ui.dto.ChangePasswordRequest;
 import ru.rpovetkin.front_ui.dto.ChangePasswordResponse;
+import ru.rpovetkin.front_ui.dto.UpdateUserDataRequest;
+import ru.rpovetkin.front_ui.dto.UpdateUserDataResponse;
 import ru.rpovetkin.front_ui.dto.UserDto;
 import ru.rpovetkin.front_ui.service.AccountsService;
 
@@ -116,6 +118,77 @@ public class MainController {
             model.addAttribute("login", username);
             model.addAttribute("name", "Пользователь");
             model.addAttribute("birthdate", "");
+        }
+        
+        return "main";
+    }
+    
+    @PostMapping("/user/{login}/editUserAccounts")
+    public String editUserAccounts(
+            @PathVariable String login,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String birthdate,
+            Model model) {
+        
+        log.info("User data update request for user: {}", login);
+        
+        // Проверяем, что текущий пользователь изменяет свои собственные данные
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUser = authentication.getName();
+        
+        if (!currentUser.equals(login)) {
+            log.warn("User {} attempted to update data for user {}", currentUser, login);
+            model.addAttribute("userAccountsErrors", List.of("Вы можете изменить только свои данные"));
+            return loadMainPageWithUserData(model, currentUser);
+        }
+        
+        // Проверяем, что хотя бы одно поле заполнено
+        if ((name == null || name.trim().isEmpty()) && (birthdate == null || birthdate.trim().isEmpty())) {
+            model.addAttribute("userAccountsErrors", List.of("Необходимо заполнить хотя бы одно поле"));
+            return loadMainPageWithUserData(model, currentUser);
+        }
+        
+        try {
+            // Получаем текущие данные пользователя
+            UserDto currentUserData = accountsService.getUserByLogin(login);
+            if (currentUserData == null) {
+                model.addAttribute("userAccountsErrors", List.of("Пользователь не найден"));
+                return loadMainPageWithUserData(model, currentUser);
+            }
+            
+            // Используем текущие данные если новые не указаны
+            String updatedName = (name != null && !name.trim().isEmpty()) ? name.trim() : currentUserData.getName();
+            String updatedBirthdate = (birthdate != null && !birthdate.trim().isEmpty()) ? birthdate : currentUserData.getBirthdate().toString();
+            
+            UpdateUserDataRequest request = UpdateUserDataRequest.builder()
+                    .login(login)
+                    .name(updatedName)
+                    .birthdate(updatedBirthdate)
+                    .build();
+            
+            UpdateUserDataResponse response = accountsService.updateUserData(request);
+            
+            if (response.isSuccess()) {
+                log.info("User data updated successfully for user: {}", login);
+                model.addAttribute("userAccountsSuccess", "Данные успешно обновлены");
+                // Обновляем данные пользователя в модели
+                if (response.getUser() != null) {
+                    model.addAttribute("login", response.getUser().getLogin());
+                    model.addAttribute("name", response.getUser().getName());
+                    model.addAttribute("birthdate", response.getUser().getBirthdate());
+                } else {
+                    return loadMainPageWithUserData(model, currentUser);
+                }
+            } else {
+                log.warn("User data update failed for user {}: {}", login, response.getMessage());
+                model.addAttribute("userAccountsErrors", response.getErrors());
+                return loadMainPageWithUserData(model, currentUser);
+            }
+            
+        } catch (Exception e) {
+            log.error("Error updating user data: {}", e.getMessage(), e);
+            model.addAttribute("userAccountsErrors", List.of("Произошла ошибка при обновлении данных"));
+            return loadMainPageWithUserData(model, currentUser);
         }
         
         return "main";

@@ -7,6 +7,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.rpovetkin.accounts.dto.ChangePasswordRequest;
 import ru.rpovetkin.accounts.dto.ChangePasswordResponse;
+import ru.rpovetkin.accounts.dto.UpdateUserDataRequest;
+import ru.rpovetkin.accounts.dto.UpdateUserDataResponse;
+import ru.rpovetkin.accounts.dto.UserDto;
 import ru.rpovetkin.accounts.dto.UserRegistrationRequest;
 import ru.rpovetkin.accounts.dto.UserRegistrationResponse;
 import ru.rpovetkin.accounts.entity.User;
@@ -172,6 +175,92 @@ public class UserService {
         
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             errors.add("Passwords do not match");
+        }
+        
+        return errors;
+    }
+    
+    @Transactional
+    public UpdateUserDataResponse updateUserData(UpdateUserDataRequest request) {
+        log.info("Attempting to update user data for: {}", request.getLogin());
+        
+        List<String> errors = validateUpdateUserDataRequest(request);
+        
+        if (!errors.isEmpty()) {
+            return UpdateUserDataResponse.builder()
+                    .success(false)
+                    .message("Validation failed")
+                    .errors(errors)
+                    .build();
+        }
+        
+        try {
+            Optional<User> userOpt = userRepository.findByLogin(request.getLogin());
+            if (userOpt.isEmpty()) {
+                return UpdateUserDataResponse.builder()
+                        .success(false)
+                        .message("User not found")
+                        .errors(List.of("User not found"))
+                        .build();
+            }
+            
+            User user = userOpt.get();
+            user.setName(request.getName());
+            user.setBirthdate(LocalDate.parse(request.getBirthdate()));
+            User savedUser = userRepository.save(user);
+            
+            log.info("Successfully updated user data for: {}", request.getLogin());
+            
+            UserDto userDto = UserDto.builder()
+                    .id(savedUser.getId())
+                    .login(savedUser.getLogin())
+                    .name(savedUser.getName())
+                    .birthdate(savedUser.getBirthdate())
+                    .build();
+            
+            return UpdateUserDataResponse.builder()
+                    .success(true)
+                    .message("User data updated successfully")
+                    .user(userDto)
+                    .build();
+                    
+        } catch (Exception e) {
+            log.error("Error updating user data for {}: {}", request.getLogin(), e.getMessage(), e);
+            return UpdateUserDataResponse.builder()
+                    .success(false)
+                    .message("User data update failed")
+                    .errors(List.of("Internal server error"))
+                    .build();
+        }
+    }
+    
+    private List<String> validateUpdateUserDataRequest(UpdateUserDataRequest request) {
+        List<String> errors = new ArrayList<>();
+        
+        if (request.getLogin() == null || request.getLogin().trim().isEmpty()) {
+            errors.add("Login is required");
+        }
+        
+        if (request.getName() == null || request.getName().trim().isEmpty()) {
+            errors.add("Name is required");
+        }
+        
+        if (request.getBirthdate() == null || request.getBirthdate().trim().isEmpty()) {
+            errors.add("Birthdate is required");
+        } else {
+            try {
+                LocalDate birthdate = LocalDate.parse(request.getBirthdate());
+                LocalDate today = LocalDate.now();
+                LocalDate eighteenYearsAgo = today.minusYears(18);
+                
+                if (birthdate.isAfter(today)) {
+                    errors.add("Birthdate cannot be in the future");
+                } else if (birthdate.isAfter(eighteenYearsAgo)) {
+                    errors.add("User must be at least 18 years old");
+                }
+            } catch (Exception e) {
+                errors.add("Invalid birthdate format. Use YYYY-MM-DD");
+            }
         }
         
         return errors;

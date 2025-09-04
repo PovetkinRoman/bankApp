@@ -10,6 +10,8 @@ import ru.rpovetkin.front_ui.dto.AuthenticationRequest;
 import ru.rpovetkin.front_ui.dto.AuthenticationResponse;
 import ru.rpovetkin.front_ui.dto.ChangePasswordRequest;
 import ru.rpovetkin.front_ui.dto.ChangePasswordResponse;
+import ru.rpovetkin.front_ui.dto.UpdateUserDataRequest;
+import ru.rpovetkin.front_ui.dto.UpdateUserDataResponse;
 import ru.rpovetkin.front_ui.dto.UserDto;
 import ru.rpovetkin.front_ui.dto.UserRegistrationRequest;
 import ru.rpovetkin.front_ui.dto.UserRegistrationResponse;
@@ -126,6 +128,36 @@ public class AccountsService {
         } catch (Exception e) {
             log.error("Error changing password: {}", e.getMessage(), e);
             return ChangePasswordResponse.builder()
+                    .success(false)
+                    .message("Service unavailable")
+                    .build();
+        }
+    }
+    
+    public UpdateUserDataResponse updateUserData(UpdateUserDataRequest request) {
+        log.info("Sending update user data request for user: {}", request.getLogin());
+        
+        try {
+            WebClient webClient = webClientBuilder.build();
+            
+            Mono<UpdateUserDataResponse> responseMono = webClient
+                    .post()
+                    .uri(accountsServiceUrl + "/api/users/update-data")
+                    .bodyValue(request)
+                    .retrieve()
+                    .bodyToMono(UpdateUserDataResponse.class)
+                    .onErrorReturn(UpdateUserDataResponse.builder()
+                            .success(false)
+                            .message("Service unavailable")
+                            .build());
+                            
+            UpdateUserDataResponse response = responseMono.block();
+            log.info("Received update user data response for user {}: {}", request.getLogin(), response.isSuccess());
+            return response;
+            
+        } catch (Exception e) {
+            log.error("Error updating user data: {}", e.getMessage(), e);
+            return UpdateUserDataResponse.builder()
                     .success(false)
                     .message("Service unavailable")
                     .build();

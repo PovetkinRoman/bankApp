@@ -8,6 +8,8 @@ import ru.rpovetkin.accounts.dto.AuthenticationRequest;
 import ru.rpovetkin.accounts.dto.AuthenticationResponse;
 import ru.rpovetkin.accounts.dto.ChangePasswordRequest;
 import ru.rpovetkin.accounts.dto.ChangePasswordResponse;
+import ru.rpovetkin.accounts.dto.UpdateUserDataRequest;
+import ru.rpovetkin.accounts.dto.UpdateUserDataResponse;
 import ru.rpovetkin.accounts.dto.UserDto;
 import ru.rpovetkin.accounts.dto.UserRegistrationRequest;
 import ru.rpovetkin.accounts.dto.UserRegistrationResponse;
@@ -87,6 +89,19 @@ public class UserController {
         log.info("Password change request for user: {}", request.getLogin());
         
         ChangePasswordResponse response = userService.changePassword(request);
+        
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+    
+    @PostMapping("/update-data")
+    public ResponseEntity<UpdateUserDataResponse> updateUserData(@RequestBody UpdateUserDataRequest request) {
+        log.info("User data update request for user: {}", request.getLogin());
+        
+        UpdateUserDataResponse response = userService.updateUserData(request);
         
         if (response.isSuccess()) {
             return ResponseEntity.ok(response);
