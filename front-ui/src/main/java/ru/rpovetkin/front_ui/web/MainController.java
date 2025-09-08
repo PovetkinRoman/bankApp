@@ -11,12 +11,15 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import ru.rpovetkin.front_ui.dto.AccountDto;
+import ru.rpovetkin.front_ui.dto.CashOperationResponse;
 import ru.rpovetkin.front_ui.dto.ChangePasswordRequest;
 import ru.rpovetkin.front_ui.dto.ChangePasswordResponse;
+import ru.rpovetkin.front_ui.dto.Currency;
 import ru.rpovetkin.front_ui.dto.UpdateUserDataRequest;
 import ru.rpovetkin.front_ui.dto.UpdateUserDataResponse;
 import ru.rpovetkin.front_ui.dto.UserDto;
 import ru.rpovetkin.front_ui.service.AccountsService;
+import ru.rpovetkin.front_ui.service.CashService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +30,7 @@ import java.util.List;
 public class MainController {
     
     private final AccountsService accountsService;
+    private final CashService cashService;
     
     @GetMapping("/main")
     public String mainPage(Model model) {
@@ -58,6 +62,9 @@ public class MainController {
         
         // Добавляем счета пользователя
         addAccountsToModel(model, username);
+        
+        // Добавляем данные о доступных валютах для наличных операций
+        addCashDataToModel(model, username);
         
         return "main";
     }
@@ -122,6 +129,9 @@ public class MainController {
         
         // Добавляем счета пользователя
         addAccountsToModel(model, username);
+        
+        // Добавляем данные о доступных валютах для наличных операций
+        addCashDataToModel(model, username);
         
         return "main";
     }
@@ -251,6 +261,85 @@ public class MainController {
         }
         
         return errors;
+    }
+    
+    /**
+     * Операции с наличными (пополнение/снятие)
+     */
+    @PostMapping("/user/{login}/cash")
+    public String cashOperation(
+            @PathVariable String login,
+            @RequestParam String currency,
+            @RequestParam String amount,
+            @RequestParam String operation, // "deposit" или "withdraw"
+            Model model) {
+
+        log.info("Cash operation request: {} {} {} for user {}", operation, amount, currency, login);
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUser = authentication.getName();
+
+        if (!currentUser.equals(login)) {
+            log.warn("User {} attempted to perform cash operation for user {}", currentUser, login);
+            model.addAttribute("cashErrors", List.of("Вы можете выполнять операции только со своими средствами"));
+            return loadMainPageWithUserData(model, currentUser);
+        }
+
+        try {
+            Currency curr = Currency.valueOf(currency.toUpperCase());
+            java.math.BigDecimal amt = new java.math.BigDecimal(amount);
+            
+            if (amt.compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                model.addAttribute("cashErrors", List.of("Сумма должна быть положительной"));
+                return loadMainPageWithUserData(model, currentUser);
+            }
+
+            CashOperationResponse response;
+            if ("deposit".equals(operation)) {
+                response = cashService.deposit(login, curr, amt);
+            } else if ("withdraw".equals(operation)) {
+                response = cashService.withdraw(login, curr, amt);
+            } else {
+                model.addAttribute("cashErrors", List.of("Неизвестная операция"));
+                return loadMainPageWithUserData(model, currentUser);
+            }
+
+            if (response.isSuccess()) {
+                log.info("Cash operation {} successful for user: {}", operation, login);
+                String message = "deposit".equals(operation) ? "Средства успешно внесены" : "Средства успешно сняты";
+                model.addAttribute("cashSuccess", message);
+            } else {
+                log.warn("Cash operation {} failed for user {}: {}", operation, login, response.getMessage());
+                model.addAttribute("cashErrors", 
+                    response.getErrors() != null ? response.getErrors() : List.of(response.getMessage()));
+            }
+
+        } catch (NumberFormatException e) {
+            log.error("Invalid amount: {}", amount);
+            model.addAttribute("cashErrors", List.of("Неверный формат суммы"));
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid currency: {}", currency);
+            model.addAttribute("cashErrors", List.of("Неизвестная валюта"));
+        } catch (Exception e) {
+            log.error("Error during cash operation: {}", e.getMessage(), e);
+            model.addAttribute("cashErrors", List.of("Произошла ошибка при выполнении операции"));
+        }
+
+        return loadMainPageWithUserData(model, currentUser);
+    }
+    
+    /**
+     * Добавить данные о доступных валютах для наличных операций в модель
+     */
+    private void addCashDataToModel(Model model, String username) {
+        try {
+            List<AccountDto> availableCurrencies = cashService.getAvailableCurrencies(username);
+            model.addAttribute("cashCurrencies", availableCurrencies);
+            log.debug("Added {} available currencies for cash operations for user: {}", availableCurrencies.size(), username);
+        } catch (Exception e) {
+            log.error("Error getting cash currencies for user {}: {}", username, e.getMessage(), e);
+            model.addAttribute("cashCurrencies", List.of());
+        }
     }
     
 }

@@ -14,6 +14,7 @@
 	<modules>
 		<module>front-ui</module>
 		<module>accounts</module>
+		<module>cash</module>
 	</modules>
 
 	<parent>

@@ -1,0 +1,15 @@
+server:
+  port: 8082
+  
+spring:
+  application:
+    name: cash-app
+    
+logging:
+  level:
+    ru.rpovetkin.cash: DEBUG
+    
+# Конфигурация для интеграции с другими сервисами
+services:
+  accounts:
+    url: ${ACCOUNTS_SERVICE_URL:http://localhost:8081}

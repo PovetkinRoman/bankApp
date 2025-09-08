@@ -105,24 +105,30 @@
     <tr><td style="padding:2px;">
         <form method="post" th:action="${'/user/'+login+'/cash'}">
             <table style="width:100%;margin-left:auto;margin-right:auto;border-radius:2%;padding:10px;background-color:whitesmoke;">
+                <tr th:if="${cashSuccess!=null}">
+                    <td colspan="4" style="color:green;" th:text="${cashSuccess}"/>
+                </tr>
                 <tr th:if="${cashErrors!=null}" th:each="cashError : ${cashErrors}">
-                    <td style="color:red;" th:text="${cashError}"/>
+                    <td colspan="4" style="color:red;" th:text="${cashError}"/>
                 </tr>
                 <tr>
                     <td style="font-weight:bold;">Наличные</td>
                     <td>
                         Валюта
-                        <select name="currency">
-                            <option th:each="eachCurrency : ${currency}" th:value="${eachCurrency.name()}" th:text="${eachCurrency.getTitle()}"/>
+                        <select name="currency" required>
+                            <option value="">Выберите валюту</option>
+                            <option th:each="cashCurrency : ${cashCurrencies}" 
+                                    th:value="${cashCurrency.currency.name()}" 
+                                    th:text="${cashCurrency.currency.title + ' (' + cashCurrency.balance + ' ' + cashCurrency.currency.name() + ')'}"/>
                         </select>
                     </td>
                     <td>
-                        <input name="value" type="number" style="width:100%" required/>
+                        Сумма:
+                        <input name="amount" type="number" min="0.01" step="0.01" style="width:100%" required/>
                     </td>
-                    <td>
                     <td style="text-align:right">
-                        <button name="action" value="PUT">Положить</button>
-                        <button name="action" value="GET">Снять</button>
+                        <button name="operation" value="deposit" type="submit">Положить</button>
+                        <button name="operation" value="withdraw" type="submit">Снять</button>
                     </td>
                 </tr>
             </table>
