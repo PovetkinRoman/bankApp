@@ -137,21 +137,30 @@
     <tr><td style="padding:2px;">
         <form method="post" th:action="${'/user/'+login+'/transfer'}">
             <table style="width:100%;margin-left:auto;margin-right:auto;border-radius:2%;padding:10px;background-color:whitesmoke;">
+                <tr th:if="${transferSuccess!=null}">
+                    <td colspan="5" style="color:green;" th:text="${transferSuccess}"/>
+                </tr>
                 <tr th:if="${transferErrors!=null}" th:each="transferError : ${transferErrors}">
-                    <td style="color:red;" th:text="${transferError}"/>
+                    <td colspan="5" style="color:red;" th:text="${transferError}"/>
                 </tr>
                 <tr>
                     <td style="font-weight:bold;">Перевод себе</td>
                     <td>
                         Со счета
-                        <select name="from_currency">
-                            <option th:each="eachCurrency : ${currency}" th:value="${eachCurrency.name()}" th:text="${eachCurrency.getTitle()}"/>
+                        <select name="from_currency" required>
+                            <option value="">Выберите счет</option>
+                            <option th:each="account : ${transferAccounts}" 
+                                    th:value="${account.currency.name()}" 
+                                    th:text="${account.currency.title + ' (' + account.balance + ' ' + account.currency.name() + ')'}"/>
                         </select>
                     </td>
                     <td>
                         На счет
-                        <select name="to_currency">
-                            <option th:each="eachCurrency : ${currency}" th:value="${eachCurrency.name()}" th:text="${eachCurrency.getTitle()}"/>
+                        <select name="to_currency" required>
+                            <option value="">Выберите счет</option>
+                            <option th:each="account : ${transferAccounts}" 
+                                    th:value="${account.currency.name()}" 
+                                    th:text="${account.currency.title + ' (' + account.balance + ' ' + account.currency.name() + ')'}"/>
                         </select>
                     </td>
                     <td>
@@ -175,13 +184,17 @@
                     <td style="font-weight:bold;">Перевод другому</td>
                     <td>
                         Со счета
-                        <select name="from_currency">
-                            <option th:each="eachCurrency : ${currency}" th:value="${eachCurrency.name()}" th:text="${eachCurrency.getTitle()}"/>
+                        <select name="from_currency" required>
+                            <option value="">Выберите счет</option>
+                            <option th:each="account : ${transferAccounts}" 
+                                    th:value="${account.currency.name()}" 
+                                    th:text="${account.currency.title + ' (' + account.balance + ' ' + account.currency.name() + ')'}"/>
                         </select>
                     </td>
                     <td>
                         На счет
-                        <select name="to_currency">
+                        <select name="to_currency" required>
+                            <option value="">Выберите валюту</option>
                             <option th:each="eachCurrency : ${currency}" th:value="${eachCurrency.name()}" th:text="${eachCurrency.getTitle()}"/>
                         </select>
                     </td>
@@ -190,7 +203,8 @@
                     </td>
                     <td>
                         Кому
-                        <select name="to_login">
+                        <select name="to_login" required>
+                            <option value="">Выберите получателя</option>
                             <option th:each="user : ${users}" th:value="${user.getLogin()}" th:text="${user.getName()}"/>
                         </select>
                     </td>

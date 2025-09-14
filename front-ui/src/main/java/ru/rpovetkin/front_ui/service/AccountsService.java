@@ -11,6 +11,8 @@ import ru.rpovetkin.front_ui.dto.AuthenticationResponse;
 import ru.rpovetkin.front_ui.dto.ChangePasswordRequest;
 import ru.rpovetkin.front_ui.dto.ChangePasswordResponse;
 import ru.rpovetkin.front_ui.dto.AccountDto;
+import ru.rpovetkin.front_ui.dto.AccountOperationRequest;
+import ru.rpovetkin.front_ui.dto.AccountOperationResponse;
 import ru.rpovetkin.front_ui.dto.Currency;
 import ru.rpovetkin.front_ui.dto.UpdateUserDataRequest;
 import ru.rpovetkin.front_ui.dto.UpdateUserDataResponse;
@@ -109,6 +111,41 @@ public class AccountsService {
         }
     }
     
+    public List<UserDto> getAllUsers() {
+        log.info("Getting all users for transfer recipients");
+        
+        try {
+            WebClient webClient = webClientBuilder.build();
+            
+            @SuppressWarnings("rawtypes")
+            Mono<List> responseMono = webClient
+                    .get()
+                    .uri(accountsServiceUrl + "/api/users")
+                    .retrieve()
+                    .bodyToMono(List.class);
+                    
+            @SuppressWarnings("unchecked")
+            List<Object> response = responseMono.block();
+            
+            if (response != null) {
+                List<UserDto> users = response.stream()
+                        .map(this::convertToUserDto)
+                        .filter(user -> user != null)
+                        .toList();
+                
+                log.info("Retrieved {} users for transfer recipients", users.size());
+                return users;
+            }
+            
+            log.warn("No users found");
+            return List.of();
+            
+        } catch (Exception e) {
+            log.error("Error getting all users: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+    
     public ChangePasswordResponse changePassword(ChangePasswordRequest request) {
         log.info("Sending change password request for user: {}", request.getLogin());
         
@@ -175,12 +212,14 @@ public class AccountsService {
         try {
             WebClient webClient = webClientBuilder.build();
             
+            @SuppressWarnings("rawtypes")
             Mono<List> responseMono = webClient
                     .get()
                     .uri(accountsServiceUrl + "/api/accounts/" + login)
                     .retrieve()
                     .bodyToMono(List.class);
                     
+            @SuppressWarnings("unchecked")
             List<Object> response = responseMono.block();
             
             if (response != null) {
@@ -232,6 +271,46 @@ public class AccountsService {
         return null;
     }
     
+    private UserDto convertToUserDto(Object userData) {
+        try {
+            if (userData instanceof java.util.Map) {
+                @SuppressWarnings("unchecked")
+                java.util.Map<String, Object> map = (java.util.Map<String, Object>) userData;
+                
+                Object idObj = map.get("id");
+                Long id = idObj != null ? ((Number) idObj).longValue() : null;
+                
+                String login = (String) map.get("login");
+                String name = (String) map.get("name");
+                
+                Object birthdateObj = map.get("birthdate");
+                java.time.LocalDate birthdate = null;
+                if (birthdateObj != null) {
+                    if (birthdateObj instanceof String) {
+                        birthdate = java.time.LocalDate.parse((String) birthdateObj);
+                    } else if (birthdateObj instanceof java.util.List) {
+                        @SuppressWarnings("unchecked")
+                        java.util.List<Integer> dateList = (java.util.List<Integer>) birthdateObj;
+                        if (dateList.size() >= 3) {
+                            birthdate = java.time.LocalDate.of(dateList.get(0), dateList.get(1), dateList.get(2));
+                        }
+                    }
+                }
+                
+                return UserDto.builder()
+                        .id(id)
+                        .login(login)
+                        .name(name)
+                        .birthdate(birthdate != null ? birthdate.toString() : null)
+                        .build();
+            }
+        } catch (Exception e) {
+            log.error("Error converting user data: {}", e.getMessage(), e);
+        }
+        
+        return null;
+    }
+    
     private List<AccountDto> createEmptyAccountsList() {
         return List.of(
             AccountDto.builder().currency(Currency.RUB).balance(BigDecimal.ZERO).exists(false).build(),
@@ -271,6 +350,58 @@ public class AccountsService {
         } catch (Exception e) {
             log.error("Error creating account for user {}: {}", login, e.getMessage(), e);
             return false;
+        }
+    }
+    
+    /**
+     * Выполнить операцию со счетом (пополнение или снятие)
+     */
+    public AccountOperationResponse performAccountOperation(String login, Currency currency, BigDecimal amount, String operation) {
+        log.info("Performing account operation: {} {} {} for user {}", operation, amount, currency, login);
+        
+        try {
+            WebClient webClient = webClientBuilder.build();
+            
+            AccountOperationRequest request = AccountOperationRequest.builder()
+                    .login(login)
+                    .currency(currency)
+                    .amount(amount.abs()) // Всегда используем положительную сумму
+                    .build();
+            
+            String endpoint;
+            if (amount.compareTo(BigDecimal.ZERO) > 0) {
+                endpoint = "/api/accounts/deposit";
+            } else {
+                endpoint = "/api/accounts/withdraw";
+            }
+            
+            Mono<AccountOperationResponse> responseMono = webClient
+                    .post()
+                    .uri(accountsServiceUrl + endpoint)
+                    .bodyValue(request)
+                    .retrieve()
+                    .bodyToMono(AccountOperationResponse.class)
+                    .onErrorReturn(AccountOperationResponse.builder()
+                            .success(false)
+                            .message("Service unavailable")
+                            .build());
+                            
+            AccountOperationResponse response = responseMono.block();
+            
+            log.info("Account operation {} result for user {}: {}", 
+                    operation, login, response != null ? response.isSuccess() : false);
+            
+            return response != null ? response : AccountOperationResponse.builder()
+                    .success(false)
+                    .message("No response from service")
+                    .build();
+            
+        } catch (Exception e) {
+            log.error("Error performing account operation {} for user {}: {}", operation, login, e.getMessage(), e);
+            return AccountOperationResponse.builder()
+                    .success(false)
+                    .message("Error: " + e.getMessage())
+                    .build();
         }
     }
 }

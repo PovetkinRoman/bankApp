@@ -13,8 +13,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "exchange_rates", 
-       uniqueConstraints = @UniqueConstraint(columnNames = {"currency", "is_active"}))
+@Table(name = "exchange_rates")
 @Data
 @Builder
 @NoArgsConstructor

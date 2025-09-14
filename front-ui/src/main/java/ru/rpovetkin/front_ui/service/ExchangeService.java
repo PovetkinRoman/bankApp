@@ -7,9 +7,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import ru.rpovetkin.front_ui.dto.CurrencyRateDisplayDto;
-import ru.rpovetkin.front_ui.dto.ExchangeRateDto;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,12 +33,15 @@ public class ExchangeService {
         try {
             WebClient webClient = webClientBuilder.build();
 
+
+            @SuppressWarnings("rawtypes")
             Mono<List> responseMono = webClient
                     .get()
                     .uri(exchangeServiceUrl + "/api/exchange/rates")
                     .retrieve()
                     .bodyToMono(List.class);
 
+            @SuppressWarnings("unchecked")
             List<Object> response = responseMono.block();
             
             if (response != null) {
@@ -60,8 +63,17 @@ public class ExchangeService {
         List<CurrencyRateDisplayDto> displayRates = new ArrayList<>();
 
         try {
+            // Добавляем RUB как базовую валюту с курсом 1.00
+            CurrencyRateDisplayDto rubRate = CurrencyRateDisplayDto.builder()
+                    .title("Российский рубль")
+                    .name("RUB")
+                    .value("1.00")
+                    .build();
+            displayRates.add(rubRate);
+
             for (Object rateObj : exchangeRates) {
                 if (rateObj instanceof Map) {
+                    @SuppressWarnings("unchecked")
                     Map<String, Object> rateMap = (Map<String, Object>) rateObj;
                     
                     String fromCurrency = (String) rateMap.get("fromCurrency");
@@ -113,7 +125,7 @@ public class ExchangeService {
         try {
             if (rateValue instanceof Number) {
                 BigDecimal rate = new BigDecimal(rateValue.toString());
-                return rate.setScale(2, BigDecimal.ROUND_HALF_UP).toPlainString();
+                return rate.setScale(2, RoundingMode.HALF_UP).toPlainString();
             }
             return rateValue.toString();
         } catch (Exception e) {
@@ -126,6 +138,12 @@ public class ExchangeService {
      */
     private List<CurrencyRateDisplayDto> getDefaultRates() {
         List<CurrencyRateDisplayDto> defaultRates = new ArrayList<>();
+        
+        defaultRates.add(CurrencyRateDisplayDto.builder()
+                .title("Российский рубль")
+                .name("RUB")
+                .value("1.00")
+                .build());
         
         defaultRates.add(CurrencyRateDisplayDto.builder()
                 .title("Доллар США")

@@ -15,6 +15,8 @@ import ru.rpovetkin.accounts.dto.UserRegistrationRequest;
 import ru.rpovetkin.accounts.dto.UserRegistrationResponse;
 import ru.rpovetkin.accounts.service.UserService;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
@@ -53,6 +55,13 @@ public class UserController {
                         .birthdate(user.getBirthdate())
                         .build()))
                 .orElse(ResponseEntity.notFound().build());
+    }
+    
+    @GetMapping
+    public ResponseEntity<List<UserDto>> getAllUsers() {
+        log.info("Getting all users for transfer recipients");
+        List<UserDto> users = userService.getAllUsers();
+        return ResponseEntity.ok(users);
     }
     
     @PostMapping("/authenticate")

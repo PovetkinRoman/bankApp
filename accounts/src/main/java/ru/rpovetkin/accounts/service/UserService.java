@@ -111,6 +111,18 @@ public class UserService {
         return userRepository.findByLogin(login);
     }
     
+    public List<UserDto> getAllUsers() {
+        log.info("Getting all users for transfer recipients");
+        return userRepository.findAll().stream()
+                .map(user -> UserDto.builder()
+                        .id(user.getId())
+                        .login(user.getLogin())
+                        .name(user.getName())
+                        .birthdate(user.getBirthdate())
+                        .build())
+                .toList();
+    }
+    
     public boolean authenticateUser(String login, String password) {
         return userRepository.findByLogin(login)
                 .map(user -> passwordEncoder.matches(password, user.getPasswordHash()))
