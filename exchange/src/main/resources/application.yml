@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: exchange
+
+server:
+  port: 8084

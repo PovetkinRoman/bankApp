@@ -12,33 +12,6 @@ services:
       - POSTGRES_USER=root
       - POSTGRES_PASSWORD=root
 
-  #  # Redis сервис для кеширования
-  #  redis:
-  #    image: redis:7-alpine
-  #    ports:
-  #      - "6379:6379"
-  #    volumes:
-  #      - redis_data:/data
-  #    command: redis-server --appendonly yes
-
-  #  online-store-app:
-  #    build:
-  #      context: .
-  #      dockerfile: online-store/dockerfile
-  #    ports:
-  #      - "8080:8080"
-  #    depends_on:
-  #      - db
-  #      - redis
-  #    environment:
-  #      - DB_HOST=db
-  #      - DB_PORT=5432
-  #      - DB_NAME=intershop
-  #      - DB_USER=root
-  #      - DB_PASSWORD=root
-  #      - REDIS_HOST=redis
-  #      - REDIS_PORT=6379
-
   front-ui-app:
     build:
       context: .
@@ -79,19 +52,23 @@ services:
     depends_on:
       - accounts-app
 
-#  keycloak:
-#    image: quay.io/keycloak/keycloak:24.0.4
-#    container_name: keycloak
-#    ports:
-#      - "8082:8080"
-#    environment:
-#      - KEYCLOAK_ADMIN=admin
-#      - KEYCLOAK_ADMIN_PASSWORD=admin
-#    volumes:
-#      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
-#    command: ["start-dev", "--import-realm"]
-#    depends_on:
-#      - db
+  transfer-app:
+    build:
+      context: .
+      dockerfile: transfer/dockerfile
+    ports:
+      - "8083:8083"
 
-#volumes:
-#  redis_data:
+  exchange-app:
+    build:
+      context: .
+      dockerfile: exchange/dockerfile
+    ports:
+      - "8084:8084"
+
+  exchange-generator-app:
+    build:
+      context: .
+      dockerfile: exchange-generator/dockerfile
+    ports:
+      - "8085:8085"
