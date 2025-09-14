@@ -22,9 +22,11 @@ services:
       - ACCOUNTS_HOST=accounts-app
       - ACCOUNTS_PORT=8081
       - CASH_SERVICE_URL=http://cash-app:8082
+      - EXCHANGE_SERVICE_URL=http://exchange-app:8084
     depends_on:
       - accounts-app
       - cash-app
+      - exchange-app
 
   accounts-app:
     build:
@@ -72,3 +74,7 @@ services:
       dockerfile: exchange-generator/dockerfile
     ports:
       - "8085:8085"
+    environment:
+      - EXCHANGE_SERVICE_URL=http://exchange-app:8084
+    depends_on:
+      - exchange-app

@@ -4,11 +4,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.rpovetkin.exchange_generator.dto.ExchangeRateDto;
 import ru.rpovetkin.exchange_generator.enums.Currency;
 import ru.rpovetkin.exchange_generator.service.ExchangeRateService;
 
-import java.util.List;
+import java.math.BigDecimal;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/exchange")
@@ -19,44 +19,32 @@ public class ExchangeRateController {
     private final ExchangeRateService exchangeRateService;
 
     /**
-     * Получить все активные курсы валют
+     * Получить текущие базовые курсы к RUB (для отладки генератора)
      */
-    @GetMapping("/rates")
-    public ResponseEntity<List<ExchangeRateDto>> getAllRates() {
-        log.info("Request to get all exchange rates");
-        List<ExchangeRateDto> rates = exchangeRateService.getAllActiveRates();
+    @GetMapping("/rates/base")
+    public ResponseEntity<Map<Currency, BigDecimal>> getBaseRates() {
+        log.info("Request to get base exchange rates to RUB");
+        Map<Currency, BigDecimal> rates = exchangeRateService.getCurrentRatesToRub();
         return ResponseEntity.ok(rates);
     }
 
     /**
-     * Получить курс для конкретной пары валют
+     * Информация о генераторе курсов
      */
-    @GetMapping("/rates/{fromCurrency}/{toCurrency}")
-    public ResponseEntity<ExchangeRateDto> getRate(
-            @PathVariable Currency fromCurrency,
-            @PathVariable Currency toCurrency) {
+    @GetMapping("/info")
+    public ResponseEntity<Map<String, Object>> getGeneratorInfo() {
+        log.info("Request to get generator info");
         
-        log.info("Request to get exchange rate from {} to {}", fromCurrency, toCurrency);
+        Map<String, Object> info = Map.of(
+                "service", "Exchange Rate Generator",
+                "baseCurrency", "RUB",
+                "supportedCurrencies", Currency.values(),
+                "generationInterval", "1 second",
+                "deviation", "±5%",
+                "targetService", "exchange-app (port 8084)"
+        );
         
-        ExchangeRateDto rate = exchangeRateService.getRate(fromCurrency, toCurrency);
-        if (rate != null) {
-            return ResponseEntity.ok(rate);
-        } else {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    /**
-     * Получить все курсы от определенной валюты
-     */
-    @GetMapping("/rates/from/{fromCurrency}")
-    public ResponseEntity<List<ExchangeRateDto>> getRatesFromCurrency(
-            @PathVariable Currency fromCurrency) {
-        
-        log.info("Request to get exchange rates from {}", fromCurrency);
-        
-        List<ExchangeRateDto> rates = exchangeRateService.getRatesFromCurrency(fromCurrency);
-        return ResponseEntity.ok(rates);
+        return ResponseEntity.ok(info);
     }
 
     /**

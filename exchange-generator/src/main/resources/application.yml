@@ -28,6 +28,11 @@ spring:
 server:
   port: 8085
 
+# Интеграция с exchange сервисом
+exchange:
+  service:
+    url: ${EXCHANGE_SERVICE_URL:http://localhost:8084}
+
 # Логирование
 logging:
   level:

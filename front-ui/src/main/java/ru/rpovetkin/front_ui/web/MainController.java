@@ -2,6 +2,7 @@ package ru.rpovetkin.front_ui.web;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -15,11 +16,13 @@ import ru.rpovetkin.front_ui.dto.CashOperationResponse;
 import ru.rpovetkin.front_ui.dto.ChangePasswordRequest;
 import ru.rpovetkin.front_ui.dto.ChangePasswordResponse;
 import ru.rpovetkin.front_ui.dto.Currency;
+import ru.rpovetkin.front_ui.dto.CurrencyRateDisplayDto;
 import ru.rpovetkin.front_ui.dto.UpdateUserDataRequest;
 import ru.rpovetkin.front_ui.dto.UpdateUserDataResponse;
 import ru.rpovetkin.front_ui.dto.UserDto;
 import ru.rpovetkin.front_ui.service.AccountsService;
 import ru.rpovetkin.front_ui.service.CashService;
+import ru.rpovetkin.front_ui.service.ExchangeService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +34,7 @@ public class MainController {
     
     private final AccountsService accountsService;
     private final CashService cashService;
+    private final ExchangeService exchangeService;
     
     @GetMapping("/main")
     public String mainPage(Model model) {
@@ -339,6 +343,23 @@ public class MainController {
         } catch (Exception e) {
             log.error("Error getting cash currencies for user {}: {}", username, e.getMessage(), e);
             model.addAttribute("cashCurrencies", List.of());
+        }
+    }
+    
+    /**
+     * API эндпоинт для получения курсов валют (для JavaScript на фронте)
+     */
+    @GetMapping("/api/rates")
+    public ResponseEntity<List<CurrencyRateDisplayDto>> getExchangeRates() {
+        log.info("Request to get exchange rates for display");
+        
+        try {
+            List<CurrencyRateDisplayDto> rates = exchangeService.getExchangeRatesForDisplay();
+            return ResponseEntity.ok(rates);
+        } catch (Exception e) {
+            log.error("Error getting exchange rates: {}", e.getMessage(), e);
+            // Возвращаем пустой список при ошибке
+            return ResponseEntity.ok(List.of());
         }
     }
     
