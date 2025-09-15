@@ -22,10 +22,12 @@ services:
       - ACCOUNTS_HOST=accounts-app
       - ACCOUNTS_PORT=8081
       - CASH_SERVICE_URL=http://cash-app:8082
+      - TRANSFER_SERVICE_URL=http://transfer-app:8083
       - EXCHANGE_SERVICE_URL=http://exchange-app:8084
     depends_on:
       - accounts-app
       - cash-app
+      - transfer-app
       - exchange-app
 
   accounts-app:
@@ -67,9 +69,11 @@ services:
     ports:
       - "8083:8083"
     environment:
+      - ACCOUNTS_SERVICE_URL=http://accounts-app:8081
       - BLOCKER_SERVICE_URL=http://blocker-app:8086
       - NOTIFICATIONS_SERVICE_URL=http://notifications-app:8087
     depends_on:
+      - accounts-app
       - blocker-app
       - notifications-app
 

@@ -18,12 +18,14 @@ import ru.rpovetkin.front_ui.dto.ChangePasswordRequest;
 import ru.rpovetkin.front_ui.dto.ChangePasswordResponse;
 import ru.rpovetkin.front_ui.dto.Currency;
 import ru.rpovetkin.front_ui.dto.CurrencyRateDisplayDto;
+import ru.rpovetkin.front_ui.dto.TransferResponse;
 import ru.rpovetkin.front_ui.dto.UpdateUserDataRequest;
 import ru.rpovetkin.front_ui.dto.UpdateUserDataResponse;
 import ru.rpovetkin.front_ui.dto.UserDto;
 import ru.rpovetkin.front_ui.service.AccountsService;
 import ru.rpovetkin.front_ui.service.CashService;
 import ru.rpovetkin.front_ui.service.ExchangeService;
+import ru.rpovetkin.front_ui.service.TransferService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +38,7 @@ public class MainController {
     private final AccountsService accountsService;
     private final CashService cashService;
     private final ExchangeService exchangeService;
+    private final TransferService transferService;
     
     @GetMapping("/main")
     public String mainPage(Model model) {
@@ -493,6 +496,24 @@ public class MainController {
                 if (!hasTargetAccount) {
                     return "У получателя нет счета в валюте " + toCurrency.getTitle();
                 }
+                
+                // Для переводов между разными пользователями используем transfer сервис с блокировкой
+                log.info("Using transfer service for inter-user transfer from {} to {}", fromUser, toUser);
+                TransferResponse transferResponse = transferService.executeTransfer(
+                    fromUser, 
+                    toUser, 
+                    fromCurrency.name(), 
+                    amount, 
+                    String.format("Transfer %s %s to %s", amount, fromCurrency.name(), toUser)
+                );
+                
+                if (!transferResponse.isSuccess()) {
+                    log.warn("Transfer service failed: {}", transferResponse.getMessage());
+                    return transferResponse.getMessage() != null ? transferResponse.getMessage() : "Ошибка при выполнении перевода";
+                }
+                
+                log.info("Transfer service succeeded for {} -> {}", fromUser, toUser);
+                return "SUCCESS";
             }
             
             // Выполняем операции со счетами через accounts сервис

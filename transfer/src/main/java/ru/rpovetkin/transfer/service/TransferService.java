@@ -21,6 +21,7 @@ public class TransferService {
     
     private final BlockerIntegrationService blockerIntegrationService;
     private final NotificationIntegrationService notificationService;
+    private final AccountsIntegrationService accountsIntegrationService;
     
     /**
      * Выполнить перевод между пользователями
@@ -66,10 +67,63 @@ public class TransferService {
                     .build();
         }
         
-        // Симуляция выполнения перевода
-        // В реальном приложении здесь был бы вызов к accounts сервису
-        String transferId = UUID.randomUUID().toString();
+        // Проверяем балансы и счета
+        BigDecimal fromBalance = accountsIntegrationService.getUserBalance(request.getFromUser(), request.getCurrency());
+        if (fromBalance.compareTo(request.getAmount()) < 0) {
+            return TransferResponse.builder()
+                    .success(false)
+                    .message("Недостаточно средств на счете")
+                    .errors(List.of("Доступно: " + fromBalance + " " + request.getCurrency()))
+                    .build();
+        }
         
+        if (!accountsIntegrationService.hasAccount(request.getToUser(), request.getCurrency())) {
+            return TransferResponse.builder()
+                    .success(false)
+                    .message("У получателя нет счета в указанной валюте")
+                    .errors(List.of("Валюта: " + request.getCurrency()))
+                    .build();
+        }
+        
+        // Выполняем перевод: списываем с отправителя
+        boolean debitSuccess = accountsIntegrationService.performAccountOperation(
+            request.getFromUser(), 
+            request.getCurrency(), 
+            request.getAmount().negate(), 
+            "TRANSFER_DEBIT"
+        );
+        
+        if (!debitSuccess) {
+            return TransferResponse.builder()
+                    .success(false)
+                    .message("Ошибка при списании средств со счета отправителя")
+                    .build();
+        }
+        
+        // Зачисляем получателю
+        boolean creditSuccess = accountsIntegrationService.performAccountOperation(
+            request.getToUser(), 
+            request.getCurrency(), 
+            request.getAmount(), 
+            "TRANSFER_CREDIT"
+        );
+        
+        if (!creditSuccess) {
+            // Откатываем списание
+            accountsIntegrationService.performAccountOperation(
+                request.getFromUser(), 
+                request.getCurrency(), 
+                request.getAmount(), 
+                "TRANSFER_ROLLBACK"
+            );
+            
+            return TransferResponse.builder()
+                    .success(false)
+                    .message("Ошибка при зачислении средств получателю")
+                    .build();
+        }
+        
+        String transferId = UUID.randomUUID().toString();
         log.info("Transfer completed successfully: {} (ID: {})", request, transferId);
         
         // Отправляем уведомления о успешном переводе
