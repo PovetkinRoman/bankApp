@@ -220,13 +220,42 @@
 </table>
 
 <!-- Информация о email уведомлениях -->
-<div style="position: fixed; top: 20px; right: 20px; width: 300px; z-index: 1000; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-    <h6 style="margin: 0 0 10px 0; color: #495057;">📧 Email уведомления</h6>
+<div id="email-notification-info" style="position: fixed; top: 20px; right: 20px; width: 300px; z-index: 1000; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h6 style="margin: 0; color: #495057;">📧 Email уведомления</h6>
+        <button onclick="closeEmailNotificationInfo()" 
+                style="background: none; border: none; color: #6c757d; cursor: pointer; font-size: 18px; padding: 0; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;"
+                title="Закрыть уведомление">
+            ×
+        </button>
+    </div>
     <p style="margin: 0; font-size: 14px; color: #6c757d;">
         Уведомления о ваших операциях отправляются на email адрес, привязанный к аккаунту.
         Проверьте логи сервера для отладки email отправки.
     </p>
 </div>
+
+<script>
+function closeEmailNotificationInfo() {
+    const infoDiv = document.getElementById('email-notification-info');
+    if (infoDiv) {
+        infoDiv.style.display = 'none';
+        // Сохраняем состояние в localStorage, чтобы не показывать при следующем посещении
+        localStorage.setItem('emailNotificationInfoClosed', 'true');
+    }
+}
+
+// Проверяем при загрузке страницы, было ли уведомление уже закрыто
+document.addEventListener('DOMContentLoaded', function() {
+    const wasClosed = localStorage.getItem('emailNotificationInfoClosed');
+    if (wasClosed === 'true') {
+        const infoDiv = document.getElementById('email-notification-info');
+        if (infoDiv) {
+            infoDiv.style.display = 'none';
+        }
+    }
+});
+</script>
 
 </body>
 
