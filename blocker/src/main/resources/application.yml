@@ -1,0 +1,13 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: blocker
+
+logging:
+  level:
+    ru.rpovetkin.blocker: INFO
+    root: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

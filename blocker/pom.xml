@@ -8,12 +8,12 @@
 		<version>0.0.1-SNAPSHOT</version>
 	</parent>
 
-	<artifactId>transfer</artifactId>
+	<artifactId>blocker</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
-	<name>transfer</name>
-	<description>transfer microservice</description>
+	<name>blocker</name>
+	<description>blocker microservice for suspicious transfer detection</description>
 
 	<properties>
 		<java.version>21</java.version>
@@ -23,10 +23,6 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-webflux</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
@@ -45,6 +41,14 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</exclude>
+					</excludes>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

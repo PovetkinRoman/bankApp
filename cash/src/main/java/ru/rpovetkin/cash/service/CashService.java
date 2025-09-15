@@ -7,6 +7,8 @@ import ru.rpovetkin.cash.dto.AccountDto;
 import ru.rpovetkin.cash.dto.CashOperationRequest;
 import ru.rpovetkin.cash.dto.CashOperationResponse;
 import ru.rpovetkin.cash.dto.Currency;
+import ru.rpovetkin.cash.dto.TransferCheckRequest;
+import ru.rpovetkin.cash.dto.TransferCheckResponse;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -18,6 +20,7 @@ import java.util.List;
 public class CashService {
 
     private final AccountsIntegrationService accountsIntegrationService;
+    private final BlockerIntegrationService blockerIntegrationService;
 
     /**
      * Получить валюты, для которых у пользователя есть счета
@@ -40,6 +43,25 @@ public class CashService {
                     .success(false)
                     .message("Validation failed")
                     .errors(errors)
+                    .build();
+        }
+
+        // Проверяем операцию через blocker сервис
+        TransferCheckRequest blockerRequest = TransferCheckRequest.builder()
+                .fromUser("CASH_SYSTEM")
+                .toUser(request.getLogin())
+                .currency(request.getCurrency().name())
+                .amount(request.getAmount())
+                .transferType("CASH")
+                .description("Cash deposit operation")
+                .build();
+        
+        TransferCheckResponse blockerResponse = blockerIntegrationService.checkOperation(blockerRequest);
+        if (blockerResponse.isBlocked()) {
+            return CashOperationResponse.builder()
+                    .success(false)
+                    .message("Операция заблокирована системой безопасности")
+                    .errors(List.of(blockerResponse.getReason()))
                     .build();
         }
 
@@ -92,6 +114,25 @@ public class CashService {
                     .success(false)
                     .message("Validation failed")
                     .errors(errors)
+                    .build();
+        }
+
+        // Проверяем операцию через blocker сервис
+        TransferCheckRequest blockerRequest = TransferCheckRequest.builder()
+                .fromUser(request.getLogin())
+                .toUser("CASH_SYSTEM")
+                .currency(request.getCurrency().name())
+                .amount(request.getAmount())
+                .transferType("CASH")
+                .description("Cash withdrawal operation")
+                .build();
+        
+        TransferCheckResponse blockerResponse = blockerIntegrationService.checkOperation(blockerRequest);
+        if (blockerResponse.isBlocked()) {
+            return CashOperationResponse.builder()
+                    .success(false)
+                    .message("Операция заблокирована системой безопасности")
+                    .errors(List.of(blockerResponse.getReason()))
                     .build();
         }
 

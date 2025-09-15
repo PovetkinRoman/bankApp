@@ -1,0 +1,99 @@
+
+package ru.rpovetkin.transfer.service;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import ru.rpovetkin.transfer.dto.TransferCheckRequest;
+import ru.rpovetkin.transfer.dto.TransferCheckResponse;
+import ru.rpovetkin.transfer.dto.TransferRequest;
+import ru.rpovetkin.transfer.dto.TransferResponse;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class TransferService {
+    
+    private final BlockerIntegrationService blockerIntegrationService;
+    
+    /**
+     * Выполнить перевод между пользователями
+     */
+    public TransferResponse processTransfer(TransferRequest request) {
+        log.info("Processing transfer: {} -> {} amount: {} {}", 
+                request.getFromUser(), request.getToUser(), 
+                request.getAmount(), request.getCurrency());
+        
+        // Валидация запроса
+        List<String> errors = validateRequest(request);
+        if (!errors.isEmpty()) {
+            return TransferResponse.builder()
+                    .success(false)
+                    .message("Validation failed")
+                    .errors(errors)
+                    .build();
+        }
+        
+        // Проверяем перевод через blocker сервис
+        TransferCheckRequest blockerRequest = TransferCheckRequest.builder()
+                .fromUser(request.getFromUser())
+                .toUser(request.getToUser())
+                .currency(request.getCurrency())
+                .amount(request.getAmount())
+                .transferType("TRANSFER")
+                .description(request.getDescription())
+                .build();
+        
+        TransferCheckResponse blockerResponse = blockerIntegrationService.checkTransfer(blockerRequest);
+        if (blockerResponse.isBlocked()) {
+            return TransferResponse.builder()
+                    .success(false)
+                    .message("Перевод заблокирован системой безопасности")
+                    .errors(List.of(blockerResponse.getReason()))
+                    .build();
+        }
+        
+        // Симуляция выполнения перевода
+        // В реальном приложении здесь был бы вызов к accounts сервису
+        String transferId = UUID.randomUUID().toString();
+        
+        log.info("Transfer completed successfully: {} (ID: {})", request, transferId);
+        
+        return TransferResponse.builder()
+                .success(true)
+                .message("Перевод выполнен успешно")
+                .transferId(transferId)
+                .build();
+    }
+    
+    private List<String> validateRequest(TransferRequest request) {
+        List<String> errors = new ArrayList<>();
+        
+        if (request.getFromUser() == null || request.getFromUser().trim().isEmpty()) {
+            errors.add("Отправитель обязателен");
+        }
+        
+        if (request.getToUser() == null || request.getToUser().trim().isEmpty()) {
+            errors.add("Получатель обязателен");
+        }
+        
+        if (request.getFromUser() != null && request.getFromUser().equals(request.getToUser())) {
+            errors.add("Отправитель и получатель не могут быть одинаковыми");
+        }
+        
+        if (request.getCurrency() == null || request.getCurrency().trim().isEmpty()) {
+            errors.add("Валюта обязательна");
+        }
+        
+        if (request.getAmount() == null || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            errors.add("Сумма должна быть положительной");
+        }
+        
+        return errors;
+    }
+}

@@ -51,8 +51,10 @@ services:
       - "8082:8082"
     environment:
       - ACCOUNTS_SERVICE_URL=http://accounts-app:8081
+      - BLOCKER_SERVICE_URL=http://blocker-app:8086
     depends_on:
       - accounts-app
+      - blocker-app
 
   transfer-app:
     build:
@@ -60,6 +62,10 @@ services:
       dockerfile: transfer/dockerfile
     ports:
       - "8083:8083"
+    environment:
+      - BLOCKER_SERVICE_URL=http://blocker-app:8086
+    depends_on:
+      - blocker-app
 
   exchange-app:
     build:
@@ -78,3 +84,10 @@ services:
       - EXCHANGE_SERVICE_URL=http://exchange-app:8084
     depends_on:
       - exchange-app
+
+  blocker-app:
+    build:
+      context: .
+      dockerfile: blocker/dockerfile
+    ports:
+      - "8086:8086"

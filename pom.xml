@@ -18,6 +18,7 @@
 		<module>transfer</module>
 		<module>exchange</module>
 		<module>exchange-generator</module>
+		<module>blocker</module>
 	</modules>
 
 	<parent>
