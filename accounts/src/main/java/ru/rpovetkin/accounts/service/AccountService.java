@@ -24,9 +24,10 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Slf4j
 public class AccountService {
-
+    
     private final UserAccountRepository userAccountRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     /**
      * Получить все счета пользователя с указанием, какие валюты доступны
@@ -108,6 +109,13 @@ public class AccountService {
         UserAccount savedAccount = userAccountRepository.save(newAccount);
         log.info("Account created successfully: {}", savedAccount.getId());
 
+        // Отправляем уведомление о создании счета
+        notificationService.sendSuccessNotification(
+            user.getLogin(),
+            "Новый счет создан",
+            String.format("Счет в валюте %s успешно создан", request.getCurrency().getTitle())
+        );
+
         return AccountOperationResponse.builder()
                 .success(true)
                 .message("Account created successfully")
@@ -161,6 +169,15 @@ public class AccountService {
         UserAccount savedAccount = userAccountRepository.save(account);
 
         log.info("Deposit successful. New balance: {} {}", savedAccount.getBalance(), savedAccount.getCurrency());
+
+        // Отправляем уведомление о пополнении
+        notificationService.sendSuccessNotification(
+            user.getLogin(),
+            "Счет пополнен",
+            String.format("Счет пополнен на %s %s. Текущий баланс: %s %s", 
+                request.getAmount(), request.getCurrency().getTitle(),
+                savedAccount.getBalance(), savedAccount.getCurrency().getTitle())
+        );
 
         return AccountOperationResponse.builder()
                 .success(true)
@@ -225,6 +242,15 @@ public class AccountService {
         UserAccount savedAccount = userAccountRepository.save(account);
 
         log.info("Withdrawal successful. New balance: {} {}", savedAccount.getBalance(), savedAccount.getCurrency());
+
+        // Отправляем уведомление о снятии
+        notificationService.sendInfoNotification(
+            user.getLogin(),
+            "Средства сняты",
+            String.format("Со счета снято %s %s. Остаток: %s %s", 
+                request.getAmount(), request.getCurrency().getTitle(),
+                savedAccount.getBalance(), savedAccount.getCurrency().getTitle())
+        );
 
         return AccountOperationResponse.builder()
                 .success(true)

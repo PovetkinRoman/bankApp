@@ -20,6 +20,7 @@ import java.util.UUID;
 public class TransferService {
     
     private final BlockerIntegrationService blockerIntegrationService;
+    private final NotificationIntegrationService notificationService;
     
     /**
      * Выполнить перевод между пользователями
@@ -51,6 +52,13 @@ public class TransferService {
         
         TransferCheckResponse blockerResponse = blockerIntegrationService.checkTransfer(blockerRequest);
         if (blockerResponse.isBlocked()) {
+            // Отправляем уведомления о блокировке обоим пользователям
+            notificationService.sendBlockedNotification(
+                request.getFromUser(),
+                "Перевод заблокирован",
+                "Ваш перевод пользователю " + request.getToUser() + " заблокирован: " + blockerResponse.getReason()
+            );
+            
             return TransferResponse.builder()
                     .success(false)
                     .message("Перевод заблокирован системой безопасности")
@@ -63,6 +71,21 @@ public class TransferService {
         String transferId = UUID.randomUUID().toString();
         
         log.info("Transfer completed successfully: {} (ID: {})", request, transferId);
+        
+        // Отправляем уведомления о успешном переводе
+        notificationService.sendSuccessNotification(
+            request.getFromUser(),
+            "Перевод отправлен",
+            String.format("Перевод %s %s пользователю %s выполнен успешно", 
+                request.getAmount(), request.getCurrency(), request.getToUser())
+        );
+        
+        notificationService.sendSuccessNotification(
+            request.getToUser(),
+            "Получен перевод",
+            String.format("Вы получили перевод %s %s от пользователя %s", 
+                request.getAmount(), request.getCurrency(), request.getFromUser())
+        );
         
         return TransferResponse.builder()
                 .success(true)

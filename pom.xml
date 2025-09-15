@@ -19,6 +19,7 @@
 		<module>exchange</module>
 		<module>exchange-generator</module>
 		<module>blocker</module>
+		<module>notifications</module>
 	</modules>
 
 	<parent>

@@ -40,8 +40,10 @@ services:
       - DB_NAME=bankapp
       - DB_USER=root
       - DB_PASSWORD=root
+      - NOTIFICATIONS_SERVICE_URL=http://notifications-app:8087
     depends_on:
       - db
+      - notifications-app
 
   cash-app:
     build:
@@ -52,9 +54,11 @@ services:
     environment:
       - ACCOUNTS_SERVICE_URL=http://accounts-app:8081
       - BLOCKER_SERVICE_URL=http://blocker-app:8086
+      - NOTIFICATIONS_SERVICE_URL=http://notifications-app:8087
     depends_on:
       - accounts-app
       - blocker-app
+      - notifications-app
 
   transfer-app:
     build:
@@ -64,8 +68,10 @@ services:
       - "8083:8083"
     environment:
       - BLOCKER_SERVICE_URL=http://blocker-app:8086
+      - NOTIFICATIONS_SERVICE_URL=http://notifications-app:8087
     depends_on:
       - blocker-app
+      - notifications-app
 
   exchange-app:
     build:
@@ -91,3 +97,10 @@ services:
       dockerfile: blocker/dockerfile
     ports:
       - "8086:8086"
+
+  notifications-app:
+    build:
+      context: .
+      dockerfile: notifications/dockerfile
+    ports:
+      - "8087:8087"

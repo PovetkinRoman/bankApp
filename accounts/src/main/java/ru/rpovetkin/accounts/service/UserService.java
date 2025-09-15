@@ -27,6 +27,7 @@ public class UserService {
     
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final NotificationService notificationService;
     
     @Transactional
     public UserRegistrationResponse registerUser(UserRegistrationRequest request) {
@@ -53,6 +54,13 @@ public class UserService {
             User savedUser = userRepository.save(user);
             
             log.info("Successfully registered user with ID: {}", savedUser.getId());
+            
+            // Отправляем уведомление о успешной регистрации
+            notificationService.sendSuccessNotification(
+                savedUser.getLogin(),
+                "Добро пожаловать!",
+                "Ваш аккаунт успешно создан. Добро пожаловать в банковскую систему!"
+            );
             
             return UserRegistrationResponse.builder()
                     .success(true)
@@ -158,6 +166,13 @@ public class UserService {
             userRepository.save(user);
             
             log.info("Successfully changed password for user: {}", request.getLogin());
+            
+            // Отправляем уведомление о смене пароля
+            notificationService.sendInfoNotification(
+                user.getLogin(),
+                "Пароль изменен",
+                "Ваш пароль был успешно изменен. Если это были не вы, немедленно свяжитесь с поддержкой."
+            );
             
             return ChangePasswordResponse.builder()
                     .success(true)

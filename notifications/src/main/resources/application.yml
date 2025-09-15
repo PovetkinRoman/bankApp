@@ -1,0 +1,15 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: notifications
+
+logging:
+  level:
+    ru.rpovetkin.notifications: INFO
+    org.springframework.messaging: DEBUG
+    org.springframework.web.socket: DEBUG
+    root: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

@@ -21,6 +21,7 @@ public class CashService {
 
     private final AccountsIntegrationService accountsIntegrationService;
     private final BlockerIntegrationService blockerIntegrationService;
+    private final NotificationIntegrationService notificationService;
 
     /**
      * Получить валюты, для которых у пользователя есть счета
@@ -86,6 +87,14 @@ public class CashService {
         if (success) {
             // Получаем обновленную информацию о счете
             AccountDto updatedAccount = getUpdatedAccountInfo(request.getLogin(), request.getCurrency());
+            
+            // Отправляем уведомление об успешном пополнении
+            notificationService.sendSuccessNotification(
+                request.getLogin(),
+                "Пополнение наличными",
+                String.format("Счет пополнен наличными на %s %s", 
+                    request.getAmount(), request.getCurrency().getTitle())
+            );
             
             return CashOperationResponse.builder()
                     .success(true)
@@ -157,6 +166,14 @@ public class CashService {
         if (success) {
             // Получаем обновленную информацию о счете
             AccountDto updatedAccount = getUpdatedAccountInfo(request.getLogin(), request.getCurrency());
+            
+            // Отправляем уведомление об успешном снятии
+            notificationService.sendSuccessNotification(
+                request.getLogin(),
+                "Снятие наличных",
+                String.format("Со счета снято наличными %s %s", 
+                    request.getAmount(), request.getCurrency().getTitle())
+            );
             
             return CashOperationResponse.builder()
                     .success(true)
