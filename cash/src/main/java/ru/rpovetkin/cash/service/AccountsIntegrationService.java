@@ -35,7 +35,9 @@ public class AccountsIntegrationService {
                     .get()
                     .uri(accountsServiceUrl + "/api/accounts/" + login)
                     .retrieve()
-                    .bodyToMono(List.class);
+                    .bodyToMono(List.class)
+                    .retry(2) // Retry up to 2 times on failure
+                    .doOnError(throwable -> log.warn("Error getting accounts for user {}: {}", login, throwable.getMessage()));
                     
             List<Object> response = responseMono.block();
             
@@ -78,7 +80,9 @@ public class AccountsIntegrationService {
                     .header("Content-Type", "application/json")
                     .bodyValue(requestBody)
                     .retrieve()
-                    .bodyToMono(String.class);
+                    .bodyToMono(String.class)
+                    .retry(2) // Retry up to 2 times on failure
+                    .doOnError(throwable -> log.warn("Error calling accounts service: {}", throwable.getMessage()));
                     
             String response = responseMono.block();
             
