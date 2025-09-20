@@ -12,6 +12,15 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
+/**
+ * Security configuration for ISOLATED Blocker service.
+ * 
+ * ISOLATION RULES:
+ * - Blocker service ONLY accepts incoming requests
+ * - Blocker service CANNOT make outgoing HTTP calls
+ * - All API endpoints require JWT authentication
+ * - No OAuth2 client configuration (blocker doesn't need to call other services)
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
