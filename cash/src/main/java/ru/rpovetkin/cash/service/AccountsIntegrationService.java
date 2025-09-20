@@ -17,7 +17,7 @@ import java.util.List;
 @Slf4j
 public class AccountsIntegrationService {
 
-    private final WebClient.Builder webClientBuilder;
+    private final WebClient webClient;
     
     @Value("${services.accounts.url}")
     private String accountsServiceUrl;
@@ -29,8 +29,6 @@ public class AccountsIntegrationService {
         log.info("Getting existing accounts for user: {}", login);
         
         try {
-            WebClient webClient = webClientBuilder.build();
-            
             Mono<List> responseMono = webClient
                     .get()
                     .uri(accountsServiceUrl + "/api/accounts/" + login)
@@ -67,8 +65,6 @@ public class AccountsIntegrationService {
         log.info("Depositing {} {} to account for user: {}", amount, currency, login);
         
         try {
-            WebClient webClient = webClientBuilder.build();
-            
             String requestBody = String.format(
                 "{\"login\":\"%s\",\"currency\":\"%s\",\"amount\":%s}", 
                 login, currency.name(), amount.toString()
@@ -103,8 +99,6 @@ public class AccountsIntegrationService {
         log.info("Withdrawing {} {} from account for user: {}", amount, currency, login);
         
         try {
-            WebClient webClient = webClientBuilder.build();
-            
             String requestBody = String.format(
                 "{\"login\":\"%s\",\"currency\":\"%s\",\"amount\":%s}", 
                 login, currency.name(), amount.toString()

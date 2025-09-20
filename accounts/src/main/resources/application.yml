@@ -16,6 +16,21 @@ spring:
         format_sql: true
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.xml
+  security:
+    oauth2:
+      client:
+        registration:
+          accounts-service:
+            client-id: ${OAUTH2_CLIENT_ID:accounts-service}
+            client-secret: ${OAUTH2_CLIENT_SECRET:accounts-secret-key-12345}
+            authorization-grant-type: client_credentials
+            scope: openid,profile,email
+        provider:
+          keycloak:
+            token-uri: ${KEYCLOAK_TOKEN_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/token}
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs}
     
 server:
   port: 8081

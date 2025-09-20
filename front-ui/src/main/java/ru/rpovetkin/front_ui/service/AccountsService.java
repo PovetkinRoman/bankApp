@@ -28,7 +28,7 @@ import java.util.List;
 @Slf4j
 public class AccountsService {
     
-    private final WebClient.Builder webClientBuilder;
+    private final WebClient webClient;
     
     @Value("${accounts.service.url:http://localhost:8081}")
     private String accountsServiceUrl;
@@ -37,7 +37,6 @@ public class AccountsService {
         log.info("Sending registration request to accounts service for user: {}", request.getLogin());
         
         try {
-            WebClient webClient = webClientBuilder.build();
             
             Mono<UserRegistrationResponse> responseMono = webClient
                     .post()
@@ -66,7 +65,6 @@ public class AccountsService {
         log.info("Authenticating user: {}", request.getLogin());
         
         try {
-            WebClient webClient = webClientBuilder.build();
             
             Mono<AuthenticationResponse> responseMono = webClient
                     .post()
@@ -92,7 +90,6 @@ public class AccountsService {
         log.info("Getting user by login: {}", login);
         
         try {
-            WebClient webClient = webClientBuilder.build();
             
             Mono<UserDto> responseMono = webClient
                     .get()
@@ -115,7 +112,6 @@ public class AccountsService {
         log.info("Getting all users for transfer recipients");
         
         try {
-            WebClient webClient = webClientBuilder.build();
             
             @SuppressWarnings("rawtypes")
             Mono<List> responseMono = webClient
@@ -150,7 +146,6 @@ public class AccountsService {
         log.info("Sending change password request for user: {}", request.getLogin());
         
         try {
-            WebClient webClient = webClientBuilder.build();
             
             Mono<ChangePasswordResponse> responseMono = webClient
                     .post()
@@ -180,7 +175,6 @@ public class AccountsService {
         log.info("Sending update user data request for user: {}", request.getLogin());
         
         try {
-            WebClient webClient = webClientBuilder.build();
             
             Mono<UpdateUserDataResponse> responseMono = webClient
                     .post()
@@ -210,7 +204,6 @@ public class AccountsService {
         log.info("Getting user accounts for: {}", login);
         
         try {
-            WebClient webClient = webClientBuilder.build();
             
             @SuppressWarnings("rawtypes")
             Mono<List> responseMono = webClient
@@ -325,7 +318,6 @@ public class AccountsService {
         try {
             Currency currency = Currency.valueOf(currencyStr);
             
-            WebClient webClient = webClientBuilder.build();
             
             String requestBody = String.format("{\"login\":\"%s\",\"currency\":\"%s\"}", login, currency.name());
             
@@ -360,7 +352,6 @@ public class AccountsService {
         log.info("Performing account operation: {} {} {} for user {}", operation, amount, currency, login);
         
         try {
-            WebClient webClient = webClientBuilder.build();
             
             AccountOperationRequest request = AccountOperationRequest.builder()
                     .login(login)
@@ -379,11 +370,26 @@ public class AccountsService {
                     .post()
                     .uri(accountsServiceUrl + endpoint)
                     .bodyValue(request)
-                    .retrieve()
-                    .bodyToMono(AccountOperationResponse.class)
+                    .exchangeToMono(clientResponse -> {
+                        if (clientResponse.statusCode().is2xxSuccessful()) {
+                            return clientResponse.bodyToMono(AccountOperationResponse.class);
+                        } else if (clientResponse.statusCode().is4xxClientError()) {
+                            // Для 4xx ошибок пытаемся получить детальный ответ
+                            return clientResponse.bodyToMono(AccountOperationResponse.class)
+                                    .onErrorReturn(AccountOperationResponse.builder()
+                                            .success(false)
+                                            .message("Операция заблокирована")
+                                            .build());
+                        } else {
+                            return Mono.just(AccountOperationResponse.builder()
+                                    .success(false)
+                                    .message("Сервис счетов временно недоступен")
+                                    .build());
+                        }
+                    })
                     .onErrorReturn(AccountOperationResponse.builder()
                             .success(false)
-                            .message("Service unavailable")
+                            .message("Ошибка соединения с сервисом счетов")
                             .build());
                             
             AccountOperationResponse response = responseMono.block();
@@ -391,9 +397,13 @@ public class AccountsService {
             log.info("Account operation {} result for user {}: {}", 
                     operation, login, response != null ? response.isSuccess() : false);
             
+            if (response != null && !response.isSuccess()) {
+                log.warn("Account operation failed: {}", response.getMessage());
+            }
+            
             return response != null ? response : AccountOperationResponse.builder()
                     .success(false)
-                    .message("No response from service")
+                    .message("Нет ответа от сервиса")
                     .build();
             
         } catch (Exception e) {

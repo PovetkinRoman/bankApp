@@ -1,6 +1,25 @@
 # имена и описания контейнеров, которые должны быть развёрнуты
 services:
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.2
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://db:5432/keycloak
+      - KC_DB_USERNAME=root
+      - KC_DB_PASSWORD=root
+    ports:
+      - "8090:8080"
+    command:
+      - start-dev
+      - --import-realm
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    depends_on:
+      - db
+
   db:
     image: postgres:13.21-alpine3.22
     # volume и связанная с ним директория в контейнере
@@ -24,7 +43,12 @@ services:
       - CASH_SERVICE_URL=http://cash-app:8082
       - TRANSFER_SERVICE_URL=http://transfer-app:8083
       - EXCHANGE_SERVICE_URL=http://exchange-app:8084
+      - KEYCLOAK_TOKEN_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/token
+      - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs
+      - OAUTH2_CLIENT_ID=front-ui-service
+      - OAUTH2_CLIENT_SECRET=front-ui-secret-key-12345
     depends_on:
+      - keycloak
       - accounts-app
       - cash-app
       - transfer-app
@@ -43,7 +67,12 @@ services:
       - DB_USER=root
       - DB_PASSWORD=root
       - NOTIFICATIONS_SERVICE_URL=http://notifications-app:8087
+      - KEYCLOAK_TOKEN_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/token
+      - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs
+      - OAUTH2_CLIENT_ID=accounts-service
+      - OAUTH2_CLIENT_SECRET=accounts-secret-key-12345
     depends_on:
+      - keycloak
       - db
       - notifications-app
 
@@ -57,7 +86,12 @@ services:
       - ACCOUNTS_SERVICE_URL=http://accounts-app:8081
       - BLOCKER_SERVICE_URL=http://blocker-app:8086
       - NOTIFICATIONS_SERVICE_URL=http://notifications-app:8087
+      - KEYCLOAK_TOKEN_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/token
+      - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs
+      - OAUTH2_CLIENT_ID=cash-service
+      - OAUTH2_CLIENT_SECRET=cash-secret-key-12345
     depends_on:
+      - keycloak
       - accounts-app
       - blocker-app
       - notifications-app

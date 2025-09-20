@@ -1,15 +1,29 @@
-server:
-  port: 8082
-  
 spring:
   application:
-    name: cash-app
-    
-logging:
-  level:
-    ru.rpovetkin.cash: DEBUG
-    
-# Конфигурация для интеграции с другими сервисами
+    name: cash
+  security:
+    oauth2:
+      client:
+        registration:
+          cash-service:
+            client-id: ${OAUTH2_CLIENT_ID:cash-service}
+            client-secret: ${OAUTH2_CLIENT_SECRET:cash-secret-key-12345}
+            authorization-grant-type: client_credentials
+            scope: openid,profile,email
+        provider:
+          keycloak:
+            token-uri: ${KEYCLOAK_TOKEN_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/token}
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs}
+
+server:
+  port: 8082
+
 services:
   accounts:
     url: ${ACCOUNTS_SERVICE_URL:http://localhost:8081}
+  blocker:
+    url: ${BLOCKER_SERVICE_URL:http://localhost:8086}
+  notifications:
+    url: ${NOTIFICATIONS_SERVICE_URL:http://localhost:8087}

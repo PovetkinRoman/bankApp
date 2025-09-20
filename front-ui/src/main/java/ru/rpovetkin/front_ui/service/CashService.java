@@ -100,23 +100,43 @@ public class CashService {
                     .post()
                     .uri(cashServiceUrl + endpoint)
                     .bodyValue(request)
-                    .retrieve()
-                    .bodyToMono(CashOperationResponse.class)
+                    .exchangeToMono(clientResponse -> {
+                        if (clientResponse.statusCode().is2xxSuccessful()) {
+                            return clientResponse.bodyToMono(CashOperationResponse.class);
+                        } else if (clientResponse.statusCode().is4xxClientError()) {
+                            // Для 4xx ошибок пытаемся получить детальный ответ от сервиса
+                            return clientResponse.bodyToMono(CashOperationResponse.class)
+                                    .onErrorReturn(CashOperationResponse.builder()
+                                            .success(false)
+                                            .message("Операция заблокирована системой безопасности")
+                                            .build());
+                        } else {
+                            return Mono.just(CashOperationResponse.builder()
+                                    .success(false)
+                                    .message("Сервис наличных временно недоступен")
+                                    .build());
+                        }
+                    })
                     .onErrorReturn(CashOperationResponse.builder()
                             .success(false)
-                            .message("Service unavailable")
+                            .message("Ошибка соединения с сервисом наличных")
                             .build());
                             
             CashOperationResponse response = responseMono.block();
             log.info("Cash operation {} result for user {}: {}", 
                 request.getOperation(), request.getLogin(), response.isSuccess());
+            
+            if (!response.isSuccess()) {
+                log.warn("Cash operation failed: {}", response.getMessage());
+            }
+            
             return response;
             
         } catch (Exception e) {
             log.error("Error performing cash operation: {}", e.getMessage(), e);
             return CashOperationResponse.builder()
                     .success(false)
-                    .message("Service unavailable")
+                    .message("Ошибка при выполнении операции: " + e.getMessage())
                     .build();
         }
     }
