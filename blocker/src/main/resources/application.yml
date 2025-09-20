@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: blocker
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs}
 
 logging:
   level:

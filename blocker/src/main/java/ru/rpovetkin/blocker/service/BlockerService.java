@@ -28,8 +28,8 @@ public class BlockerService {
                 request.getFromUser(), request.getToUser(), 
                 request.getAmount(), request.getCurrency(), checkId);
         
-        // Случайная блокировка с вероятностью 1 к 5 (20%)
-        boolean shouldBlock = random.nextInt(5) == 0;
+        // Блокировка по конкретным правилам
+        boolean shouldBlock = shouldBlockTransfer(request);
         
         String riskLevel = determineRiskLevel(request);
         String reason = shouldBlock ? getBlockingReason(riskLevel) : "Transfer approved";
@@ -64,13 +64,43 @@ public class BlockerService {
     }
     
     /**
+     * Определяет, нужно ли блокировать перевод по конкретным правилам
+     */
+    private boolean shouldBlockTransfer(TransferCheckRequest request) {
+        BigDecimal amount = request.getAmount();
+        
+        // Блокируем очень крупные суммы (свыше 50,000)
+        if (amount.compareTo(new BigDecimal("50000")) > 0) {
+            return true;
+        }
+        
+        // Блокируем подозрительные паттерны
+        if ("SUSPICIOUS_USER".equals(request.getFromUser()) || 
+            "SUSPICIOUS_USER".equals(request.getToUser())) {
+            return true;
+        }
+        
+        // Блокируем переводы с подозрительными описаниями
+        String description = request.getDescription();
+        if (description != null && (
+            description.toLowerCase().contains("подозрительно") ||
+            description.toLowerCase().contains("блокировать") ||
+            description.toLowerCase().contains("fraud"))) {
+            return true;
+        }
+        
+        // Разрешаем все остальные переводы
+        return false;
+    }
+    
+    /**
      * Возвращает причину блокировки в зависимости от уровня риска
      */
     private String getBlockingReason(String riskLevel) {
         return switch (riskLevel) {
             case "HIGH" -> "Подозрительная операция: крупная сумма перевода";
             case "MEDIUM" -> "Подозрительная операция: средняя сумма, требует проверки";
-            case "LOW" -> "Случайная проверка безопасности";
+            case "LOW" -> "Заблокировано по правилам безопасности";
             default -> "Подозрительная активность";
         };
     }

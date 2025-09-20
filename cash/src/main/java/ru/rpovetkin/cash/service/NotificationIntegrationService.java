@@ -14,9 +14,9 @@ import ru.rpovetkin.cash.dto.NotificationResponse;
 @Slf4j
 public class NotificationIntegrationService {
     
-    private final WebClient.Builder webClientBuilder;
+    private final WebClient webClient;
     
-    @Value("${notifications.service.url:http://localhost:8087}")
+    @Value("${services.notifications.url:http://localhost:8087}")
     private String notificationsServiceUrl;
     
     /**
@@ -34,8 +34,6 @@ public class NotificationIntegrationService {
                     .build();
             
             log.info("Sending notification to user {}: {}", userId, title);
-            
-            WebClient webClient = webClientBuilder.build();
             
             Mono<NotificationResponse> responseMono = webClient
                     .post()

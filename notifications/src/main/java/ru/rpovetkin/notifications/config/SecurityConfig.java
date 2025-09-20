@@ -1,4 +1,4 @@
-package ru.rpovetkin.cash.config;
+package ru.rpovetkin.notifications.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -25,8 +25,8 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers("/actuator/**").permitAll()
-                // API эндпоинты доступны для веб-интерфейса
-                .requestMatchers("/api/cash/**").permitAll()
+                // API эндпоинты требуют JWT аутентификацию от других сервисов
+                .requestMatchers("/api/notifications/**").authenticated()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2

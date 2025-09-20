@@ -14,9 +14,9 @@ import ru.rpovetkin.cash.dto.TransferCheckResponse;
 @Slf4j
 public class BlockerIntegrationService {
     
-    private final WebClient.Builder webClientBuilder;
+    private final WebClient webClient;
     
-    @Value("${blocker.service.url:http://localhost:8086}")
+    @Value("${services.blocker.url:http://localhost:8086}")
     private String blockerServiceUrl;
     
     /**
@@ -27,8 +27,6 @@ public class BlockerIntegrationService {
                 request.getTransferType(), request.getAmount(), request.getFromUser());
         
         try {
-            WebClient webClient = webClientBuilder.build();
-            
             Mono<TransferCheckResponse> responseMono = webClient
                     .post()
                     .uri(blockerServiceUrl + "/api/blocker/check-transfer")

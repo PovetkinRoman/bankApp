@@ -135,6 +135,10 @@ services:
       dockerfile: blocker/dockerfile
     ports:
       - "8086:8086"
+    environment:
+      - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs
+    depends_on:
+      - keycloak
 
   notifications-app:
     build:
@@ -142,3 +146,7 @@ services:
       dockerfile: notifications/dockerfile
     ports:
       - "8087:8087"
+    environment:
+      - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs
+    depends_on:
+      - keycloak

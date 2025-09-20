@@ -121,6 +121,60 @@
       ]
     },
     {
+      "clientId": "blocker-service",
+      "name": "Blocker Service",
+      "description": "Client for blocker microservice",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "blocker-secret-key-12345",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "access.token.lifespan": "3600"
+      },
+      "defaultClientScopes": [
+        "profile",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+    },
+    {
+      "clientId": "notifications-service",
+      "name": "Notifications Service",
+      "description": "Client for notifications microservice",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "notifications-secret-key-12345",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "access.token.lifespan": "3600"
+      },
+      "defaultClientScopes": [
+        "profile",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+    },
+    {
       "clientId": "transfer-service",
       "name": "Transfer Service",
       "description": "Client for transfer microservice",
@@ -165,6 +219,18 @@
       "username": "service-account-cash-service",
       "enabled": true,
       "serviceAccountClientId": "cash-service",
+      "realmRoles": ["service-user"]
+    },
+    {
+      "username": "service-account-blocker-service",
+      "enabled": true,
+      "serviceAccountClientId": "blocker-service",
+      "realmRoles": ["service-user"]
+    },
+    {
+      "username": "service-account-notifications-service",
+      "enabled": true,
+      "serviceAccountClientId": "notifications-service",
       "realmRoles": ["service-user"]
     },
     {
