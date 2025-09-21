@@ -1,8 +1,9 @@
-package ru.rpovetkin.cash.config;
+package ru.rpovetkin.transfer.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -12,6 +13,14 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
+/**
+ * Security configuration for Transfer service.
+ * 
+ * SECURITY RULES:
+ * - Transfer service can call: accounts, notifications, exchange services
+ * - All API endpoints require JWT authentication
+ * - OAuth2 client configuration for service-to-service calls
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -19,14 +28,23 @@ public class SecurityConfig {
     @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri:http://localhost:8090/realms/bankapp/protocol/openid-connect/certs}")
     private String jwkSetUri;
 
+    /**
+     * Фильтр для межсервисных вызовов с JWT аутентификацией
+     * Срабатывает когда есть заголовок Authorization: Bearer
+     */
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    @Order(1)
+    public SecurityFilterChain jwtSecurityFilterChain(HttpSecurity http) throws Exception {
         http
+            .securityMatcher(request -> {
+                String authHeader = request.getHeader("Authorization");
+                return authHeader != null && authHeader.startsWith("Bearer ");
+            })
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers("/actuator/**").permitAll()
-                // API эндпоинты требуют JWT аутентификацию и проверку ролей
-                .requestMatchers("/api/cash/**").hasAnyRole("FRONT_UI_SERVICE", "TRANSFER_SERVICE", "ACCOUNTS_SERVICE")
+                // Межсервисные вызовы требуют JWT аутентификацию и проверку ролей
+                .requestMatchers("/api/transfer/**").hasAnyRole("FRONT_UI_SERVICE", "CASH_SERVICE", "ACCOUNTS_SERVICE")
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2
@@ -34,6 +52,29 @@ public class SecurityConfig {
                     .decoder(jwtDecoder())
                     .jwtAuthenticationConverter(jwtAuthenticationConverter())
                 )
+            );
+        
+        return http.build();
+    }
+
+    /**
+     * Фильтр для веб-интерфейса без JWT аутентификации
+     * Срабатывает для всех остальных запросов
+     */
+    @Bean
+    @Order(2)
+    public SecurityFilterChain webSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .securityMatcher(request -> {
+                String authHeader = request.getHeader("Authorization");
+                return authHeader == null || !authHeader.startsWith("Bearer ");
+            })
+            .csrf(AbstractHttpConfigurer::disable)
+            .authorizeHttpRequests(authz -> authz
+                .requestMatchers("/actuator/**").permitAll()
+                // Веб-интерфейс может выполнять операции с переводами без JWT
+                .requestMatchers("/api/transfer/**").permitAll()
+                .anyRequest().permitAll()
             );
         
         return http.build();

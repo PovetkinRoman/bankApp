@@ -24,11 +24,22 @@ public class CustomAuthenticationProvider implements AuthenticationProvider {
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         String username = authentication.getName();
-        String password = authentication.getCredentials().toString();
+        String password = authentication.getCredentials() != null ? authentication.getCredentials().toString() : "";
         
         log.info("Authenticating user: {}", username);
         
         try {
+            // Если пароль пустой, это автоматическая аутентификация после регистрации
+            if (password.isEmpty()) {
+                log.info("Auto-authentication for user: {}", username);
+                return new UsernamePasswordAuthenticationToken(
+                        username, 
+                        password,
+                        Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
+                );
+            }
+            
+            // Обычная аутентификация с паролем
             AuthenticationRequest request = AuthenticationRequest.builder()
                     .login(username)
                     .password(password)

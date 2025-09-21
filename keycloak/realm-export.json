@@ -1,7 +1,7 @@
 {
   "realm": "bankapp",
   "enabled": true,
-  "registrationAllowed": false,
+  "registrationAllowed": true,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": true,
@@ -35,6 +35,38 @@
       {
         "name": "user",
         "description": "Regular user role"
+      },
+      {
+        "name": "accounts-service",
+        "description": "Role for accounts service access"
+      },
+      {
+        "name": "cash-service",
+        "description": "Role for cash service access"
+      },
+      {
+        "name": "transfer-service",
+        "description": "Role for transfer service access"
+      },
+      {
+        "name": "blocker-service",
+        "description": "Role for blocker service access"
+      },
+      {
+        "name": "notifications-service",
+        "description": "Role for notifications service access"
+      },
+      {
+        "name": "exchange-service",
+        "description": "Role for exchange service access"
+      },
+      {
+        "name": "front-ui-service",
+        "description": "Role for front-ui service access"
+      },
+      {
+        "name": "exchange-generator-service",
+        "description": "Role for exchange-generator service access"
       }
     ]
   },
@@ -173,6 +205,33 @@
         "offline_access",
         "microprofile-jwt"
       ]
+    },
+    {
+      "clientId": "exchange-generator-service",
+      "name": "Exchange Generator Service",
+      "description": "Client for exchange-generator microservice",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "exchange-generator-secret-key-12345",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "access.token.lifespan": "3600"
+      },
+      "defaultClientScopes": [
+        "profile",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
     }
   ],
   "users": [
@@ -180,31 +239,37 @@
       "username": "service-account-front-ui-service",
       "enabled": true,
       "serviceAccountClientId": "front-ui-service",
-      "realmRoles": ["service-user"]
+      "realmRoles": ["service-user", "front-ui-service"]
     },
     {
       "username": "service-account-accounts-service",
       "enabled": true,
       "serviceAccountClientId": "accounts-service",
-      "realmRoles": ["service-user"]
+      "realmRoles": ["service-user", "accounts-service"]
     },
     {
       "username": "service-account-cash-service",
       "enabled": true,
       "serviceAccountClientId": "cash-service",
-      "realmRoles": ["service-user"]
+      "realmRoles": ["service-user", "cash-service"]
     },
     {
       "username": "service-account-notifications-service",
       "enabled": true,
       "serviceAccountClientId": "notifications-service",
-      "realmRoles": ["service-user"]
+      "realmRoles": ["service-user", "notifications-service"]
     },
     {
       "username": "service-account-transfer-service",
       "enabled": true,
       "serviceAccountClientId": "transfer-service",
-      "realmRoles": ["service-user"]
+      "realmRoles": ["service-user", "transfer-service"]
+    },
+    {
+      "username": "service-account-exchange-generator-service",
+      "enabled": true,
+      "serviceAccountClientId": "exchange-generator-service",
+      "realmRoles": ["service-user", "exchange-generator-service"]
     }
   ]
 }

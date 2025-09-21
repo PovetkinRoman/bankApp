@@ -26,7 +26,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers("/actuator/**").permitAll()
                 // API эндпоинты требуют JWT аутентификацию от других сервисов
-                .requestMatchers("/api/notifications/**").authenticated()
+                .requestMatchers("/api/notifications/**").hasAnyRole("FRONT_UI_SERVICE", "ACCOUNTS_SERVICE", "CASH_SERVICE", "TRANSFER_SERVICE")
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2

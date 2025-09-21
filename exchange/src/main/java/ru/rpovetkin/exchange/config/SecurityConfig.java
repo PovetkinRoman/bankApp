@@ -1,4 +1,4 @@
-package ru.rpovetkin.accounts.config;
+package ru.rpovetkin.exchange.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -7,14 +7,21 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
+/**
+ * Security configuration for Exchange service.
+ * 
+ * SECURITY RULES:
+ * - Exchange service is READ-ONLY and does not make outgoing calls
+ * - Only accepts incoming requests from authorized services
+ * - Public endpoints: /api/exchange/rates (for front-ui)
+ * - Protected endpoints: /api/exchange/rates/update (for exchange-generator)
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -36,10 +43,11 @@ public class SecurityConfig {
             })
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/api/users/register", "/api/users/authenticate").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
-                // Межсервисные вызовы к счетам требуют JWT аутентификацию и проверку ролей
-                .requestMatchers("/api/accounts/**").hasAnyRole("FRONT_UI_SERVICE", "CASH_SERVICE", "TRANSFER_SERVICE", "NOTIFICATIONS_SERVICE")
+                // Обновление курсов доступно только exchange-generator
+                .requestMatchers("/api/exchange/rates/update").hasRole("EXCHANGE_GENERATOR_SERVICE")
+                // Остальные API эндпоинты доступны для авторизованных сервисов
+                .requestMatchers("/api/exchange/**").authenticated()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2
@@ -66,10 +74,11 @@ public class SecurityConfig {
             })
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/api/users/register", "/api/users/authenticate").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
-                // Веб-интерфейс может выполнять операции со счетами без JWT
-                .requestMatchers("/api/accounts/**").permitAll()
+                // Публичные эндпоинты для чтения курсов валют
+                .requestMatchers("/api/exchange/rates", "/api/exchange/rates/**", "/api/exchange/currencies", "/api/exchange/info", "/api/exchange/health").permitAll()
+                // Обновление курсов доступно только с JWT токеном
+                .requestMatchers("/api/exchange/rates/update").denyAll()
                 .anyRequest().permitAll()
             );
         
@@ -91,10 +100,4 @@ public class SecurityConfig {
         converter.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
         return converter;
     }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
 }
-

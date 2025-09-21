@@ -7,7 +7,7 @@ services:
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
       - KC_DB=postgres
-      - KC_DB_URL=jdbc:postgresql://db:5432/keycloak
+      - KC_DB_URL=jdbc:postgresql://db:5432/bankapp
       - KC_DB_USERNAME=root
       - KC_DB_PASSWORD=root
     ports:
@@ -104,12 +104,19 @@ services:
       - "8083:8083"
     environment:
       - ACCOUNTS_SERVICE_URL=http://accounts-app:8081
-      - BLOCKER_SERVICE_URL=http://blocker-app:8086
       - NOTIFICATIONS_SERVICE_URL=http://notifications-app:8087
+      - EXCHANGE_SERVICE_URL=http://exchange-app:8084
+      - BLOCKER_SERVICE_URL=http://blocker-app:8086
+      - KEYCLOAK_TOKEN_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/token
+      - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs
+      - OAUTH2_CLIENT_ID=transfer-service
+      - OAUTH2_CLIENT_SECRET=transfer-secret-key-12345
     depends_on:
+      - keycloak
       - accounts-app
-      - blocker-app
       - notifications-app
+      - exchange-app
+      - blocker-app
 
   exchange-app:
     build:
@@ -117,6 +124,10 @@ services:
       dockerfile: exchange/dockerfile
     ports:
       - "8084:8084"
+    environment:
+      - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs
+    depends_on:
+      - keycloak
 
   exchange-generator-app:
     build:
@@ -126,7 +137,12 @@ services:
       - "8085:8085"
     environment:
       - EXCHANGE_SERVICE_URL=http://exchange-app:8084
+      - KEYCLOAK_TOKEN_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/token
+      - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs
+      - OAUTH2_CLIENT_ID=exchange-generator-service
+      - OAUTH2_CLIENT_SECRET=exchange-generator-secret-key-12345
     depends_on:
+      - keycloak
       - exchange-app
 
   blocker-app:

@@ -1,6 +1,31 @@
 spring:
   application:
     name: transfer
+  security:
+    oauth2:
+      client:
+        registration:
+          transfer-service:
+            client-id: ${OAUTH2_CLIENT_ID:transfer-service}
+            client-secret: ${OAUTH2_CLIENT_SECRET:transfer-secret-key-12345}
+            authorization-grant-type: client_credentials
+            scope: openid,profile,email
+        provider:
+          keycloak:
+            token-uri: ${KEYCLOAK_TOKEN_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/token}
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs}
 
 server:
   port: 8083
+
+services:
+  accounts:
+    url: ${ACCOUNTS_SERVICE_URL:http://accounts-app:8081}
+  notifications:
+    url: ${NOTIFICATIONS_SERVICE_URL:http://notifications-app:8087}
+  exchange:
+    url: ${EXCHANGE_SERVICE_URL:http://exchange-app:8084}
+  blocker:
+    url: ${BLOCKER_SERVICE_URL:http://blocker-app:8086}

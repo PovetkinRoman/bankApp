@@ -1,4 +1,4 @@
-package ru.rpovetkin.cash.config;
+package ru.rpovetkin.exchange_generator.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -8,12 +8,12 @@ import org.springframework.security.oauth2.client.web.reactive.function.client.S
 import org.springframework.web.reactive.function.client.WebClient;
 
 /**
- * OAuth2 WebClient configuration for Cash service.
+ * OAuth2 WebClient configuration for Exchange Generator service.
  * 
  * SECURITY APPROACH:
- * - Uses OAuth2 authentication for all service-to-service calls
+ * - Uses OAuth2 authentication for service-to-service calls
  * - Authorization is controlled by Keycloak policies, not by WebClient restrictions
- * - Each target service validates JWT tokens and checks permissions
+ * - Exchange Generator can ONLY call Exchange service
  */
 @Configuration
 public class OAuth2WebClientConfig {
@@ -21,6 +21,7 @@ public class OAuth2WebClientConfig {
     /**
      * Creates OAuth2-enabled WebClient for service-to-service communication.
      * Authorization is handled by Keycloak policies on target services.
+     * Exchange Generator can only call Exchange service.
      */
     @Bean
     @Primary

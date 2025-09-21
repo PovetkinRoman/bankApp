@@ -1,4 +1,4 @@
-package ru.rpovetkin.cash.config;
+package ru.rpovetkin.exchange_generator.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -12,6 +12,14 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
+/**
+ * Security configuration for Exchange Generator service.
+ * 
+ * SECURITY RULES:
+ * - Exchange Generator service can ONLY call: exchange service
+ * - All API endpoints require JWT authentication
+ * - Service generates exchange rates and sends them to exchange service
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -25,8 +33,8 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers("/actuator/**").permitAll()
-                // API эндпоинты требуют JWT аутентификацию и проверку ролей
-                .requestMatchers("/api/cash/**").hasAnyRole("FRONT_UI_SERVICE", "TRANSFER_SERVICE", "ACCOUNTS_SERVICE")
+                // API эндпоинты требуют JWT аутентификацию
+                .requestMatchers("/api/exchange/**").authenticated()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2

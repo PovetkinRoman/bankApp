@@ -1,4 +1,4 @@
-package ru.rpovetkin.cash.config;
+package ru.rpovetkin.transfer.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -8,7 +8,7 @@ import org.springframework.security.oauth2.client.web.reactive.function.client.S
 import org.springframework.web.reactive.function.client.WebClient;
 
 /**
- * OAuth2 WebClient configuration for Cash service.
+ * OAuth2 WebClient configuration for Transfer service.
  * 
  * SECURITY APPROACH:
  * - Uses OAuth2 authentication for all service-to-service calls

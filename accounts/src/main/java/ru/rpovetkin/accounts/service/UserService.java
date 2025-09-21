@@ -104,11 +104,16 @@ public class UserService {
         } else {
             try {
                 LocalDate birthdate = LocalDate.parse(request.getBirthdate());
-                if (birthdate.isAfter(LocalDate.now())) {
+                LocalDate today = LocalDate.now();
+                LocalDate eighteenYearsAgo = today.minusYears(18);
+                
+                if (birthdate.isAfter(today)) {
                     errors.add("Birthdate cannot be in the future");
+                } else if (birthdate.isAfter(eighteenYearsAgo)) {
+                    errors.add("User must be at least 18 years old");
                 }
             } catch (Exception e) {
-                errors.add("Invalid birthdate format");
+                errors.add("Invalid birthdate format. Use YYYY-MM-DD");
             }
         }
         
