@@ -19,7 +19,7 @@ import java.util.List;
 @Slf4j
 public class CashService {
 
-    private final WebClient.Builder webClientBuilder;
+    private final WebClient webClient;
 
     @Value("${cash.service.url}")
     private String cashServiceUrl;
@@ -31,14 +31,14 @@ public class CashService {
         log.info("Getting available currencies for cash operations for user: {}", login);
         
         try {
-            WebClient webClient = webClientBuilder.build();
-            
+            @SuppressWarnings("rawtypes")
             Mono<List> responseMono = webClient
                     .get()
                     .uri(cashServiceUrl + "/api/cash/currencies/" + login)
                     .retrieve()
                     .bodyToMono(List.class);
                     
+            @SuppressWarnings("unchecked")
             List<Object> response = responseMono.block();
             
             if (response != null) {
@@ -94,7 +94,6 @@ public class CashService {
 
     private CashOperationResponse performCashOperation(CashOperationRequest request, String endpoint) {
         try {
-            WebClient webClient = webClientBuilder.build();
             
             Mono<CashOperationResponse> responseMono = webClient
                     .post()
@@ -171,4 +170,5 @@ public class CashService {
         
         return null;
     }
+
 }

@@ -19,7 +19,7 @@ import java.util.Map;
 @Slf4j
 public class ExchangeService {
 
-    private final WebClient.Builder webClientBuilder;
+    private final WebClient webClient;
 
     @Value("${exchange.service.url}")
     private String exchangeServiceUrl;
@@ -31,9 +31,6 @@ public class ExchangeService {
         log.debug("Getting exchange rates from exchange service for display");
 
         try {
-            WebClient webClient = webClientBuilder.build();
-
-
             @SuppressWarnings("rawtypes")
             Mono<List> responseMono = webClient
                     .get()

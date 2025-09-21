@@ -15,6 +15,7 @@ services:
     command:
       - start-dev
       - --import-realm
+      - -Dkeycloak.import.strategy=OVERWRITE_EXISTING
     volumes:
       - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
     depends_on:

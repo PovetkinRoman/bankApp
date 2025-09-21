@@ -10,6 +10,7 @@ spring:
             client-secret: ${OAUTH2_CLIENT_SECRET:exchange-generator-secret-key-12345}
             authorization-grant-type: client_credentials
             scope: openid,profile,email
+            provider: keycloak
         provider:
           keycloak:
             token-uri: ${KEYCLOAK_TOKEN_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/token}

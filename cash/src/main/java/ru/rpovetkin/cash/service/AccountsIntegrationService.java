@@ -17,7 +17,7 @@ import java.util.List;
 @Slf4j
 public class AccountsIntegrationService {
 
-    private final WebClient webClient;
+    private final WebClient webClient; // Теперь это OAuth2-enabled WebClient
     
     @Value("${services.accounts.url}")
     private String accountsServiceUrl;

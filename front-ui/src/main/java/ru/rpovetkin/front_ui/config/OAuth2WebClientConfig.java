@@ -1,8 +1,9 @@
-package ru.rpovetkin.cash.config;
+package ru.rpovetkin.front_ui.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.security.oauth2.client.AuthorizedClientServiceOAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.InMemoryOAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
@@ -16,30 +17,22 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration
-public class OAuth2Config {
+public class OAuth2WebClientConfig {
 
-    @Value("${spring.security.oauth2.client.provider.keycloak.token-uri:http://localhost:8090/realms/bankapp/protocol/openid-connect/token}")
-    private String tokenUri;
-
-    @Value("${spring.security.oauth2.client.registration.cash-service.client-id:cash-service}")
-    private String clientId;
-
-    @Value("${spring.security.oauth2.client.registration.cash-service.client-secret:cash-secret-key-12345}")
-    private String clientSecret;
+    @Value("${keycloak.auth-server-url:http://keycloak:8080}")
+    private String keycloakServerUrl;
 
     @Bean
     public ClientRegistrationRepository clientRegistrationRepository() {
-        return new InMemoryClientRegistrationRepository(this.keycloakClientRegistration());
-    }
-
-    private ClientRegistration keycloakClientRegistration() {
-        return ClientRegistration.withRegistrationId("keycloak")
-                .clientId(clientId)
-                .clientSecret(clientSecret)
+        ClientRegistration registration = ClientRegistration
+                .withRegistrationId("keycloak")
+                .clientId("front-ui-service")
+                .clientSecret("front-ui-secret-key-12345")
                 .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
-                .tokenUri(tokenUri)
-                .scope("openid", "profile", "email")
+                .tokenUri(keycloakServerUrl + "/realms/bankapp/protocol/openid-connect/token")
                 .build();
+        
+        return new InMemoryClientRegistrationRepository(registration);
     }
 
     @Bean
@@ -65,7 +58,8 @@ public class OAuth2Config {
     }
 
     @Bean
-    public WebClient webClient(OAuth2AuthorizedClientManager authorizedClientManager) {
+    @Primary
+    public WebClient oAuth2WebClient(OAuth2AuthorizedClientManager authorizedClientManager) {
         ServletOAuth2AuthorizedClientExchangeFilterFunction oauth2Client =
                 new ServletOAuth2AuthorizedClientExchangeFilterFunction(authorizedClientManager);
         oauth2Client.setDefaultClientRegistrationId("keycloak");

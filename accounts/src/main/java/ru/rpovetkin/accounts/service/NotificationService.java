@@ -3,6 +3,9 @@ package ru.rpovetkin.accounts.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -15,9 +18,27 @@ import ru.rpovetkin.accounts.dto.NotificationResponse;
 public class NotificationService {
     
     private final WebClient.Builder webClientBuilder;
+    private final OAuth2AuthorizedClientManager authorizedClientManager;
     
     @Value("${notifications.service.url:http://localhost:8087}")
     private String notificationsServiceUrl;
+    
+    private String getJwtToken() {
+        try {
+            OAuth2AuthorizedClient authorizedClient = authorizedClientManager.authorize(
+                OAuth2AuthorizeRequest.withClientRegistrationId("keycloak")
+                    .principal("accounts-service")
+                    .build()
+            );
+            
+            if (authorizedClient != null && authorizedClient.getAccessToken() != null) {
+                return authorizedClient.getAccessToken().getTokenValue();
+            }
+        } catch (Exception e) {
+            log.error("Error getting JWT token: {}", e.getMessage());
+        }
+        return null;
+    }
     
     /**
      * Отправить уведомление пользователю
@@ -35,11 +56,14 @@ public class NotificationService {
             
             log.info("Sending notification to user {}: {}", userId, title);
             
+            String jwtToken = getJwtToken();
+            
             WebClient webClient = webClientBuilder.build();
             
             Mono<NotificationResponse> responseMono = webClient
                     .post()
                     .uri(notificationsServiceUrl + "/api/notifications/send")
+                    .header("Authorization", jwtToken != null ? "Bearer " + jwtToken : "")
                     .bodyValue(request)
                     .retrieve()
                     .bodyToMono(NotificationResponse.class);

@@ -37,7 +37,6 @@ public class AccountsService {
         log.info("Sending registration request to accounts service for user: {}", request.getLogin());
         
         try {
-            
             Mono<UserRegistrationResponse> responseMono = webClient
                     .post()
                     .uri(accountsServiceUrl + "/api/users/register")
@@ -65,7 +64,6 @@ public class AccountsService {
         log.info("Authenticating user: {}", request.getLogin());
         
         try {
-            
             Mono<AuthenticationResponse> responseMono = webClient
                     .post()
                     .uri(accountsServiceUrl + "/api/users/authenticate")
@@ -90,7 +88,6 @@ public class AccountsService {
         log.info("Getting user by login: {}", login);
         
         try {
-            
             Mono<UserDto> responseMono = webClient
                     .get()
                     .uri(accountsServiceUrl + "/api/users/" + login)
@@ -112,7 +109,6 @@ public class AccountsService {
         log.info("Getting all users for transfer recipients");
         
         try {
-            
             @SuppressWarnings("rawtypes")
             Mono<List> responseMono = webClient
                     .get()
@@ -146,7 +142,6 @@ public class AccountsService {
         log.info("Sending change password request for user: {}", request.getLogin());
         
         try {
-            
             Mono<ChangePasswordResponse> responseMono = webClient
                     .post()
                     .uri(accountsServiceUrl + "/api/users/change-password")
@@ -175,7 +170,6 @@ public class AccountsService {
         log.info("Sending update user data request for user: {}", request.getLogin());
         
         try {
-            
             Mono<UpdateUserDataResponse> responseMono = webClient
                     .post()
                     .uri(accountsServiceUrl + "/api/users/update-data")
@@ -204,7 +198,6 @@ public class AccountsService {
         log.info("Getting user accounts for: {}", login);
         
         try {
-            
             @SuppressWarnings("rawtypes")
             Mono<List> responseMono = webClient
                     .get()
@@ -318,7 +311,6 @@ public class AccountsService {
         try {
             Currency currency = Currency.valueOf(currencyStr);
             
-            
             String requestBody = String.format("{\"login\":\"%s\",\"currency\":\"%s\"}", login, currency.name());
             
             Mono<String> responseMono = webClient
@@ -352,7 +344,6 @@ public class AccountsService {
         log.info("Performing account operation: {} {} {} for user {}", operation, amount, currency, login);
         
         try {
-            
             AccountOperationRequest request = AccountOperationRequest.builder()
                     .login(login)
                     .currency(currency)
@@ -414,4 +405,5 @@ public class AccountsService {
                     .build();
         }
     }
+
 }

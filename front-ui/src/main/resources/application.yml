@@ -3,16 +3,6 @@ spring:
     name: front-ui
   security:
     oauth2:
-      client:
-        registration:
-          front-ui-service:
-            client-id: ${OAUTH2_CLIENT_ID:front-ui-service}
-            client-secret: ${OAUTH2_CLIENT_SECRET:front-ui-secret-key-12345}
-            authorization-grant-type: client_credentials
-            scope: openid,profile,email
-        provider:
-          keycloak:
-            token-uri: ${KEYCLOAK_TOKEN_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/token}
       resourceserver:
         jwt:
           jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs}
