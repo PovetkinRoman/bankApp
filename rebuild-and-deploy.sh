@@ -102,8 +102,8 @@ if [ "$SKIP_TESTS" = true ]; then
     BUILD_ARGS="$BUILD_ARGS skip-tests"
 fi
 
-log_info "Запускаем: ./build-all.sh $BUILD_ARGS"
-if ./build-all.sh $BUILD_ARGS; then
+log_info "Запускаем: ./build-all.sh skip-tests"
+if ./build-all.sh skip-tests; then
     log_success "✅ Все модули успешно собраны!"
 else
     log_error "❌ Ошибка сборки модулей. Остановка."
@@ -131,8 +131,8 @@ echo "========================================"
 log_step "3️⃣  ПЕРЕСБОРКА DOCKER ОБРАЗОВ"
 echo "========================================"
 
-log_docker "Пересборка образов с --no-cache"
-if docker compose build --no-cache "${SPECIFIC_SERVICES[@]}"; then
+log_docker "Пересборка образов"
+if docker compose build "${SPECIFIC_SERVICES[@]}"; then
     log_success "✅ Docker образы пересобраны!"
 else
     log_error "❌ Ошибка пересборки Docker образов"

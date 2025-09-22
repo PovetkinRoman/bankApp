@@ -74,10 +74,10 @@
                 <td colspan="3" style="color:red;" th:text="${userAccountsError}"/>
             </tr>
             <tr>
-                <td style="font-weight:bold;">Фамилия Имя</td>
-                <td th:text="${name}"/>
+                <td style="font-weight:bold;">Имя и Фамилия</td>
+                <td th:text="${name != null && !#strings.isEmpty(name) ? name : 'Пользователь'}"/>
                 <td>
-                    <input name="name" type="text" style="width:100%"/>
+                    <input name="name" type="text" style="width:100%" placeholder="Например: Иван Иванов"/>
                 </td>
             </tr>
             <tr>

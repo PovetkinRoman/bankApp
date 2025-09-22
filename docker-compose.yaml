@@ -1,6 +1,19 @@
 # имена и описания контейнеров, которые должны быть развёрнуты
 services:
 
+  consul:
+    image: hashicorp/consul:1.17.0
+    ports:
+      - "8500:8500"
+      - "8600:8600/udp"
+    command: consul agent -dev -ui -client=0.0.0.0 -bootstrap-expect=1
+    environment:
+      - CONSUL_BIND_INTERFACE=eth0
+    volumes:
+      - consul_data:/consul/data
+    networks:
+      - bankapp-network
+
   keycloak:
     image: quay.io/keycloak/keycloak:24.0.2
     environment:
@@ -20,6 +33,8 @@ services:
       - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
     depends_on:
       - db
+    networks:
+      - bankapp-network
 
   db:
     image: postgres:13.21-alpine3.22
@@ -31,6 +46,8 @@ services:
       - POSTGRES_DB=bankapp
       - POSTGRES_USER=root
       - POSTGRES_PASSWORD=root
+    networks:
+      - bankapp-network
 
   front-ui-app:
     build:
@@ -39,21 +56,26 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - ACCOUNTS_HOST=accounts-app
-      - ACCOUNTS_PORT=8081
-      - CASH_SERVICE_URL=http://cash-app:8082
-      - TRANSFER_SERVICE_URL=http://transfer-app:8083
-      - EXCHANGE_SERVICE_URL=http://exchange-app:8084
+      - SPRING_CLOUD_COMPATIBILITY_VERIFIER_ENABLED=false
+      - SPRING_CLOUD_CONSUL_HOST=consul
+      - SPRING_CLOUD_CONSUL_PORT=8500
+      - SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED=true
+      - SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER=true
+      - SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME=front-ui
+      - SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID=front-ui-1
       - KEYCLOAK_TOKEN_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/token
       - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs
       - OAUTH2_CLIENT_ID=front-ui-service
       - OAUTH2_CLIENT_SECRET=front-ui-secret-key-12345
     depends_on:
       - keycloak
+      - consul
       - accounts-app
       - cash-app
       - transfer-app
       - exchange-app
+    networks:
+      - bankapp-network
 
   accounts-app:
     build:
@@ -62,20 +84,27 @@ services:
     ports:
       - "8081:8081"
     environment:
+      - SPRING_CLOUD_CONSUL_HOST=consul
+      - SPRING_CLOUD_CONSUL_PORT=8500
+      - SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED=true
+      - SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER=true
+      - SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME=accounts
+      - SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID=accounts-1
       - DB_HOST=db
       - DB_PORT=5432
       - DB_NAME=bankapp
       - DB_USER=root
       - DB_PASSWORD=root
-      - NOTIFICATIONS_SERVICE_URL=http://notifications-app:8087
       - KEYCLOAK_TOKEN_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/token
       - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs
       - OAUTH2_CLIENT_ID=accounts-service
       - OAUTH2_CLIENT_SECRET=accounts-secret-key-12345
     depends_on:
       - keycloak
+      - consul
       - db
-      - notifications-app
+    networks:
+      - bankapp-network
 
   cash-app:
     build:
@@ -84,18 +113,21 @@ services:
     ports:
       - "8082:8082"
     environment:
-      - ACCOUNTS_SERVICE_URL=http://accounts-app:8081
-      - BLOCKER_SERVICE_URL=http://blocker-app:8086
-      - NOTIFICATIONS_SERVICE_URL=http://notifications-app:8087
+      - SPRING_CLOUD_CONSUL_HOST=consul
+      - SPRING_CLOUD_CONSUL_PORT=8500
+      - SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED=true
+      - SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER=true
+      - SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME=cash
+      - SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID=cash-1
       - KEYCLOAK_TOKEN_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/token
       - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs
       - OAUTH2_CLIENT_ID=cash-service
       - OAUTH2_CLIENT_SECRET=cash-secret-key-12345
     depends_on:
       - keycloak
-      - accounts-app
-      - blocker-app
-      - notifications-app
+      - consul
+    networks:
+      - bankapp-network
 
   transfer-app:
     build:
@@ -104,20 +136,21 @@ services:
     ports:
       - "8083:8083"
     environment:
-      - ACCOUNTS_SERVICE_URL=http://accounts-app:8081
-      - NOTIFICATIONS_SERVICE_URL=http://notifications-app:8087
-      - EXCHANGE_SERVICE_URL=http://exchange-app:8084
-      - BLOCKER_SERVICE_URL=http://blocker-app:8086
+      - SPRING_CLOUD_CONSUL_HOST=consul
+      - SPRING_CLOUD_CONSUL_PORT=8500
+      - SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED=true
+      - SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER=true
+      - SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME=transfer
+      - SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID=transfer-1
       - KEYCLOAK_TOKEN_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/token
       - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs
       - OAUTH2_CLIENT_ID=transfer-service
       - OAUTH2_CLIENT_SECRET=transfer-secret-key-12345
     depends_on:
       - keycloak
-      - accounts-app
-      - notifications-app
-      - exchange-app
-      - blocker-app
+      - consul
+    networks:
+      - bankapp-network
 
   exchange-app:
     build:
@@ -126,9 +159,18 @@ services:
     ports:
       - "8084:8084"
     environment:
+      - SPRING_CLOUD_CONSUL_HOST=consul
+      - SPRING_CLOUD_CONSUL_PORT=8500
+      - SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED=true
+      - SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER=true
+      - SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME=exchange
+      - SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID=exchange-1
       - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs
     depends_on:
       - keycloak
+      - consul
+    networks:
+      - bankapp-network
 
   exchange-generator-app:
     build:
@@ -137,14 +179,21 @@ services:
     ports:
       - "8085:8085"
     environment:
-      - EXCHANGE_SERVICE_URL=http://exchange-app:8084
+      - SPRING_CLOUD_CONSUL_HOST=consul
+      - SPRING_CLOUD_CONSUL_PORT=8500
+      - SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED=true
+      - SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER=true
+      - SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME=exchange-generator
+      - SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID=exchange-generator-1
       - KEYCLOAK_TOKEN_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/token
       - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs
       - OAUTH2_CLIENT_ID=exchange-generator-service
       - OAUTH2_CLIENT_SECRET=exchange-generator-secret-key-12345
     depends_on:
       - keycloak
-      - exchange-app
+      - consul
+    networks:
+      - bankapp-network
 
   blocker-app:
     build:
@@ -153,9 +202,18 @@ services:
     ports:
       - "8086:8086"
     environment:
+      - SPRING_CLOUD_CONSUL_HOST=consul
+      - SPRING_CLOUD_CONSUL_PORT=8500
+      - SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED=true
+      - SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER=true
+      - SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME=blocker
+      - SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID=blocker-1
       - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs
     depends_on:
       - keycloak
+      - consul
+    networks:
+      - bankapp-network
 
   notifications-app:
     build:
@@ -164,6 +222,22 @@ services:
     ports:
       - "8087:8087"
     environment:
+      - SPRING_CLOUD_CONSUL_HOST=consul
+      - SPRING_CLOUD_CONSUL_PORT=8500
+      - SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED=true
+      - SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER=true
+      - SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME=notifications
+      - SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID=notifications-1
       - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs
     depends_on:
       - keycloak
+      - consul
+    networks:
+      - bankapp-network
+
+volumes:
+  consul_data:
+
+networks:
+  bankapp-network:
+    driver: bridge

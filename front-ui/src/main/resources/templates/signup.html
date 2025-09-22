@@ -1,58 +1,66 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-
+<html lang="en">
 <head>
     <title>Регистрация</title>
 </head>
-
 <body>
-<form th:action="${'/signup'}" method="post">
+<form action="/signup" method="post">
 <table style="width:30%;margin-left:auto;margin-right:auto;border-radius:2%;padding:10px;background-color:whitesmoke;">
     <tr>
-        <td colspan="2">
-            <span style="color:red;font-weight:bold;">*</span> Все поля обязательны для заполнения
+        <td colspan="2" style="text-align:center;">
+            <h2>Регистрация</h2>
         </td>
     </tr>
-    <tr th:each="error : ${errors}">
-        <td style="color:red;" th:text="${error}" colspan="2"/>
+    
+    <tr th:if="${errors != null}">
+        <td colspan="2" style="color:red;text-align:center;">
+            <ul style="list-style-type:none;padding:0;">
+                <li th:each="error : ${errors}" th:text="${error}"></li>
+            </ul>
+        </td>
     </tr>
+    
     <tr>
-        <td style="font-weight:bold;">Логин</td>
+        <td style="font-weight:bold;">Логин:</td>
         <td>
-            <input name="login" type="text" th:value="${login}" style="width:100%" required/>
+            <input name="login" type="text" style="width:100%" required th:value="${login}"/>
         </td>
     </tr>
     <tr>
-        <td style="font-weight:bold;">Пароль</td>
+        <td style="font-weight:bold;">Пароль:</td>
         <td>
             <input name="password" type="password" style="width:100%" required/>
         </td>
     </tr>
     <tr>
-        <td style="font-weight:bold;">Повторите пароль</td>
+        <td style="font-weight:bold;">Подтверждение пароля:</td>
         <td>
             <input name="confirm_password" type="password" style="width:100%" required/>
         </td>
     </tr>
     <tr>
-        <td style="font-weight:bold;">Фамилия Имя</td>
+        <td style="font-weight:bold;">Имя и Фамилия:</td>
         <td>
-            <input name="name" type="text" th:value="${name}" style="width:100%" required/>
+            <input name="name" type="text" style="width:100%" placeholder="Например: Иван Иванов" required th:value="${name}"/>
         </td>
     </tr>
     <tr>
-        <td style="font-weight:bold;">Дата рождения </td>
+        <td style="font-weight:bold;">Дата рождения:</td>
         <td>
-            <input name="birthdate" type="date" th:value="${birthdate}" style="width:100%" required/>
+            <input name="birthdate" type="date" style="width:100%" required th:value="${birthdate}"/>
         </td>
     </tr>
     <tr>
         <td style="text-align:right" colspan="2">
-            <button>Зарегистрироваться</button>
+            <button type="submit">Зарегистрироваться</button>
+        </td>
+    </tr>
+    <tr>
+        <td colspan="2" style="text-align:center;">
+            <a href="/login">Войти</a>
         </td>
     </tr>
 </table>
 </form>
 </body>
-
 </html>

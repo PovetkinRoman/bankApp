@@ -6,19 +6,31 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs}
+  cloud:
+    compatibility-verifier:
+      enabled: false
+    consul:
+      host: ${SPRING_CLOUD_CONSUL_HOST:consul}
+      port: ${SPRING_CLOUD_CONSUL_PORT:8500}
+      discovery:
+        enabled: true
+        register: true
+        service-name: front-ui
+        instance-id: front-ui-1
+        hostname: front-ui-app
 
 accounts:
   service:
-    url: http://${ACCOUNTS_HOST:localhost}:${ACCOUNTS_PORT:8081}
+    url: http://accounts
 
 cash:
   service:
-    url: ${CASH_SERVICE_URL:http://localhost:8082}
+    url: http://cash
 
 transfer:
   service:
-    url: ${TRANSFER_SERVICE_URL:http://localhost:8083}
+    url: http://transfer
 
 exchange:
   service:
-    url: ${EXCHANGE_SERVICE_URL:http://localhost:8084}
+    url: http://exchange

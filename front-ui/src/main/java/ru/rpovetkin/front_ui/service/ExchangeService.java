@@ -20,6 +20,7 @@ import java.util.Map;
 public class ExchangeService {
 
     private final WebClient webClient;
+    private final ConsulService consulService;
 
     @Value("${exchange.service.url}")
     private String exchangeServiceUrl;
@@ -31,21 +32,24 @@ public class ExchangeService {
         log.debug("Getting exchange rates from exchange service for display");
 
         try {
-            @SuppressWarnings("rawtypes")
-            Mono<List> responseMono = webClient
-                    .get()
-                    .uri(exchangeServiceUrl + "/api/exchange/rates")
-                    .retrieve()
-                    .bodyToMono(List.class);
-
-            @SuppressWarnings("unchecked")
-            List<Object> response = responseMono.block();
-            
-            if (response != null) {
-                return convertToDisplayFormat(response);
-            }
-            
-            return getDefaultRates();
+            return consulService.getServiceUrl("exchange")
+                    .flatMap(serviceUrl -> {
+                        log.debug("Using exchange service URL: {}", serviceUrl);
+                        return webClient
+                                .get()
+                                .uri(serviceUrl + "/api/exchange/rates")
+                                .retrieve()
+                                .bodyToMono(List.class);
+                    })
+                    .map(response -> {
+                        if (response != null) {
+                            return convertToDisplayFormat(response);
+                        }
+                        return getDefaultRates();
+                    })
+                    .doOnError(error -> log.error("Error getting exchange rates from exchange service: {}", error.getMessage(), error))
+                    .onErrorReturn(getDefaultRates())
+                    .block();
 
         } catch (Exception e) {
             log.error("Error getting exchange rates from exchange service: {}", e.getMessage(), e);

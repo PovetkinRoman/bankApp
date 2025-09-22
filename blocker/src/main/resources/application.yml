@@ -4,6 +4,20 @@ server:
 spring:
   application:
     name: blocker
+  cloud:
+    compatibility-verifier:
+      enabled: false
+    consul:
+      host: ${SPRING_CLOUD_CONSUL_HOST:consul}
+      port: ${SPRING_CLOUD_CONSUL_PORT:8500}
+      discovery:
+        enabled: ${SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED:true}
+        register: ${SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER:true}
+        service-name: ${SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME:blocker}
+        instance-id: ${SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID:blocker-${random.uuid}}
+        hostname: blocker-app
+        health-check-path: /actuator/health
+        health-check-interval: 15s
   security:
     oauth2:
       resourceserver:

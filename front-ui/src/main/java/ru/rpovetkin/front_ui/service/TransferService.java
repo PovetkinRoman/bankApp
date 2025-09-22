@@ -16,9 +16,10 @@ import java.math.BigDecimal;
 @Slf4j
 public class TransferService {
 
-    private final WebClient.Builder webClientBuilder;
+    private final WebClient webClient;
+    private final ConsulService consulService;
 
-    @Value("${transfer.service.url:http://localhost:8083}")
+    @Value("${transfer.service.url}")
     private String transferServiceUrl;
 
     /**
@@ -36,42 +37,47 @@ public class TransferService {
                 .build();
         
         try {
-            WebClient webClient = webClientBuilder.build();
-            
-            Mono<TransferResponse> responseMono = webClient
-                    .post()
-                    .uri(transferServiceUrl + "/api/transfer/execute")
-                    .bodyValue(request)
-                    .exchangeToMono(clientResponse -> {
-                        if (clientResponse.statusCode().is2xxSuccessful()) {
-                            return clientResponse.bodyToMono(TransferResponse.class);
-                        } else if (clientResponse.statusCode().is4xxClientError()) {
-                            // Для 4xx ошибок пытаемся получить TransferResponse с детальным сообщением
-                            return clientResponse.bodyToMono(TransferResponse.class)
-                                    .onErrorReturn(TransferResponse.builder()
-                                            .success(false)
-                                            .message("Операция отклонена")
-                                            .build());
-                        } else {
-                            return Mono.just(TransferResponse.builder()
-                                    .success(false)
-                                    .message("Сервис переводов временно недоступен")
-                                    .build());
+            return consulService.getServiceUrl("transfer")
+                    .flatMap(serviceUrl -> {
+                        log.info("Using transfer service URL: {}", serviceUrl);
+                        return webClient
+                                .post()
+                                .uri(serviceUrl + "/api/transfer/execute")
+                                .bodyValue(request)
+                                .exchangeToMono(clientResponse -> {
+                                    if (clientResponse.statusCode().is2xxSuccessful()) {
+                                        return clientResponse.bodyToMono(TransferResponse.class);
+                                    } else if (clientResponse.statusCode().is4xxClientError()) {
+                                        // Для 4xx ошибок пытаемся получить TransferResponse с детальным сообщением
+                                        return clientResponse.bodyToMono(TransferResponse.class)
+                                                .onErrorReturn(TransferResponse.builder()
+                                                        .success(false)
+                                                        .message("Операция отклонена")
+                                                        .build());
+                                    } else {
+                                        return Mono.just(TransferResponse.builder()
+                                                .success(false)
+                                                .message("Сервис переводов временно недоступен")
+                                                .build());
+                                    }
+                                })
+                                .onErrorReturn(TransferResponse.builder()
+                                        .success(false)
+                                        .message("Ошибка соединения с сервисом переводов")
+                                        .build());
+                    })
+                    .doOnSuccess(response -> {
+                        log.info("Transfer result from {} to {}: {}", fromUser, toUser, response.isSuccess());
+                        if (!response.isSuccess()) {
+                            log.warn("Transfer failed: {}", response.getMessage());
                         }
                     })
+                    .doOnError(error -> log.error("Error calling transfer service: {}", error.getMessage(), error))
                     .onErrorReturn(TransferResponse.builder()
                             .success(false)
-                            .message("Ошибка соединения с сервисом переводов")
-                            .build());
-                            
-            TransferResponse response = responseMono.block();
-            log.info("Transfer result from {} to {}: {}", fromUser, toUser, response.isSuccess());
-            
-            if (!response.isSuccess()) {
-                log.warn("Transfer failed: {}", response.getMessage());
-            }
-            
-            return response;
+                            .message("Transfer service unavailable")
+                            .build())
+                    .block();
             
         } catch (Exception e) {
             log.error("Error executing transfer: {}", e.getMessage(), e);

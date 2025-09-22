@@ -12,6 +12,7 @@ import ru.rpovetkin.front_ui.dto.CashOperationResponse;
 import ru.rpovetkin.front_ui.dto.Currency;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -20,6 +21,7 @@ import java.util.List;
 public class CashService {
 
     private final WebClient webClient;
+    private final ConsulService consulService;
 
     @Value("${cash.service.url}")
     private String cashServiceUrl;
@@ -31,32 +33,34 @@ public class CashService {
         log.info("Getting available currencies for cash operations for user: {}", login);
         
         try {
-            @SuppressWarnings("rawtypes")
-            Mono<List> responseMono = webClient
-                    .get()
-                    .uri(cashServiceUrl + "/api/cash/currencies/" + login)
-                    .retrieve()
-                    .bodyToMono(List.class);
-                    
-            @SuppressWarnings("unchecked")
-            List<Object> response = responseMono.block();
-            
-            if (response != null) {
-                List<AccountDto> accounts = response.stream()
-                        .map(this::convertToAccountDto)
-                        .filter(account -> account != null)
-                        .toList();
-                
-                log.info("Retrieved {} available currencies for user: {}", accounts.size(), login);
-                return accounts;
-            }
-            
-            log.warn("No currencies available for user: {}", login);
-            return List.of();
+            return consulService.getServiceUrl("cash")
+                    .flatMap(serviceUrl -> {
+                        log.debug("Using cash service URL: {}", serviceUrl);
+                        return webClient
+                                .get()
+                                .uri(serviceUrl + "/api/cash/currencies/" + login)
+                                .retrieve()
+                                .bodyToMono(List.class);
+                    })
+                    .map(response -> {
+                        if (response != null) {
+                            List<AccountDto> accounts = response.stream()
+                                    .map(this::convertToAccountDto)
+                                    .filter(account -> account != null)
+                                    .toList();
+                            
+                            log.info("Retrieved {} available currencies for user: {}", accounts.size(), login);
+                            return accounts;
+                        }
+                        return new ArrayList<AccountDto>();
+                    })
+                    .doOnError(error -> log.error("Error getting available currencies: {}", error.getMessage(), error))
+                    .onErrorReturn(new ArrayList<AccountDto>())
+                    .block();
             
         } catch (Exception e) {
             log.error("Error getting available currencies: {}", e.getMessage(), e);
-            return List.of();
+            return new ArrayList<AccountDto>();
         }
     }
 
@@ -94,42 +98,48 @@ public class CashService {
 
     private CashOperationResponse performCashOperation(CashOperationRequest request, String endpoint) {
         try {
-            
-            Mono<CashOperationResponse> responseMono = webClient
-                    .post()
-                    .uri(cashServiceUrl + endpoint)
-                    .bodyValue(request)
-                    .exchangeToMono(clientResponse -> {
-                        if (clientResponse.statusCode().is2xxSuccessful()) {
-                            return clientResponse.bodyToMono(CashOperationResponse.class);
-                        } else if (clientResponse.statusCode().is4xxClientError()) {
-                            // Для 4xx ошибок пытаемся получить детальный ответ от сервиса
-                            return clientResponse.bodyToMono(CashOperationResponse.class)
-                                    .onErrorReturn(CashOperationResponse.builder()
-                                            .success(false)
-                                            .message("Операция заблокирована системой безопасности")
-                                            .build());
-                        } else {
-                            return Mono.just(CashOperationResponse.builder()
-                                    .success(false)
-                                    .message("Сервис наличных временно недоступен")
-                                    .build());
+            return consulService.getServiceUrl("cash")
+                    .flatMap(serviceUrl -> {
+                        log.debug("Using cash service URL: {}", serviceUrl);
+                        return webClient
+                                .post()
+                                .uri(serviceUrl + endpoint)
+                                .bodyValue(request)
+                                .exchangeToMono(clientResponse -> {
+                                    if (clientResponse.statusCode().is2xxSuccessful()) {
+                                        return clientResponse.bodyToMono(CashOperationResponse.class);
+                                    } else if (clientResponse.statusCode().is4xxClientError()) {
+                                        // Для 4xx ошибок пытаемся получить детальный ответ от сервиса
+                                        return clientResponse.bodyToMono(CashOperationResponse.class)
+                                                .onErrorReturn(CashOperationResponse.builder()
+                                                        .success(false)
+                                                        .message("Операция заблокирована системой безопасности")
+                                                        .build());
+                                    } else {
+                                        return Mono.just(CashOperationResponse.builder()
+                                                .success(false)
+                                                .message("Сервис наличных временно недоступен")
+                                                .build());
+                                    }
+                                })
+                                .onErrorReturn(CashOperationResponse.builder()
+                                        .success(false)
+                                        .message("Ошибка соединения с сервисом наличных")
+                                        .build());
+                    })
+                    .doOnSuccess(response -> {
+                        log.info("Cash operation {} result for user {}: {}", 
+                            request.getOperation(), request.getLogin(), response.isSuccess());
+                        if (!response.isSuccess()) {
+                            log.warn("Cash operation failed: {}", response.getMessage());
                         }
                     })
+                    .doOnError(error -> log.error("Error performing cash operation: {}", error.getMessage(), error))
                     .onErrorReturn(CashOperationResponse.builder()
                             .success(false)
-                            .message("Ошибка соединения с сервисом наличных")
-                            .build());
-                            
-            CashOperationResponse response = responseMono.block();
-            log.info("Cash operation {} result for user {}: {}", 
-                request.getOperation(), request.getLogin(), response.isSuccess());
-            
-            if (!response.isSuccess()) {
-                log.warn("Cash operation failed: {}", response.getMessage());
-            }
-            
-            return response;
+                            .message("Cash service unavailable")
+                            .build())
+                    .block();
             
         } catch (Exception e) {
             log.error("Error performing cash operation: {}", e.getMessage(), e);

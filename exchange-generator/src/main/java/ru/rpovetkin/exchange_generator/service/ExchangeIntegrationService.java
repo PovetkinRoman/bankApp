@@ -2,7 +2,6 @@ package ru.rpovetkin.exchange_generator.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -18,9 +17,7 @@ import java.util.Map;
 public class ExchangeIntegrationService {
 
     private final WebClient.Builder webClientBuilder;
-
-    @Value("${exchange.service.url}")
-    private String exchangeServiceUrl;
+    private final ConsulService consulService;
 
     /**
      * Отправить курсы валют в exchange сервис
@@ -36,16 +33,20 @@ public class ExchangeIntegrationService {
 
             WebClient webClient = webClientBuilder.build();
 
-            Mono<String> responseMono = webClient
-                    .post()
-                    .uri(exchangeServiceUrl + "/api/exchange/rates/update")
-                    .bodyValue(updateDto)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .onErrorReturn("Service unavailable");
-
-            String response = responseMono.block();
-            log.debug("Exchange service response: {}", response);
+            consulService.getServiceUrl("exchange")
+                    .flatMap(serviceUrl -> {
+                        log.debug("Using exchange service URL: {}", serviceUrl);
+                        return webClient
+                                .post()
+                                .uri(serviceUrl + "/api/exchange/rates/update")
+                                .bodyValue(updateDto)
+                                .retrieve()
+                                .bodyToMono(String.class)
+                                .onErrorReturn("Service unavailable");
+                    })
+                    .doOnSuccess(response -> log.debug("Exchange service response: {}", response))
+                    .doOnError(error -> log.error("Error sending exchange rates to exchange service: {}", error.getMessage(), error))
+                    .subscribe();
 
         } catch (Exception e) {
             log.error("Error sending exchange rates to exchange service: {}", e.getMessage(), e);

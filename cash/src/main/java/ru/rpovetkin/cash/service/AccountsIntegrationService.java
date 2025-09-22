@@ -2,7 +2,6 @@ package ru.rpovetkin.cash.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -18,9 +17,7 @@ import java.util.List;
 public class AccountsIntegrationService {
 
     private final WebClient webClient; // Теперь это OAuth2-enabled WebClient
-    
-    @Value("${services.accounts.url}")
-    private String accountsServiceUrl;
+    private final ConsulService consulService;
 
     /**
      * Получить список существующих счетов пользователя
@@ -29,28 +26,36 @@ public class AccountsIntegrationService {
         log.info("Getting existing accounts for user: {}", login);
         
         try {
-            Mono<List> responseMono = webClient
-                    .get()
-                    .uri(accountsServiceUrl + "/api/accounts/" + login)
-                    .retrieve()
-                    .bodyToMono(List.class)
-                    .retry(2) // Retry up to 2 times on failure
-                    .doOnError(throwable -> log.warn("Error getting accounts for user {}: {}", login, throwable.getMessage()));
-                    
-            List<Object> response = responseMono.block();
-            
-            if (response != null) {
-                List<AccountDto> accounts = response.stream()
-                        .map(this::convertToAccountDto)
-                        .filter(account -> account != null && account.isExists())
-                        .toList();
-                
-                log.info("Retrieved {} existing accounts for user: {}", accounts.size(), login);
-                return accounts;
-            }
-            
-            log.warn("No accounts found for user: {}", login);
-            return List.of();
+            return consulService.getServiceUrl("accounts")
+                    .flatMap(serviceUrl -> {
+                        log.debug("Using accounts service URL: {}", serviceUrl);
+                        return webClient
+                                .get()
+                                .uri(serviceUrl + "/api/accounts/" + login)
+                                .retrieve()
+                                .bodyToMono(List.class)
+                                .retry(2) // Retry up to 2 times on failure
+                                .doOnError(throwable -> log.warn("Error getting accounts for user {}: {}", login, throwable.getMessage()));
+                    })
+                    .map(response -> {
+                        if (response != null) {
+                            @SuppressWarnings("unchecked")
+                            List<Object> responseList = (List<Object>) response;
+                            List<AccountDto> accounts = responseList.stream()
+                                    .map(this::convertToAccountDto)
+                                    .filter(account -> account != null && account.isExists())
+                                    .toList();
+                            
+                            log.info("Retrieved {} existing accounts for user: {}", accounts.size(), login);
+                            return accounts;
+                        }
+                        
+                        log.warn("No accounts found for user: {}", login);
+                        return List.<AccountDto>of();
+                    })
+                    .doOnError(error -> log.error("Error getting user accounts: {}", error.getMessage(), error))
+                    .onErrorReturn(List.of())
+                    .block();
             
         } catch (Exception e) {
             log.error("Error getting user accounts: {}", e.getMessage(), e);
@@ -70,21 +75,27 @@ public class AccountsIntegrationService {
                 login, currency.name(), amount.toString()
             );
             
-            Mono<String> responseMono = webClient
-                    .post()
-                    .uri(accountsServiceUrl + "/api/accounts/deposit")
-                    .header("Content-Type", "application/json")
-                    .bodyValue(requestBody)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .retry(2) // Retry up to 2 times on failure
-                    .doOnError(throwable -> log.warn("Error calling accounts service: {}", throwable.getMessage()));
-                    
-            String response = responseMono.block();
-            
-            boolean success = response != null && response.contains("\"success\":true");
-            log.info("Deposit operation for user {} result: {}", login, success);
-            return success;
+            return consulService.getServiceUrl("accounts")
+                    .flatMap(serviceUrl -> {
+                        log.debug("Using accounts service URL: {}", serviceUrl);
+                        return webClient
+                                .post()
+                                .uri(serviceUrl + "/api/accounts/deposit")
+                                .header("Content-Type", "application/json")
+                                .bodyValue(requestBody)
+                                .retrieve()
+                                .bodyToMono(String.class)
+                                .retry(2) // Retry up to 2 times on failure
+                                .doOnError(throwable -> log.warn("Error calling accounts service: {}", throwable.getMessage()));
+                    })
+                    .map(response -> {
+                        boolean success = response != null && response.contains("\"success\":true");
+                        log.info("Deposit operation for user {} result: {}", login, success);
+                        return success;
+                    })
+                    .doOnError(error -> log.error("Error depositing to account: {}", error.getMessage(), error))
+                    .onErrorReturn(false)
+                    .block();
             
         } catch (Exception e) {
             log.error("Error depositing to account: {}", e.getMessage(), e);
@@ -104,19 +115,27 @@ public class AccountsIntegrationService {
                 login, currency.name(), amount.toString()
             );
             
-            Mono<String> responseMono = webClient
-                    .post()
-                    .uri(accountsServiceUrl + "/api/accounts/withdraw")
-                    .header("Content-Type", "application/json")
-                    .bodyValue(requestBody)
-                    .retrieve()
-                    .bodyToMono(String.class);
-                    
-            String response = responseMono.block();
-            
-            boolean success = response != null && response.contains("\"success\":true");
-            log.info("Withdrawal operation for user {} result: {}", login, success);
-            return success;
+            return consulService.getServiceUrl("accounts")
+                    .flatMap(serviceUrl -> {
+                        log.debug("Using accounts service URL: {}", serviceUrl);
+                        return webClient
+                                .post()
+                                .uri(serviceUrl + "/api/accounts/withdraw")
+                                .header("Content-Type", "application/json")
+                                .bodyValue(requestBody)
+                                .retrieve()
+                                .bodyToMono(String.class)
+                                .retry(2) // Retry up to 2 times on failure
+                                .doOnError(throwable -> log.warn("Error calling accounts service: {}", throwable.getMessage()));
+                    })
+                    .map(response -> {
+                        boolean success = response != null && response.contains("\"success\":true");
+                        log.info("Withdrawal operation for user {} result: {}", login, success);
+                        return success;
+                    })
+                    .doOnError(error -> log.error("Error withdrawing from account: {}", error.getMessage(), error))
+                    .onErrorReturn(false)
+                    .block();
             
         } catch (Exception e) {
             log.error("Error withdrawing from account: {}", e.getMessage(), e);

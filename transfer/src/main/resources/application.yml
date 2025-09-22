@@ -1,6 +1,20 @@
 spring:
   application:
     name: transfer
+  cloud:
+    compatibility-verifier:
+      enabled: false
+    consul:
+      host: ${SPRING_CLOUD_CONSUL_HOST:consul}
+      port: ${SPRING_CLOUD_CONSUL_PORT:8500}
+      discovery:
+        enabled: ${SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED:true}
+        register: ${SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER:true}
+        service-name: ${SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME:transfer}
+        instance-id: ${SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID:transfer-${random.uuid}}
+        hostname: transfer-app
+        health-check-path: /actuator/health
+        health-check-interval: 15s
   security:
     oauth2:
       client:
@@ -10,6 +24,7 @@ spring:
             client-secret: ${OAUTH2_CLIENT_SECRET:transfer-secret-key-12345}
             authorization-grant-type: client_credentials
             scope: openid,profile,email
+            provider: keycloak
         provider:
           keycloak:
             token-uri: ${KEYCLOAK_TOKEN_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/token}
@@ -22,10 +37,10 @@ server:
 
 services:
   accounts:
-    url: ${ACCOUNTS_SERVICE_URL:http://accounts-app:8081}
+    url: ${ACCOUNTS_SERVICE_URL:http://accounts}
   notifications:
-    url: ${NOTIFICATIONS_SERVICE_URL:http://notifications-app:8087}
+    url: ${NOTIFICATIONS_SERVICE_URL:http://notifications}
   exchange:
-    url: ${EXCHANGE_SERVICE_URL:http://exchange-app:8084}
+    url: ${EXCHANGE_SERVICE_URL:http://exchange}
   blocker:
-    url: ${BLOCKER_SERVICE_URL:http://blocker-app:8086}
+    url: ${BLOCKER_SERVICE_URL:http://blocker}

@@ -218,14 +218,8 @@ public class MainController {
             if (response.isSuccess()) {
                 log.info("User data updated successfully for user: {}", login);
                 model.addAttribute("userAccountsSuccess", "Данные успешно обновлены");
-                // Обновляем данные пользователя в модели
-                if (response.getUser() != null) {
-                    model.addAttribute("login", response.getUser().getLogin());
-                    model.addAttribute("name", response.getUser().getName());
-                    model.addAttribute("birthdate", response.getUser().getBirthdate());
-                } else {
-                    return loadMainPageWithUserData(model, currentUser);
-                }
+                // Всегда перегружаем данные и блоки страницы, чтобы не потерять секции счетов
+                return loadMainPageWithUserData(model, currentUser);
             } else {
                 log.warn("User data update failed for user {}: {}", login, response.getMessage());
                 model.addAttribute("userAccountsErrors", response.getErrors());
@@ -237,8 +231,6 @@ public class MainController {
             model.addAttribute("userAccountsErrors", List.of("Произошла ошибка при обновлении данных"));
             return loadMainPageWithUserData(model, currentUser);
         }
-        
-        return "main";
     }
     
     /**
