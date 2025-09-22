@@ -2,7 +2,7 @@ spring:
   application:
     name: cash
   config:
-    import: optional:consul:
+    import: "optional:consul:"
   cloud:
     compatibility-verifier:
       enabled: false

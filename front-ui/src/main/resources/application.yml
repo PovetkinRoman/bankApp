@@ -2,7 +2,7 @@ spring:
   application:
     name: front-ui
   config:
-    import: optional:consul:
+    import: "optional:consul:"
   security:
     oauth2:
       resourceserver:

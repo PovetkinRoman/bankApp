@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.rpovetkin.front_ui.dto.AccountDto;
 import ru.rpovetkin.front_ui.dto.AccountOperationResponse;
 import ru.rpovetkin.front_ui.dto.CashOperationResponse;
@@ -85,7 +86,8 @@ public class MainController {
             @PathVariable String login,
             @RequestParam String password,
             @RequestParam("confirm_password") String confirmPassword,
-            Model model) {
+            Model model,
+            RedirectAttributes redirectAttributes) {
         
         log.info("Password change request for user: {}", login);
         
@@ -95,8 +97,8 @@ public class MainController {
         
         if (!currentUser.equals(login)) {
             log.warn("User {} attempted to change password for user {}", currentUser, login);
-            model.addAttribute("passwordErrors", List.of("Вы можете изменить только свой пароль"));
-            return loadMainPageWithUserData(model, currentUser);
+            redirectAttributes.addFlashAttribute("passwordErrors", List.of("Вы можете изменить только свой пароль"));
+            return "redirect:/main";
         }
         
         ChangePasswordRequest request = ChangePasswordRequest.builder()
@@ -109,13 +111,13 @@ public class MainController {
         
         if (response.isSuccess()) {
             log.info("Password changed successfully for user: {}", login);
-            model.addAttribute("passwordSuccess", "Пароль успешно изменен");
+            redirectAttributes.addFlashAttribute("passwordSuccess", "Пароль успешно изменен");
         } else {
             log.warn("Password change failed for user {}: {}", login, response.getMessage());
-            model.addAttribute("passwordErrors", response.getErrors());
+            redirectAttributes.addFlashAttribute("passwordErrors", response.getErrors());
         }
         
-        return loadMainPageWithUserData(model, currentUser);
+        return "redirect:/main";
     }
     
     private String loadMainPageWithUserData(Model model, String username) {
@@ -156,7 +158,8 @@ public class MainController {
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String birthdate,
             @RequestParam(required = false) List<String> account,
-            Model model) {
+            Model model,
+            RedirectAttributes redirectAttributes) {
         
         log.info("User data update request for user: {}", login);
         
@@ -166,8 +169,8 @@ public class MainController {
         
         if (!currentUser.equals(login)) {
             log.warn("User {} attempted to update data for user {}", currentUser, login);
-            model.addAttribute("userAccountsErrors", List.of("Вы можете изменить только свои данные"));
-            return loadMainPageWithUserData(model, currentUser);
+            redirectAttributes.addFlashAttribute("userAccountsErrors", List.of("Вы можете изменить только свои данные"));
+            return "redirect:/main";
         }
         
         // Проверяем, что хотя бы одно поле заполнено
@@ -176,31 +179,31 @@ public class MainController {
         boolean hasAccountsToCreate = account != null && !account.isEmpty();
         
         if (!hasUserDataToUpdate && !hasAccountsToCreate) {
-            model.addAttribute("userAccountsErrors", List.of("Необходимо заполнить хотя бы одно поле или выбрать счета для создания"));
-            return loadMainPageWithUserData(model, currentUser);
+            redirectAttributes.addFlashAttribute("userAccountsErrors", List.of("Необходимо заполнить хотя бы одно поле или выбрать счета для создания"));
+            return "redirect:/main";
         }
         
         // Сначала обрабатываем создание счетов
         if (hasAccountsToCreate) {
             List<String> accountCreationErrors = createSelectedAccounts(login, account);
             if (!accountCreationErrors.isEmpty()) {
-                model.addAttribute("userAccountsErrors", accountCreationErrors);
-                return loadMainPageWithUserData(model, currentUser);
+                redirectAttributes.addFlashAttribute("userAccountsErrors", accountCreationErrors);
+                return "redirect:/main";
             }
         }
         
         // Если нет данных для обновления пользователя, завершаем здесь
         if (!hasUserDataToUpdate) {
-            model.addAttribute("userAccountsSuccess", "Счета успешно созданы");
-            return loadMainPageWithUserData(model, currentUser);
+            redirectAttributes.addFlashAttribute("userAccountsSuccess", "Счета успешно созданы");
+            return "redirect:/main";
         }
         
         try {
             // Получаем текущие данные пользователя
             UserDto currentUserData = accountsService.getUserByLogin(login);
             if (currentUserData == null) {
-                model.addAttribute("userAccountsErrors", List.of("Пользователь не найден"));
-                return loadMainPageWithUserData(model, currentUser);
+                redirectAttributes.addFlashAttribute("userAccountsErrors", List.of("Пользователь не найден"));
+                return "redirect:/main";
             }
             
             // Используем текущие данные если новые не указаны
@@ -217,19 +220,18 @@ public class MainController {
             
             if (response.isSuccess()) {
                 log.info("User data updated successfully for user: {}", login);
-                model.addAttribute("userAccountsSuccess", "Данные успешно обновлены");
-                // Всегда перегружаем данные и блоки страницы, чтобы не потерять секции счетов
-                return loadMainPageWithUserData(model, currentUser);
+                redirectAttributes.addFlashAttribute("userAccountsSuccess", "Данные успешно обновлены");
+                return "redirect:/main";
             } else {
                 log.warn("User data update failed for user {}: {}", login, response.getMessage());
-                model.addAttribute("userAccountsErrors", response.getErrors());
-                return loadMainPageWithUserData(model, currentUser);
+                redirectAttributes.addFlashAttribute("userAccountsErrors", response.getErrors());
+                return "redirect:/main";
             }
             
         } catch (Exception e) {
             log.error("Error updating user data: {}", e.getMessage(), e);
-            model.addAttribute("userAccountsErrors", List.of("Произошла ошибка при обновлении данных"));
-            return loadMainPageWithUserData(model, currentUser);
+            redirectAttributes.addFlashAttribute("userAccountsErrors", List.of("Произошла ошибка при обновлении данных"));
+            return "redirect:/main";
         }
     }
     
@@ -297,7 +299,8 @@ public class MainController {
             @RequestParam String currency,
             @RequestParam String amount,
             @RequestParam String operation, // "deposit" или "withdraw"
-            Model model) {
+            Model model,
+            RedirectAttributes redirectAttributes) {
 
         log.info("Cash operation request: {} {} {} for user {}", operation, amount, currency, login);
 
@@ -306,8 +309,8 @@ public class MainController {
 
         if (!currentUser.equals(login)) {
             log.warn("User {} attempted to perform cash operation for user {}", currentUser, login);
-            model.addAttribute("cashErrors", List.of("Вы можете выполнять операции только со своими средствами"));
-            return loadMainPageWithUserData(model, currentUser);
+            redirectAttributes.addFlashAttribute("cashErrors", List.of("Вы можете выполнять операции только со своими средствами"));
+            return "redirect:/main";
         }
 
         try {
@@ -315,8 +318,8 @@ public class MainController {
             java.math.BigDecimal amt = new java.math.BigDecimal(amount);
             
             if (amt.compareTo(java.math.BigDecimal.ZERO) <= 0) {
-                model.addAttribute("cashErrors", List.of("Сумма должна быть положительной"));
-                return loadMainPageWithUserData(model, currentUser);
+                redirectAttributes.addFlashAttribute("cashErrors", List.of("Сумма должна быть положительной"));
+                return "redirect:/main";
             }
 
             CashOperationResponse response;
@@ -325,32 +328,32 @@ public class MainController {
             } else if ("withdraw".equals(operation)) {
                 response = cashService.withdraw(login, curr, amt);
             } else {
-                model.addAttribute("cashErrors", List.of("Неизвестная операция"));
-                return loadMainPageWithUserData(model, currentUser);
+                redirectAttributes.addFlashAttribute("cashErrors", List.of("Неизвестная операция"));
+                return "redirect:/main";
             }
 
             if (response.isSuccess()) {
                 log.info("Cash operation {} successful for user: {}", operation, login);
                 String message = "deposit".equals(operation) ? "Средства успешно внесены" : "Средства успешно сняты";
-                model.addAttribute("cashSuccess", message);
+                redirectAttributes.addFlashAttribute("cashSuccess", message);
             } else {
                 log.warn("Cash operation {} failed for user {}: {}", operation, login, response.getMessage());
-                model.addAttribute("cashErrors", 
+                redirectAttributes.addFlashAttribute("cashErrors", 
                     response.getErrors() != null ? response.getErrors() : List.of(response.getMessage()));
             }
 
         } catch (NumberFormatException e) {
             log.error("Invalid amount: {}", amount);
-            model.addAttribute("cashErrors", List.of("Неверный формат суммы"));
+            redirectAttributes.addFlashAttribute("cashErrors", List.of("Неверный формат суммы"));
         } catch (IllegalArgumentException e) {
             log.error("Invalid currency: {}", currency);
-            model.addAttribute("cashErrors", List.of("Неизвестная валюта"));
+            redirectAttributes.addFlashAttribute("cashErrors", List.of("Неизвестная валюта"));
         } catch (Exception e) {
             log.error("Error during cash operation: {}", e.getMessage(), e);
-            model.addAttribute("cashErrors", List.of("Произошла ошибка при выполнении операции"));
+            redirectAttributes.addFlashAttribute("cashErrors", List.of("Произошла ошибка при выполнении операции"));
         }
 
-        return loadMainPageWithUserData(model, currentUser);
+        return "redirect:/main";
     }
     
     /**
@@ -363,7 +366,8 @@ public class MainController {
             @RequestParam String to_currency,
             @RequestParam String value,
             @RequestParam(required = false) String to_login,
-            Model model) {
+            Model model,
+            RedirectAttributes redirectAttributes) {
         
         log.info("Transfer request: from {} to {} amount {} for user {} to user {}", 
                 from_currency, to_currency, value, login, to_login != null ? to_login : login);
@@ -373,8 +377,8 @@ public class MainController {
 
         if (!currentUser.equals(login)) {
             log.warn("User {} attempted to perform transfer for user {}", currentUser, login);
-            model.addAttribute("transferErrors", List.of("Вы можете выполнять переводы только со своих счетов"));
-            return loadMainPageWithUserData(model, currentUser);
+            redirectAttributes.addFlashAttribute("transferErrors", List.of("Вы можете выполнять переводы только со своих счетов"));
+            return "redirect:/main";
         }
 
         try {
@@ -383,8 +387,8 @@ public class MainController {
             java.math.BigDecimal amount = new java.math.BigDecimal(value);
             
             if (amount.compareTo(java.math.BigDecimal.ZERO) <= 0) {
-                model.addAttribute("transferErrors", List.of("Сумма должна быть положительной"));
-                return loadMainPageWithUserData(model, currentUser);
+                redirectAttributes.addFlashAttribute("transferErrors", List.of("Сумма должна быть положительной"));
+                return "redirect:/main";
             }
 
             // Определяем тип перевода
@@ -398,24 +402,24 @@ public class MainController {
                 String message = isSelfTransfer ? 
                     "Перевод между своими счетами выполнен успешно" : 
                     "Перевод другому пользователю выполнен успешно";
-                model.addAttribute("transferSuccess", message);
+                redirectAttributes.addFlashAttribute("transferSuccess", message);
             } else {
                 String errorAttribute = isSelfTransfer ? "transferErrors" : "transferOtherErrors";
-                model.addAttribute(errorAttribute, List.of(result));
+                redirectAttributes.addFlashAttribute(errorAttribute, List.of(result));
             }
 
         } catch (NumberFormatException e) {
             log.error("Invalid amount: {}", value);
-            model.addAttribute("transferErrors", List.of("Неверный формат суммы"));
+            redirectAttributes.addFlashAttribute("transferErrors", List.of("Неверный формат суммы"));
         } catch (IllegalArgumentException e) {
             log.error("Invalid currency: {} or {}", from_currency, to_currency);
-            model.addAttribute("transferErrors", List.of("Неизвестная валюта"));
+            redirectAttributes.addFlashAttribute("transferErrors", List.of("Неизвестная валюта"));
         } catch (Exception e) {
             log.error("Error during transfer: {}", e.getMessage(), e);
-            model.addAttribute("transferErrors", List.of("Произошла ошибка при выполнении перевода"));
+            redirectAttributes.addFlashAttribute("transferErrors", List.of("Произошла ошибка при выполнении перевода"));
         }
 
-        return loadMainPageWithUserData(model, currentUser);
+        return "redirect:/main";
     }
     
     /**
