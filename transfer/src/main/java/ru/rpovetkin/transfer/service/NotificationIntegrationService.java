@@ -15,8 +15,9 @@ import ru.rpovetkin.transfer.dto.NotificationResponse;
 public class NotificationIntegrationService {
     
     private final WebClient.Builder webClientBuilder;
+    private final ConsulService consulService;
     
-    @Value("${notifications.service.url:http://localhost:8087}")
+    @Value("${services.notifications.url:http://notifications}")
     private String notificationsServiceUrl;
     
     /**
@@ -36,10 +37,11 @@ public class NotificationIntegrationService {
             log.info("Sending notification to user {}: {}", userId, title);
             
             WebClient webClient = webClientBuilder.build();
+            String serviceUrl = consulService.getServiceUrlBlocking("gateway");
             
             Mono<NotificationResponse> responseMono = webClient
                     .post()
-                    .uri(notificationsServiceUrl + "/api/notifications/send")
+                    .uri(serviceUrl + "/api/notifications/send")
                     .bodyValue(request)
                     .retrieve()
                     .bodyToMono(NotificationResponse.class);

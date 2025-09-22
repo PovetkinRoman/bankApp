@@ -15,8 +15,9 @@ import ru.rpovetkin.transfer.dto.TransferCheckResponse;
 public class BlockerIntegrationService {
     
     private final WebClient.Builder webClientBuilder;
+    private final ConsulService consulService;
     
-    @Value("${blocker.service.url:http://localhost:8086}")
+    @Value("${services.blocker.url:http://blocker}")
     private String blockerServiceUrl;
     
     /**
@@ -28,10 +29,11 @@ public class BlockerIntegrationService {
         
         try {
             WebClient webClient = webClientBuilder.build();
+            String serviceUrl = consulService.getServiceUrlBlocking("gateway");
             
             Mono<TransferCheckResponse> responseMono = webClient
                     .post()
-                    .uri(blockerServiceUrl + "/api/blocker/check-transfer")
+                    .uri(serviceUrl + "/api/blocker/check-transfer")
                     .bodyValue(request)
                     .retrieve()
                     .bodyToMono(TransferCheckResponse.class);

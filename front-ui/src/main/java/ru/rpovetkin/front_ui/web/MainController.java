@@ -496,11 +496,14 @@ public class MainController {
                 // Для переводов между разными пользователями используем transfer сервис с блокировкой
                 log.info("Using transfer service for inter-user transfer from {} to {}", fromUser, toUser);
                 TransferResponse transferResponse = transferService.executeTransfer(
-                    fromUser, 
-                    toUser, 
-                    fromCurrency.name(), 
-                    amount, 
-                    String.format("Transfer %s %s to %s", amount, fromCurrency.name(), toUser)
+                    fromUser,
+                    toUser,
+                    fromCurrency.name(),
+                    toCurrency.name(),
+                    amount,
+                    convertedAmount,
+                    String.format("Transfer %s %s to %s (credit %s %s)",
+                            amount, fromCurrency.name(), toUser, convertedAmount, toCurrency.name())
                 );
                 
                 if (!transferResponse.isSuccess()) {

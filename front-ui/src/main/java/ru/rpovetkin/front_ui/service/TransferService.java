@@ -28,11 +28,27 @@ public class TransferService {
     public TransferResponse executeTransfer(String fromUser, String toUser, String currency, BigDecimal amount, String description) {
         log.info("Transfer request from {} to {} amount {} {} - {}", fromUser, toUser, amount, currency, description);
         
+        // Backward-compatible single-currency call delegates to dual-currency overload
+        return executeTransfer(fromUser, toUser, currency, currency, amount, amount, description);
+    }
+
+    /**
+     * Выполнить перевод между пользователями с поддержкой разных валют
+     */
+    public TransferResponse executeTransfer(String fromUser, String toUser, String fromCurrency, String toCurrency,
+                                            BigDecimal amountFrom, BigDecimal amountTo, String description) {
+        log.info("Transfer request from {} to {}: {} {} -> {} {} - {}",
+                fromUser, toUser, amountFrom, fromCurrency, amountTo, toCurrency, description);
+
         TransferRequest request = TransferRequest.builder()
                 .fromUser(fromUser)
                 .toUser(toUser)
-                .currency(currency)
-                .amount(amount)
+                .currency(fromCurrency) // keep for backward compatibility on server
+                .amount(amountFrom)
+                .fromCurrency(fromCurrency)
+                .toCurrency(toCurrency)
+                .amountFrom(amountFrom)
+                .amountTo(amountTo)
                 .description(description)
                 .build();
         

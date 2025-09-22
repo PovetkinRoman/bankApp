@@ -16,8 +16,9 @@ import java.util.Map;
 public class AccountsIntegrationService {
 
     private final WebClient.Builder webClientBuilder;
+    private final ConsulService consulService;
 
-    @Value("${accounts.service.url:http://localhost:8081}")
+    @Value("${services.accounts.url:http://accounts}")
     private String accountsServiceUrl;
 
     /**
@@ -44,9 +45,11 @@ public class AccountsIntegrationService {
                 endpoint = "/api/accounts/deposit";
             }
             
+            String serviceUrl = consulService.getServiceUrlBlocking("gateway");
+
             Mono<Map> responseMono = webClient
                     .post()
-                    .uri(accountsServiceUrl + endpoint)
+                    .uri(serviceUrl + endpoint)
                     .bodyValue(request)
                     .retrieve()
                     .bodyToMono(Map.class)
@@ -78,9 +81,11 @@ public class AccountsIntegrationService {
         try {
             WebClient webClient = webClientBuilder.build();
             
+            String serviceUrl = consulService.getServiceUrlBlocking("gateway");
+
             Mono<Object[]> responseMono = webClient
                     .get()
-                    .uri(accountsServiceUrl + "/api/accounts/" + login)
+                    .uri(serviceUrl + "/api/accounts/" + login)
                     .retrieve()
                     .bodyToMono(Object[].class)
                     .onErrorReturn(new Object[0]);
@@ -92,13 +97,24 @@ public class AccountsIntegrationService {
                     if (accountObj instanceof Map) {
                         @SuppressWarnings("unchecked")
                         Map<String, Object> account = (Map<String, Object>) accountObj;
-                        
-                        String accountCurrency = (String) account.get("currency");
+
+                        // currency может прийти как строка ("USD") или как объект { name: "USD", title: "..." }
+                        Object currencyObj = account.get("currency");
+                        String accountCurrency = null;
+                        if (currencyObj instanceof String) {
+                            accountCurrency = (String) currencyObj;
+                        } else if (currencyObj instanceof Map) {
+                            Object name = ((Map<?, ?>) currencyObj).get("name");
+                            if (name != null) {
+                                accountCurrency = String.valueOf(name);
+                            }
+                        }
+
                         Boolean exists = (Boolean) account.get("exists");
-                        
-                        if (currency.equals(accountCurrency) && Boolean.TRUE.equals(exists)) {
+
+                        if (accountCurrency != null && currency.equals(accountCurrency) && Boolean.TRUE.equals(exists)) {
                             Object balanceObj = account.get("balance");
-                            if (balanceObj instanceof Number) {
+                            if (balanceObj != null) {
                                 BigDecimal balance = new BigDecimal(balanceObj.toString());
                                 log.info("Found balance {} {} for user {}", balance, currency, login);
                                 return balance;
@@ -109,11 +125,11 @@ public class AccountsIntegrationService {
             }
             
             log.warn("No account found for user {} in currency {}", login, currency);
-            return BigDecimal.ZERO;
+            return BigDecimal.valueOf(-1);
             
         } catch (Exception e) {
             log.error("Error getting user balance: {}", e.getMessage(), e);
-            return BigDecimal.ZERO;
+            return BigDecimal.valueOf(-1);
         }
     }
 
@@ -123,7 +139,7 @@ public class AccountsIntegrationService {
     public boolean hasAccount(String login, String currency) {
         try {
             BigDecimal balance = getUserBalance(login, currency);
-            return balance.compareTo(BigDecimal.valueOf(-1)) > 0; // Если баланс >= 0, значит счет существует
+            return balance.compareTo(BigDecimal.ZERO) >= 0; // Счет существует, если баланс >= 0
         } catch (Exception e) {
             log.error("Error checking account existence: {}", e.getMessage(), e);
             return false;

@@ -2,7 +2,7 @@ spring:
   application:
     name: gateway
   config:
-    import: optional:consul:
+    import: "optional:consul:"
   cloud:
     compatibility-verifier:
       enabled: false
@@ -51,7 +51,7 @@ spring:
         - id: transfer-route
           uri: lb://transfer
           predicates:
-            - Path=/api/transfer/**
+            - Path=/api/transfers/**
         - id: exchange-route
           uri: lb://exchange
           predicates:

@@ -67,29 +67,35 @@ public class TransferService {
                     .build();
         }
         
+        // Извлекаем параметры с учетом обратной совместимости
+        String fromCurrency = request.getFromCurrency() != null ? request.getFromCurrency() : request.getCurrency();
+        String toCurrency = request.getToCurrency() != null ? request.getToCurrency() : request.getCurrency();
+        BigDecimal amountFrom = request.getAmountFrom() != null ? request.getAmountFrom() : request.getAmount();
+        BigDecimal amountTo = request.getAmountTo() != null ? request.getAmountTo() : request.getAmount();
+
         // Проверяем балансы и счета
-        BigDecimal fromBalance = accountsIntegrationService.getUserBalance(request.getFromUser(), request.getCurrency());
-        if (fromBalance.compareTo(request.getAmount()) < 0) {
+        BigDecimal fromBalance = accountsIntegrationService.getUserBalance(request.getFromUser(), fromCurrency);
+        if (fromBalance.compareTo(amountFrom) < 0) {
             return TransferResponse.builder()
                     .success(false)
                     .message("Недостаточно средств на счете")
-                    .errors(List.of("Доступно: " + fromBalance + " " + request.getCurrency()))
+                    .errors(List.of("Доступно: " + fromBalance + " " + fromCurrency))
                     .build();
         }
         
-        if (!accountsIntegrationService.hasAccount(request.getToUser(), request.getCurrency())) {
+        if (!accountsIntegrationService.hasAccount(request.getToUser(), toCurrency)) {
             return TransferResponse.builder()
                     .success(false)
                     .message("У получателя нет счета в указанной валюте")
-                    .errors(List.of("Валюта: " + request.getCurrency()))
+                    .errors(List.of("Валюта: " + toCurrency))
                     .build();
         }
         
         // Выполняем перевод: списываем с отправителя
         boolean debitSuccess = accountsIntegrationService.performAccountOperation(
-            request.getFromUser(), 
-            request.getCurrency(), 
-            request.getAmount().negate(), 
+            request.getFromUser(),
+            fromCurrency,
+            amountFrom.negate(),
             "TRANSFER_DEBIT"
         );
         
@@ -102,18 +108,18 @@ public class TransferService {
         
         // Зачисляем получателю
         boolean creditSuccess = accountsIntegrationService.performAccountOperation(
-            request.getToUser(), 
-            request.getCurrency(), 
-            request.getAmount(), 
+            request.getToUser(),
+            toCurrency,
+            amountTo,
             "TRANSFER_CREDIT"
         );
         
         if (!creditSuccess) {
             // Откатываем списание
             accountsIntegrationService.performAccountOperation(
-                request.getFromUser(), 
-                request.getCurrency(), 
-                request.getAmount(), 
+                request.getFromUser(),
+                fromCurrency,
+                amountFrom,
                 "TRANSFER_ROLLBACK"
             );
             
@@ -131,14 +137,14 @@ public class TransferService {
             request.getFromUser(),
             "Перевод отправлен",
             String.format("Перевод %s %s пользователю %s выполнен успешно", 
-                request.getAmount(), request.getCurrency(), request.getToUser())
+                amountFrom, fromCurrency, request.getToUser())
         );
         
         notificationService.sendSuccessNotification(
             request.getToUser(),
             "Получен перевод",
             String.format("Вы получили перевод %s %s от пользователя %s", 
-                request.getAmount(), request.getCurrency(), request.getFromUser())
+                amountTo, toCurrency, request.getFromUser())
         );
         
         return TransferResponse.builder()

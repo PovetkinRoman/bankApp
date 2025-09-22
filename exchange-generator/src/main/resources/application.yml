@@ -2,7 +2,7 @@ spring:
   application:
     name: exchange-generator
   config:
-    import: optional:consul:
+    import: "optional:consul:"
   cloud:
     compatibility-verifier:
       enabled: false

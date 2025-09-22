@@ -2,7 +2,7 @@ spring:
   application:
     name: transfer
   config:
-    import: optional:consul:
+    import: "optional:consul:"
   cloud:
     compatibility-verifier:
       enabled: false

@@ -5,7 +5,7 @@ spring:
   application:
     name: notifications
   config:
-    import: optional:consul:
+    import: "optional:consul:"
   cloud:
     compatibility-verifier:
       enabled: false
