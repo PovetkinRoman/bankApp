@@ -34,3 +34,6 @@ transfer:
 exchange:
   service:
     url: http://exchange
+
+server:
+  forward-headers-strategy: native
