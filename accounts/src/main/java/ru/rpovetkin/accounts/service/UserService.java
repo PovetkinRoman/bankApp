@@ -31,7 +31,7 @@ public class UserService {
     
     @Transactional
     public UserRegistrationResponse registerUser(UserRegistrationRequest request) {
-        log.info("Attempting to register user with login: {}", request.getLogin());
+        log.debug("Attempting to register user with login: {}", request.getLogin());
         
         List<String> errors = validateRegistrationRequest(request);
         
@@ -53,7 +53,7 @@ public class UserService {
                     
             User savedUser = userRepository.save(user);
             
-            log.info("Successfully registered user with ID: {}", savedUser.getId());
+            log.debug("Successfully registered user with ID: {}", savedUser.getId());
             
             // Отправляем уведомление о успешной регистрации
             notificationService.sendSuccessNotification(
@@ -125,7 +125,7 @@ public class UserService {
     }
     
     public List<UserDto> getAllUsers() {
-        log.info("Getting all users for transfer recipients");
+        log.debug("Getting all users for transfer recipients");
         return userRepository.findAll().stream()
                 .map(user -> UserDto.builder()
                         .id(user.getId())
@@ -144,7 +144,7 @@ public class UserService {
     
     @Transactional
     public ChangePasswordResponse changePassword(ChangePasswordRequest request) {
-        log.info("Attempting to change password for user: {}", request.getLogin());
+        log.debug("Attempting to change password for user: {}", request.getLogin());
         
         List<String> errors = validateChangePasswordRequest(request);
         
@@ -170,7 +170,7 @@ public class UserService {
             user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
             userRepository.save(user);
             
-            log.info("Successfully changed password for user: {}", request.getLogin());
+            log.debug("Successfully changed password for user: {}", request.getLogin());
             
             // Отправляем уведомление о смене пароля
             notificationService.sendInfoNotification(
@@ -214,7 +214,7 @@ public class UserService {
     
     @Transactional
     public UpdateUserDataResponse updateUserData(UpdateUserDataRequest request) {
-        log.info("Attempting to update user data for: {}", request.getLogin());
+        log.debug("Attempting to update user data for: {}", request.getLogin());
         
         List<String> errors = validateUpdateUserDataRequest(request);
         
@@ -241,7 +241,7 @@ public class UserService {
             user.setBirthdate(LocalDate.parse(request.getBirthdate()));
             User savedUser = userRepository.save(user);
             
-            log.info("Successfully updated user data for: {}", request.getLogin());
+            log.debug("Successfully updated user data for: {}", request.getLogin());
             
             UserDto userDto = UserDto.builder()
                     .id(savedUser.getId())

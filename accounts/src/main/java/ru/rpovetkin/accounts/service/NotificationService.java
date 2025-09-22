@@ -54,7 +54,7 @@ public class NotificationService {
                     .metadata(metadata)
                     .build();
             
-            log.info("Sending notification to user {}: {}", userId, title);
+            log.debug("Sending notification to user {}: {}", userId, title);
             
             String jwtToken = getJwtToken();
             

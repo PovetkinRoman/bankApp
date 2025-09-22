@@ -33,7 +33,7 @@ public class AccountService {
      * Получить все счета пользователя с указанием, какие валюты доступны
      */
     public List<AccountDto> getUserAccounts(String login) {
-        log.info("Getting accounts for user: {}", login);
+        log.debug("Getting accounts for user: {}", login);
         
         Optional<User> userOpt = userRepository.findByLogin(login);
         if (userOpt.isEmpty()) {
@@ -77,7 +77,7 @@ public class AccountService {
      */
     @Transactional
     public AccountOperationResponse createAccount(CreateAccountRequest request) {
-        log.info("Creating account for user {} in currency {}", request.getLogin(), request.getCurrency());
+        log.debug("Creating account for user {} in currency {}", request.getLogin(), request.getCurrency());
         
         Optional<User> userOpt = userRepository.findByLogin(request.getLogin());
         if (userOpt.isEmpty()) {
@@ -107,7 +107,7 @@ public class AccountService {
                 .build();
 
         UserAccount savedAccount = userAccountRepository.save(newAccount);
-        log.info("Account created successfully: {}", savedAccount.getId());
+        log.debug("Account created successfully: {}", savedAccount.getId());
 
         // Отправляем уведомление о создании счета
         notificationService.sendSuccessNotification(
@@ -133,7 +133,7 @@ public class AccountService {
      */
     @Transactional
     public AccountOperationResponse depositMoney(AccountOperationRequest request) {
-        log.info("Depositing {} {} for user {}", request.getAmount(), request.getCurrency(), request.getLogin());
+        log.debug("Depositing {} {} for user {}", request.getAmount(), request.getCurrency(), request.getLogin());
         
         List<String> errors = validateOperationRequest(request);
         if (!errors.isEmpty()) {
@@ -168,7 +168,7 @@ public class AccountService {
         account.setBalance(account.getBalance().add(request.getAmount()));
         UserAccount savedAccount = userAccountRepository.save(account);
 
-        log.info("Deposit successful. New balance: {} {}", savedAccount.getBalance(), savedAccount.getCurrency());
+        log.debug("Deposit successful. New balance: {} {}", savedAccount.getBalance(), savedAccount.getCurrency());
 
         // Отправляем уведомление о пополнении
         notificationService.sendSuccessNotification(
@@ -196,7 +196,7 @@ public class AccountService {
      */
     @Transactional
     public AccountOperationResponse withdrawMoney(AccountOperationRequest request) {
-        log.info("Withdrawing {} {} for user {}", request.getAmount(), request.getCurrency(), request.getLogin());
+        log.debug("Withdrawing {} {} for user {}", request.getAmount(), request.getCurrency(), request.getLogin());
         
         List<String> errors = validateOperationRequest(request);
         if (!errors.isEmpty()) {
@@ -241,7 +241,7 @@ public class AccountService {
         account.setBalance(account.getBalance().subtract(request.getAmount()));
         UserAccount savedAccount = userAccountRepository.save(account);
 
-        log.info("Withdrawal successful. New balance: {} {}", savedAccount.getBalance(), savedAccount.getCurrency());
+        log.debug("Withdrawal successful. New balance: {} {}", savedAccount.getBalance(), savedAccount.getCurrency());
 
         // Отправляем уведомление о снятии
         notificationService.sendInfoNotification(
@@ -299,7 +299,7 @@ public class AccountService {
      */
     @Transactional
     public void createDefaultAccounts(User user) {
-        log.info("Creating default accounts for user: {}", user.getLogin());
+        log.debug("Creating default accounts for user: {}", user.getLogin());
         
         for (Currency currency : Currency.values()) {
             // Проверяем, не существует ли уже счет в этой валюте
@@ -313,14 +313,14 @@ public class AccountService {
                         .build();
                 
                 UserAccount savedAccount = userAccountRepository.save(newAccount);
-                log.info("Created default {} account for user {}: id={}", 
+                log.debug("Created default {} account for user {}: id={}", 
                     currency, user.getLogin(), savedAccount.getId());
             } else {
                 log.debug("Account in {} already exists for user {}", currency, user.getLogin());
             }
         }
         
-        log.info("Default accounts creation completed for user: {}", user.getLogin());
+        log.debug("Default accounts creation completed for user: {}", user.getLogin());
     }
     
     /**
@@ -328,7 +328,7 @@ public class AccountService {
      */
     @Transactional
     public boolean createDefaultAccountsByLogin(String login) {
-        log.info("Creating default accounts for user by login: {}", login);
+        log.debug("Creating default accounts for user by login: {}", login);
         
         Optional<User> userOpt = userRepository.findByLogin(login);
         if (userOpt.isEmpty()) {

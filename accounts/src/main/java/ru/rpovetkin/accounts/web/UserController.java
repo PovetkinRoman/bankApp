@@ -28,7 +28,7 @@ public class UserController {
     
     @PostMapping("/register")
     public ResponseEntity<UserRegistrationResponse> registerUser(@RequestBody UserRegistrationRequest request) {
-        log.info("Received registration request for login: {}", request.getLogin());
+        log.debug("Received registration request for login: {}", request.getLogin());
         
         UserRegistrationResponse response = userService.registerUser(request);
         
@@ -59,14 +59,14 @@ public class UserController {
     
     @GetMapping
     public ResponseEntity<List<UserDto>> getAllUsers() {
-        log.info("Getting all users for transfer recipients");
+        log.debug("Getting all users for transfer recipients");
         List<UserDto> users = userService.getAllUsers();
         return ResponseEntity.ok(users);
     }
     
     @PostMapping("/authenticate")
     public ResponseEntity<AuthenticationResponse> authenticateUser(@RequestBody AuthenticationRequest request) {
-        log.info("Authentication attempt for user: {}", request.getLogin());
+        log.debug("Authentication attempt for user: {}", request.getLogin());
         
         boolean isAuthenticated = userService.authenticateUser(request.getLogin(), request.getPassword());
         
@@ -95,7 +95,7 @@ public class UserController {
     
     @PostMapping("/change-password")
     public ResponseEntity<ChangePasswordResponse> changePassword(@RequestBody ChangePasswordRequest request) {
-        log.info("Password change request for user: {}", request.getLogin());
+        log.debug("Password change request for user: {}", request.getLogin());
         
         ChangePasswordResponse response = userService.changePassword(request);
         
@@ -108,7 +108,7 @@ public class UserController {
     
     @PostMapping("/update-data")
     public ResponseEntity<UpdateUserDataResponse> updateUserData(@RequestBody UpdateUserDataRequest request) {
-        log.info("User data update request for user: {}", request.getLogin());
+        log.debug("User data update request for user: {}", request.getLogin());
         
         UpdateUserDataResponse response = userService.updateUserData(request);
         

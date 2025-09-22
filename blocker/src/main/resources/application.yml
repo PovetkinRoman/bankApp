@@ -4,12 +4,22 @@ server:
 spring:
   application:
     name: blocker
+  config:
+    import: optional:consul:
   cloud:
     compatibility-verifier:
       enabled: false
     consul:
       host: ${SPRING_CLOUD_CONSUL_HOST:consul}
       port: ${SPRING_CLOUD_CONSUL_PORT:8500}
+      config:
+        enabled: true
+        format: yaml
+        prefix: config
+        default-context: application
+        data-key: data
+        watch:
+          enabled: true
       discovery:
         enabled: ${SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED:true}
         register: ${SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER:true}
@@ -30,3 +40,9 @@ logging:
     root: INFO
   pattern:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,loggers,refresh

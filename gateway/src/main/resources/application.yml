@@ -1,12 +1,22 @@
 spring:
   application:
     name: gateway
+  config:
+    import: optional:consul:
   cloud:
     compatibility-verifier:
       enabled: false
     consul:
       host: ${SPRING_CLOUD_CONSUL_HOST:consul}
       port: ${SPRING_CLOUD_CONSUL_PORT:8500}
+      config:
+        enabled: true
+        format: yaml
+        prefix: config
+        default-context: application
+        data-key: data
+        watch:
+          enabled: true
       discovery:
         enabled: ${SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED:true}
         register: ${SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER:true}
@@ -62,6 +72,6 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,loggers,refresh
 
 

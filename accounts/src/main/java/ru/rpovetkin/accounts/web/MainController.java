@@ -15,7 +15,7 @@ public class MainController {
     
     @GetMapping
     public String mainPage(Model model) {
-        log.info("Accessing main page");
+        log.debug("Accessing main page");
         
         // Добавляем базовые данные для отображения страницы
         // В реальном приложении эти данные должны приходить из сервисов

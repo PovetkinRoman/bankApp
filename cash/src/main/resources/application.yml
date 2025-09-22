@@ -1,12 +1,22 @@
 spring:
   application:
     name: cash
+  config:
+    import: optional:consul:
   cloud:
     compatibility-verifier:
       enabled: false
     consul:
       host: ${SPRING_CLOUD_CONSUL_HOST:consul}
       port: ${SPRING_CLOUD_CONSUL_PORT:8500}
+      config:
+        enabled: true
+        format: yaml
+        prefix: config
+        default-context: application
+        data-key: data
+        watch:
+          enabled: true
       discovery:
         enabled: ${SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED:true}
         register: ${SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER:true}
@@ -34,6 +44,12 @@ spring:
 
 server:
   port: 8082
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,loggers,refresh
 
 services:
   accounts:

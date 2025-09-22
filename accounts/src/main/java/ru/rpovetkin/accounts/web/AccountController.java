@@ -28,7 +28,7 @@ public class AccountController {
      */
     @GetMapping("/{login}")
     public ResponseEntity<List<AccountDto>> getUserAccounts(@PathVariable String login) {
-        log.info("Getting accounts for user: {}", login);
+        log.debug("Getting accounts for user: {}", login);
         List<AccountDto> accounts = accountService.getUserAccounts(login);
         return ResponseEntity.ok(accounts);
     }
@@ -38,7 +38,7 @@ public class AccountController {
      */
     @GetMapping("/currencies")
     public ResponseEntity<List<Currency>> getCurrencies() {
-        log.info("Getting available currencies");
+        log.debug("Getting available currencies");
         return ResponseEntity.ok(Arrays.asList(Currency.values()));
     }
 
@@ -47,7 +47,7 @@ public class AccountController {
      */
     @PostMapping("/create")
     public ResponseEntity<AccountOperationResponse> createAccount(@RequestBody CreateAccountRequest request) {
-        log.info("Creating account for user {} in currency {}", request.getLogin(), request.getCurrency());
+        log.debug("Creating account for user {} in currency {}", request.getLogin(), request.getCurrency());
         
         AccountOperationResponse response = accountService.createAccount(request);
         
@@ -63,7 +63,7 @@ public class AccountController {
      */
     @PostMapping("/deposit")
     public ResponseEntity<AccountOperationResponse> depositMoney(@RequestBody AccountOperationRequest request) {
-        log.info("Deposit request: {} {} for user {}", request.getAmount(), request.getCurrency(), request.getLogin());
+        log.debug("Deposit request: {} {} for user {}", request.getAmount(), request.getCurrency(), request.getLogin());
         
         AccountOperationResponse response = accountService.depositMoney(request);
         
@@ -79,7 +79,7 @@ public class AccountController {
      */
     @PostMapping("/withdraw")
     public ResponseEntity<AccountOperationResponse> withdrawMoney(@RequestBody AccountOperationRequest request) {
-        log.info("Withdrawal request: {} {} for user {}", request.getAmount(), request.getCurrency(), request.getLogin());
+        log.debug("Withdrawal request: {} {} for user {}", request.getAmount(), request.getCurrency(), request.getLogin());
         
         AccountOperationResponse response = accountService.withdrawMoney(request);
         
