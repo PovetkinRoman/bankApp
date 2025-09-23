@@ -1,0 +1,47 @@
+package ru.rpovetkin.front_ui.web;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.web.servlet.MockMvc;
+import ru.rpovetkin.front_ui.service.AccountsService;
+import ru.rpovetkin.front_ui.service.CashService;
+import ru.rpovetkin.front_ui.service.ExchangeService;
+import ru.rpovetkin.front_ui.service.TransferService;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@WebMvcTest(controllers = MainController.class)
+@AutoConfigureMockMvc(addFilters = false)
+class MainControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean private AccountsService accountsService;
+    @MockBean private CashService cashService;
+    @MockBean private ExchangeService exchangeService;
+    @MockBean private TransferService transferService;
+
+    @Test
+    @DisplayName("GET /main returns 200")
+    void mainPage_shouldReturnOk() throws Exception {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getName()).thenReturn("alice");
+        SecurityContext securityContext = mock(SecurityContext.class);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+
+        mockMvc.perform(get("/main"))
+                .andExpect(status().isOk());
+    }
+}
