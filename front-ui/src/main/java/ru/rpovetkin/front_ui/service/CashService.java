@@ -33,7 +33,7 @@ public class CashService {
         log.info("Getting available currencies for cash operations for user: {}", login);
         
         try {
-            return consulService.getServiceUrl("cash")
+            return consulService.getServiceUrl("gateway")
                     .flatMap(serviceUrl -> {
                         log.debug("Using cash service URL: {}", serviceUrl);
                         return webClient
@@ -98,7 +98,7 @@ public class CashService {
 
     private CashOperationResponse performCashOperation(CashOperationRequest request, String endpoint) {
         try {
-            return consulService.getServiceUrl("cash")
+            return consulService.getServiceUrl("gateway")
                     .flatMap(serviceUrl -> {
                         log.debug("Using cash service URL: {}", serviceUrl);
                         return webClient

@@ -165,9 +165,7 @@ public class TransferService {
             errors.add("Получатель обязателен");
         }
         
-        if (request.getFromUser() != null && request.getFromUser().equals(request.getToUser())) {
-            errors.add("Отправитель и получатель не могут быть одинаковыми");
-        }
+        // Разрешаем переводы между своими счетами (from == to)
         
         if (request.getCurrency() == null || request.getCurrency().trim().isEmpty()) {
             errors.add("Валюта обязательна");

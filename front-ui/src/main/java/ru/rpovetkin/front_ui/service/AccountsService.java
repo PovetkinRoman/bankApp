@@ -249,7 +249,7 @@ public class AccountsService {
         log.info("Getting user accounts for: {}", login);
         
         try {
-            return consulService.getServiceUrl("accounts")
+            return consulService.getServiceUrl("gateway")
                     .flatMap(serviceUrl -> {
                         log.debug("Using accounts service URL: {}", serviceUrl);
                         return webClient
@@ -373,7 +373,7 @@ public class AccountsService {
                     .currency(currency)
                     .build();
             
-            return consulService.getServiceUrl("accounts")
+            return consulService.getServiceUrl("gateway")
                     .flatMap(serviceUrl -> {
                         log.debug("Using accounts service URL: {}", serviceUrl);
                         return webClient
@@ -423,7 +423,7 @@ public class AccountsService {
                 endpoint = "/api/accounts/withdraw";
             }
             
-            return consulService.getServiceUrl("accounts")
+            return consulService.getServiceUrl("gateway")
                     .flatMap(serviceUrl -> {
                         log.debug("Using accounts service URL: {}", serviceUrl);
                         return webClient
