@@ -40,7 +40,7 @@ public class AccountsService {
         log.info("Sending registration request to accounts service for user: {}", request.getLogin());
         
         try {
-            return consulService.getServiceUrl("accounts")
+            return consulService.getServiceUrl("gateway")
                     .flatMap(serviceUrl -> {
                         log.info("Using accounts service URL: {}", serviceUrl);
                         return webClient
@@ -72,7 +72,7 @@ public class AccountsService {
         log.info("Authenticating user: {}", request.getLogin());
         
         try {
-            return consulService.getServiceUrl("accounts")
+            return consulService.getServiceUrl("gateway")
                     .flatMap(serviceUrl -> {
                         log.debug("Using accounts service URL: {}", serviceUrl);
                         return webClient
@@ -102,7 +102,7 @@ public class AccountsService {
         log.info("Getting user by login: {}", login);
         
         try {
-            return consulService.getServiceUrl("accounts")
+            return consulService.getServiceUrl("gateway")
                     .flatMap(serviceUrl -> {
                         log.debug("Using accounts service URL: {}", serviceUrl);
                         return webClient
@@ -142,7 +142,7 @@ public class AccountsService {
         log.info("Getting all users for transfer recipients");
         
         try {
-            return consulService.getServiceUrl("accounts")
+            return consulService.getServiceUrl("gateway")
                     .flatMap(serviceUrl -> {
                         log.debug("Using accounts service URL: {}", serviceUrl);
                         return webClient
@@ -179,7 +179,7 @@ public class AccountsService {
         log.info("Sending change password request for user: {}", request.getLogin());
         
         try {
-            return consulService.getServiceUrl("accounts")
+            return consulService.getServiceUrl("gateway")
                     .flatMap(serviceUrl -> {
                         log.debug("Using accounts service URL: {}", serviceUrl);
                         return webClient
@@ -214,7 +214,7 @@ public class AccountsService {
         log.info("Sending update user data request for user: {}", request.getLogin());
         
         try {
-            return consulService.getServiceUrl("accounts")
+            return consulService.getServiceUrl("gateway")
                     .flatMap(serviceUrl -> {
                         log.debug("Using accounts service URL: {}", serviceUrl);
                         return webClient

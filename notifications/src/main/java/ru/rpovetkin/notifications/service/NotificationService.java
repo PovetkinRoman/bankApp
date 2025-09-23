@@ -55,7 +55,8 @@ public class NotificationService {
                 log.warn("Failed to send email notification: {}", emailResponse.getMessage());
             }
             
-            log.info("Notification processed successfully: {}", alert.getId());
+            log.info("Notification processed successfully: id={}, user={}, title={}",
+                    alert.getId(), alert.getUserId(), alert.getTitle());
             
             return NotificationResponse.builder()
                     .success(true)

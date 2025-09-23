@@ -53,7 +53,7 @@ public class TransferService {
                 .build();
         
         try {
-            return consulService.getServiceUrl("transfer")
+            return consulService.getServiceUrl("gateway")
                     .flatMap(serviceUrl -> {
                         log.info("Using transfer service URL: {}", serviceUrl);
                         return webClient

@@ -7,7 +7,6 @@ import ru.rpovetkin.blocker.dto.TransferCheckRequest;
 import ru.rpovetkin.blocker.dto.TransferCheckResponse;
 
 import java.math.BigDecimal;
-import java.util.Random;
 import java.util.UUID;
 
 @Service
@@ -15,18 +14,26 @@ import java.util.UUID;
 @Slf4j
 public class BlockerService {
     
-    private final Random random = new Random();
-    
-    /**
-     * Проверяет перевод на подозрительность
-     * Блокирует с вероятностью 1 к 5 (20%)
-     */
+   
     public TransferCheckResponse checkTransfer(TransferCheckRequest request) {
         String checkId = UUID.randomUUID().toString();
         
         log.info("Checking transfer: {} -> {} amount: {} {} (ID: {})", 
                 request.getFromUser(), request.getToUser(), 
                 request.getAmount(), request.getCurrency(), checkId);
+        
+        // Жёсткое правило: блокировать суммы свыше 50 000
+        if (request.getAmount() != null && request.getAmount().compareTo(new BigDecimal("50000")) > 0) {
+            TransferCheckResponse response = TransferCheckResponse.builder()
+                    .blocked(true)
+                    .reason("LIMIT_50000_BLOCK: сумма превышает лимит безопасности (50\u202f000)")
+                    .riskLevel("HIGH")
+                    .checkId(checkId)
+                    .build();
+            log.info("Transfer check result (ID: {}): blocked={}, reason={}, riskLevel={}", 
+                    checkId, true, response.getReason(), response.getRiskLevel());
+            return response;
+        }
         
         // Блокировка по конкретным правилам
         boolean shouldBlock = shouldBlockTransfer(request);

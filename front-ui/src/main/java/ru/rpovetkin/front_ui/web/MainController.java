@@ -483,53 +483,34 @@ public class MainController {
                 return "Недостаточно средств на счете. Доступно: " + fromAccount.getBalance() + " " + fromCurrency.name();
             }
             
-            // Проверяем, что у получателя есть счет в целевой валюте (для переводов другим пользователям)
-            if (!fromUser.equals(toUser)) {
-                List<AccountDto> toUserAccounts = accountsService.getUserAccounts(toUser);
-                boolean hasTargetAccount = toUserAccounts.stream()
-                        .anyMatch(acc -> acc.getCurrency().equals(toCurrency) && acc.isExists());
-                        
-                if (!hasTargetAccount) {
-                    return "У получателя нет счета в валюте " + toCurrency.getTitle();
-                }
-                
-                // Для переводов между разными пользователями используем transfer сервис с блокировкой
-                log.info("Using transfer service for inter-user transfer from {} to {}", fromUser, toUser);
-                TransferResponse transferResponse = transferService.executeTransfer(
-                    fromUser,
-                    toUser,
-                    fromCurrency.name(),
-                    toCurrency.name(),
-                    amount,
-                    convertedAmount,
-                    String.format("Transfer %s %s to %s (credit %s %s)",
-                            amount, fromCurrency.name(), toUser, convertedAmount, toCurrency.name())
-                );
-                
-                if (!transferResponse.isSuccess()) {
-                    log.warn("Transfer service failed: {}", transferResponse.getMessage());
-                    return transferResponse.getMessage() != null ? transferResponse.getMessage() : "Ошибка при выполнении перевода";
-                }
-                
-                log.info("Transfer service succeeded for {} -> {}", fromUser, toUser);
-                return "SUCCESS";
+            // Всегда используем transfer сервис (включая переводы между своими счетами),
+            // чтобы единообразно проходить через gateway и правила blocker
+            List<AccountDto> toUserAccounts = accountsService.getUserAccounts(toUser);
+            boolean hasTargetAccount = toUserAccounts.stream()
+                    .anyMatch(acc -> acc.getCurrency().equals(toCurrency) && acc.isExists());
+
+            if (!hasTargetAccount) {
+                return "У получателя нет счета в валюте " + toCurrency.getTitle();
             }
-            
-            // Выполняем операции со счетами через accounts сервис
-            // Списываем с исходного счета
-            boolean debitSuccess = performAccountOperation(fromUser, fromCurrency, amount.negate(), "TRANSFER_DEBIT");
-            if (!debitSuccess) {
-                return "Ошибка при списании средств со счета";
+
+            log.info("Using transfer service for transfer from {} to {}", fromUser, toUser);
+            TransferResponse transferResponse = transferService.executeTransfer(
+                fromUser,
+                toUser,
+                fromCurrency.name(),
+                toCurrency.name(),
+                amount,
+                convertedAmount,
+                String.format("Transfer %s %s to %s (credit %s %s)",
+                        amount, fromCurrency.name(), toUser, convertedAmount, toCurrency.name())
+            );
+
+            if (!transferResponse.isSuccess()) {
+                log.warn("Transfer service failed: {}", transferResponse.getMessage());
+                return transferResponse.getMessage() != null ? transferResponse.getMessage() : "Ошибка при выполнении перевода";
             }
-            
-            // Зачисляем на целевой счет
-            boolean creditSuccess = performAccountOperation(toUser, toCurrency, convertedAmount, "TRANSFER_CREDIT");
-            if (!creditSuccess) {
-                // Откатываем списание
-                performAccountOperation(fromUser, fromCurrency, amount, "TRANSFER_ROLLBACK");
-                return "Ошибка при зачислении средств на счет";
-            }
-            
+
+            log.info("Transfer service succeeded for {} -> {}", fromUser, toUser);
             return "SUCCESS";
             
         } catch (Exception e) {

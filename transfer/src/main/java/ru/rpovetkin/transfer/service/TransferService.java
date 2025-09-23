@@ -36,7 +36,7 @@ public class TransferService {
         if (!errors.isEmpty()) {
             return TransferResponse.builder()
                     .success(false)
-                    .message("Validation failed")
+                    .message("Перевод посчитался подозрительным и был отклонен")
                     .errors(errors)
                     .build();
         }

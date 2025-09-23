@@ -19,9 +19,16 @@ public class NotificationService {
     
     private final WebClient.Builder webClientBuilder;
     private final OAuth2AuthorizedClientManager authorizedClientManager;
+    private final ConsulService consulService;
     
-    @Value("${notifications.service.url:http://localhost:8087}")
-    private String notificationsServiceUrl;
+    @Value("${spring.security.oauth2.client.provider.keycloak.token-uri:http://keycloak:8080/realms/bankapp/protocol/openid-connect/token}")
+    private String tokenUri;
+
+    @Value("${spring.security.oauth2.client.registration.accounts-service.client-id:accounts-service}")
+    private String clientId;
+
+    @Value("${spring.security.oauth2.client.registration.accounts-service.client-secret:accounts-secret-key-12345}")
+    private String clientSecret;
     
     private String getJwtToken() {
         try {
@@ -57,12 +64,13 @@ public class NotificationService {
             log.debug("Sending notification to user {}: {}", userId, title);
             
             String jwtToken = getJwtToken();
-            
+            String serviceUrl = consulService.getServiceUrl("gateway").block();
+
             WebClient webClient = webClientBuilder.build();
             
             Mono<NotificationResponse> responseMono = webClient
                     .post()
-                    .uri(notificationsServiceUrl + "/api/notifications/send")
+                    .uri(serviceUrl + "/api/notifications/send")
                     .header("Authorization", jwtToken != null ? "Bearer " + jwtToken : "")
                     .bodyValue(request)
                     .retrieve()

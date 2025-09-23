@@ -21,15 +21,25 @@ public class AccountsIntegrationService {
     @Value("${services.accounts.url:http://accounts}")
     private String accountsServiceUrl;
 
+    @Value("${spring.security.oauth2.client.provider.keycloak.token-uri:http://keycloak:8080/realms/bankapp/protocol/openid-connect/token}")
+    private String tokenUri;
+
+    @Value("${spring.security.oauth2.client.registration.transfer-service.client-id:transfer-service}")
+    private String clientId;
+
+    @Value("${spring.security.oauth2.client.registration.transfer-service.client-secret:transfer-secret-key-12345}")
+    private String clientSecret;
+
     /**
      * Выполняет операцию со счетом пользователя
      */
     public boolean performAccountOperation(String login, String currency, BigDecimal amount, String operationType) {
-        log.info("Performing account operation: {} {} {} for user {}", 
+        log.info("Performing account operation: {} {} {} for user {}",
                 operationType, amount, currency, login);
         
         try {
             WebClient webClient = webClientBuilder.build();
+            String accessToken = fetchServiceAccessToken();
             
             Map<String, Object> request = Map.of(
                 "login", login,
@@ -47,12 +57,13 @@ public class AccountsIntegrationService {
             
             String serviceUrl = consulService.getServiceUrlBlocking("gateway");
 
-            Mono<Map> responseMono = webClient
+            Mono<Map<String, Object>> responseMono = webClient
                     .post()
                     .uri(serviceUrl + endpoint)
+                    .headers(h -> { if (accessToken != null) h.setBearerAuth(accessToken); })
                     .bodyValue(request)
                     .retrieve()
-                    .bodyToMono(Map.class)
+                    .bodyToMono(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {})
                     .onErrorReturn(Map.of("success", false, "message", "Service unavailable"));
                     
             Map<String, Object> response = responseMono.block();
@@ -80,12 +91,14 @@ public class AccountsIntegrationService {
         
         try {
             WebClient webClient = webClientBuilder.build();
+            String accessToken = fetchServiceAccessToken();
             
             String serviceUrl = consulService.getServiceUrlBlocking("gateway");
 
             Mono<Object[]> responseMono = webClient
                     .get()
                     .uri(serviceUrl + "/api/accounts/" + login)
+                    .headers(h -> { if (accessToken != null) h.setBearerAuth(accessToken); })
                     .retrieve()
                     .bodyToMono(Object[].class)
                     .onErrorReturn(new Object[0]);
@@ -94,7 +107,7 @@ public class AccountsIntegrationService {
             
             if (accounts != null) {
                 for (Object accountObj : accounts) {
-                    if (accountObj instanceof Map) {
+                    if (accountObj instanceof Map<?, ?>) {
                         @SuppressWarnings("unchecked")
                         Map<String, Object> account = (Map<String, Object>) accountObj;
 
@@ -103,7 +116,7 @@ public class AccountsIntegrationService {
                         String accountCurrency = null;
                         if (currencyObj instanceof String) {
                             accountCurrency = (String) currencyObj;
-                        } else if (currencyObj instanceof Map) {
+                        } else if (currencyObj instanceof Map<?, ?>) {
                             Object name = ((Map<?, ?>) currencyObj).get("name");
                             if (name != null) {
                                 accountCurrency = String.valueOf(name);
@@ -143,6 +156,23 @@ public class AccountsIntegrationService {
         } catch (Exception e) {
             log.error("Error checking account existence: {}", e.getMessage(), e);
             return false;
+        }
+    }
+
+    private String fetchServiceAccessToken() {
+        try {
+            String form = "grant_type=client_credentials&client_id=" + clientId + "&client_secret=" + clientSecret;
+            return webClientBuilder.build().post()
+                    .uri(tokenUri)
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .bodyValue(form)
+                    .retrieve()
+                    .bodyToMono(java.util.Map.class)
+                    .map(m -> (String) m.get("access_token"))
+                    .block();
+        } catch (Exception e) {
+            log.warn("Failed to fetch service access token for accounts: {}", e.getMessage());
+            return null;
         }
     }
 }

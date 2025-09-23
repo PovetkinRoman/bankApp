@@ -20,12 +20,6 @@ spring:
         data-key: data
         watch:
           enabled: true
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,loggers,refresh
       discovery:
         enabled: ${SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED:true}
         register: ${SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER:true}
@@ -34,6 +28,12 @@ management:
         hostname: notifications-app
         health-check-path: /actuator/health
         health-check-interval: 15s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,loggers,refresh
   security:
     oauth2:
       resourceserver:
@@ -42,7 +42,7 @@ management:
 
 logging:
   level:
-    ru.rpovetkin.notifications: INFO
+    ru.rpovetkin.notifications: DEBUG
     org.springframework.messaging: DEBUG
     org.springframework.web.socket: DEBUG
     root: INFO

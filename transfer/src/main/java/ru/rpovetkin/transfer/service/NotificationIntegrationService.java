@@ -20,6 +20,15 @@ public class NotificationIntegrationService {
     @Value("${services.notifications.url:http://notifications}")
     private String notificationsServiceUrl;
     
+    @Value("${spring.security.oauth2.client.provider.keycloak.token-uri:http://keycloak:8080/realms/bankapp/protocol/openid-connect/token}")
+    private String tokenUri;
+
+    @Value("${spring.security.oauth2.client.registration.transfer-service.client-id:transfer-service}")
+    private String clientId;
+
+    @Value("${spring.security.oauth2.client.registration.transfer-service.client-secret:transfer-secret-key-12345}")
+    private String clientSecret;
+    
     /**
      * Отправить уведомление пользователю
      */
@@ -39,9 +48,12 @@ public class NotificationIntegrationService {
             WebClient webClient = webClientBuilder.build();
             String serviceUrl = consulService.getServiceUrlBlocking("gateway");
             
+            String accessToken = fetchServiceAccessToken();
+
             Mono<NotificationResponse> responseMono = webClient
                     .post()
                     .uri(serviceUrl + "/api/notifications/send")
+                    .headers(h -> { if (accessToken != null) h.setBearerAuth(accessToken); })
                     .bodyValue(request)
                     .retrieve()
                     .bodyToMono(NotificationResponse.class);
@@ -54,6 +66,23 @@ public class NotificationIntegrationService {
             
         } catch (Exception e) {
             log.error("Error sending notification: {}", e.getMessage(), e);
+        }
+    }
+    
+    private String fetchServiceAccessToken() {
+        try {
+            String form = "grant_type=client_credentials&client_id=" + clientId + "&client_secret=" + clientSecret;
+            return webClientBuilder.build().post()
+                    .uri(tokenUri)
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .bodyValue(form)
+                    .retrieve()
+                    .bodyToMono(java.util.Map.class)
+                    .map(m -> (String) m.get("access_token"))
+                    .block();
+        } catch (Exception e) {
+            log.warn("Failed to fetch service access token for notifications: {}", e.getMessage());
+            return null;
         }
     }
     

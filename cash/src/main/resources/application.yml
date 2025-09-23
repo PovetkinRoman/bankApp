@@ -55,6 +55,6 @@ services:
   accounts:
     url: http://accounts
   blocker:
-    url: http://blocker
+    url: http://gateway:8088
   notifications:
     url: http://notifications

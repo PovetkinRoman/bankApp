@@ -51,7 +51,7 @@ spring:
         - id: transfer-route
           uri: lb://transfer
           predicates:
-            - Path=/api/transfers/**
+            - Path=/api/transfer/**
         - id: exchange-route
           uri: lb://exchange
           predicates:
@@ -60,6 +60,10 @@ spring:
           uri: lb://notifications
           predicates:
             - Path=/api/notifications/**
+        - id: blocker-route
+          uri: lb://blocker
+          predicates:
+            - Path=/api/blocker/**
         - id: front-ui-route
           uri: lb://front-ui
           predicates:
