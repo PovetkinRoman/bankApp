@@ -50,6 +50,8 @@ class MainControllerTest {
                 .build();
         when(accountsService.getUserByLogin(anyString())).thenReturn(Mono.just(userDto));
         when(accountsService.getUserAccounts(anyString())).thenReturn(Mono.just(Collections.emptyList()));
+        when(cashService.getAvailableCurrencies(anyString())).thenReturn(Mono.just(Collections.emptyList()));
+        when(accountsService.getAllUsers()).thenReturn(Mono.just(Collections.emptyList()));
 
         mockMvc.perform(get("/main"))
                 .andExpect(status().isOk());

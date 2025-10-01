@@ -3,9 +3,11 @@ package ru.rpovetkin.front_ui.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import ru.rpovetkin.front_ui.dto.AccountApiResponse;
 import ru.rpovetkin.front_ui.dto.AccountDto;
 import ru.rpovetkin.front_ui.dto.CashOperationRequest;
 import ru.rpovetkin.front_ui.dto.CashOperationResponse;
@@ -39,7 +41,7 @@ public class CashService {
                                 .get()
                                 .uri(serviceUrl + "/api/cash/currencies/" + login)
                                 .retrieve()
-                                .bodyToMono(List.class);
+                                .bodyToMono(new ParameterizedTypeReference<List<AccountApiResponse>>() {});
                 })
                 .map(response -> {
                     if (response != null) {
@@ -133,28 +135,18 @@ public class CashService {
                         .build());
     }
 
-    private AccountDto convertToAccountDto(Object accountData) {
+    private AccountDto convertToAccountDto(AccountApiResponse accountData) {
         try {
-            if (accountData instanceof java.util.Map) {
-                @SuppressWarnings("unchecked")
-                java.util.Map<String, Object> map = (java.util.Map<String, Object>) accountData;
-                
-                Object idObj = map.get("id");
-                Long id = idObj != null ? ((Number) idObj).longValue() : null;
-                
-                String currencyStr = (String) map.get("currency");
-                Currency currency = Currency.valueOf(currencyStr);
-                
-                Object balanceObj = map.get("balance");
-                BigDecimal balance = balanceObj != null ? new BigDecimal(balanceObj.toString()) : BigDecimal.ZERO;
-                
-                Boolean exists = (Boolean) map.get("exists");
+            if (accountData != null) {
+                Currency currency = Currency.valueOf(accountData.getCurrency());
+                BigDecimal balance = accountData.getBalance() != null ? accountData.getBalance() : BigDecimal.ZERO;
+                Boolean exists = accountData.getExists() != null ? accountData.getExists() : false;
                 
                 return AccountDto.builder()
-                        .id(id)
+                        .id(accountData.getId())
                         .currency(currency)
                         .balance(balance)
-                        .exists(exists != null ? exists : false)
+                        .exists(exists)
                         .build();
             }
         } catch (Exception e) {
