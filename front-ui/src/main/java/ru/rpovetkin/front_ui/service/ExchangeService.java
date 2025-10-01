@@ -28,33 +28,28 @@ public class ExchangeService {
     /**
      * Получить курсы валют для отображения на фронте
      */
-    public List<CurrencyRateDisplayDto> getExchangeRatesForDisplay() {
+    public Mono<List<CurrencyRateDisplayDto>> getExchangeRatesForDisplay() {
         log.debug("Getting exchange rates from exchange service for display");
 
-        try {
-            return consulService.getServiceUrl("exchange")
-                    .flatMap(serviceUrl -> {
-                        log.debug("Using exchange service URL: {}", serviceUrl);
+        return consulService.getServiceUrl("exchange")
+                .flatMap(serviceUrl -> {
+                    log.debug("Using exchange service URL: {}", serviceUrl);
                         return webClient
                                 .get()
                                 .uri(serviceUrl + "/api/exchange/rates")
                                 .retrieve()
                                 .bodyToMono(List.class);
-                    })
-                    .map(response -> {
-                        if (response != null) {
-                            return convertToDisplayFormat(response);
-                        }
-                        return getDefaultRates();
-                    })
-                    .doOnError(error -> log.error("Error getting exchange rates from exchange service: {}", error.getMessage(), error))
-                    .onErrorReturn(getDefaultRates())
-                    .block();
-
-        } catch (Exception e) {
-            log.error("Error getting exchange rates from exchange service: {}", e.getMessage(), e);
-            return getDefaultRates();
-        }
+                })
+                .map(response -> {
+                    if (response != null) {
+                        @SuppressWarnings("unchecked")
+                        List<Object> responseList = (List<Object>) response;
+                        return convertToDisplayFormat(responseList);
+                    }
+                    return getDefaultRates();
+                })
+                .doOnError(error -> log.error("Error getting exchange rates from exchange service: {}", error.getMessage(), error))
+                .onErrorReturn(getDefaultRates());
     }
 
     /**

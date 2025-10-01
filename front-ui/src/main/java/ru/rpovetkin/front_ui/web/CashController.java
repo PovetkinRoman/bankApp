@@ -58,9 +58,9 @@ public class CashController {
 
             CashOperationResponse response;
             if ("deposit".equals(operation)) {
-                response = cashService.deposit(login, curr, amt);
+                response = cashService.deposit(login, curr, amt).block();
             } else if ("withdraw".equals(operation)) {
-                response = cashService.withdraw(login, curr, amt);
+                response = cashService.withdraw(login, curr, amt).block();
             } else {
                 redirectAttributes.addFlashAttribute("cashErrors", List.of("Неизвестная операция"));
                 return "redirect:/main";

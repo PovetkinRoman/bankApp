@@ -25,7 +25,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         log.info("Loading user by username: {}", username);
         
         try {
-            UserDto user = accountsService.getUserByLogin(username);
+            UserDto user = accountsService.getUserByLogin(username).block();
             if (user == null) {
                 throw new UsernameNotFoundException("User not found: " + username);
             }

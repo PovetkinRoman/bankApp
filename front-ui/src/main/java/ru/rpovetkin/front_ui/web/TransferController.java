@@ -116,7 +116,7 @@ public class TransferController {
             }
             
             // Проверяем баланс отправителя
-            List<AccountDto> fromUserAccounts = accountsService.getUserAccounts(fromUser);
+            List<AccountDto> fromUserAccounts = accountsService.getUserAccounts(fromUser).block();
             AccountDto fromAccount = fromUserAccounts.stream()
                     .filter(acc -> acc.getCurrency().equals(fromCurrency) && acc.isExists())
                     .findFirst()
@@ -132,7 +132,7 @@ public class TransferController {
             
             // Всегда используем transfer сервис (включая переводы между своими счетами),
             // чтобы единообразно проходить через gateway и правила blocker
-            List<AccountDto> toUserAccounts = accountsService.getUserAccounts(toUser);
+            List<AccountDto> toUserAccounts = accountsService.getUserAccounts(toUser).block();
             boolean hasTargetAccount = toUserAccounts.stream()
                     .anyMatch(acc -> acc.getCurrency().equals(toCurrency) && acc.isExists());
 
@@ -142,15 +142,15 @@ public class TransferController {
 
             log.info("Using transfer service for transfer from {} to {}", fromUser, toUser);
             TransferResponse transferResponse = transferService.executeTransfer(
-                fromUser,
-                toUser,
-                fromCurrency.name(),
-                toCurrency.name(),
-                amount,
-                convertedAmount,
-                String.format("Transfer %s %s to %s (credit %s %s)",
-                        amount, fromCurrency.name(), toUser, convertedAmount, toCurrency.name())
-            );
+                    fromUser,
+                    toUser,
+                    fromCurrency.name(),
+                    toCurrency.name(),
+                    amount,
+                    convertedAmount,
+                    String.format("Transfer %s %s to %s (credit %s %s)",
+                            amount, fromCurrency.name(), toUser, convertedAmount, toCurrency.name())
+            ).block();
 
             if (!transferResponse.isSuccess()) {
                 log.warn("Transfer service failed: {}", transferResponse.getMessage());
@@ -179,7 +179,7 @@ public class TransferController {
             }
             
             // Получаем актуальные курсы валют
-            List<CurrencyRateDisplayDto> rates = exchangeService.getExchangeRatesForDisplay();
+            List<CurrencyRateDisplayDto> rates = exchangeService.getExchangeRatesForDisplay().block();
             
             java.math.BigDecimal fromToRub = java.math.BigDecimal.ONE; // RUB = 1
             java.math.BigDecimal toToRub = java.math.BigDecimal.ONE;   // RUB = 1

@@ -45,7 +45,7 @@ public class CustomAuthenticationProvider implements AuthenticationProvider {
                     .password(password)
                     .build();
                     
-            boolean isAuthenticated = accountsService.authenticateUser(request);
+            boolean isAuthenticated = accountsService.authenticateUser(request).block();
             
             if (isAuthenticated) {
                 log.info("Authentication successful for user: {}", username);

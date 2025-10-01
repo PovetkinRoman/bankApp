@@ -50,68 +50,63 @@ public class NotificationService {
     /**
      * Отправить уведомление пользователю
      */
-    public void sendNotification(String userId, String type, String title, String message, Object metadata) {
-        try {
-            NotificationRequest request = NotificationRequest.builder()
-                    .userId(userId)
-                    .type(type)
-                    .title(title)
-                    .message(message)
-                    .source("ACCOUNTS")
-                    .metadata(metadata)
-                    .build();
-            
-            log.debug("Sending notification to user {}: {}", userId, title);
-            
-            String jwtToken = getJwtToken();
-            String serviceUrl = consulService.getServiceUrl("gateway").block();
-
-            WebClient webClient = webClientBuilder.build();
-            
-            Mono<NotificationResponse> responseMono = webClient
-                    .post()
-                    .uri(serviceUrl + "/api/notifications/send")
-                    .header("Authorization", jwtToken != null ? "Bearer " + jwtToken : "")
-                    .bodyValue(request)
-                    .retrieve()
-                    .bodyToMono(NotificationResponse.class);
-            
-            // Асинхронная отправка, не блокируем основной поток
-            responseMono.subscribe(
-                response -> log.debug("Notification sent successfully: {}", response.getNotificationId()),
-                error -> log.error("Failed to send notification: {}", error.getMessage())
-            );
-            
-        } catch (Exception e) {
-            log.error("Error sending notification: {}", e.getMessage(), e);
-        }
+    public Mono<Void> sendNotification(String userId, String type, String title, String message, Object metadata) {
+        NotificationRequest request = NotificationRequest.builder()
+                .userId(userId)
+                .type(type)
+                .title(title)
+                .message(message)
+                .source("ACCOUNTS")
+                .metadata(metadata)
+                .build();
+        
+        log.debug("Sending notification to user {}: {}", userId, title);
+        
+        return Mono.fromCallable(() -> getJwtToken())
+                .flatMap(jwtToken -> consulService.getServiceUrl("gateway")
+                        .flatMap(serviceUrl -> {
+                            WebClient webClient = webClientBuilder.build();
+                            
+                            return webClient
+                                    .post()
+                                    .uri(serviceUrl + "/api/notifications/send")
+                                    .header("Authorization", jwtToken != null ? "Bearer " + jwtToken : "")
+                                    .bodyValue(request)
+                                    .retrieve()
+                                    .bodyToMono(NotificationResponse.class)
+                                    .doOnSuccess(response -> log.debug("Notification sent successfully: {}", response.getNotificationId()))
+                                    .doOnError(error -> log.error("Failed to send notification: {}", error.getMessage()))
+                                    .then();
+                        }))
+                .doOnError(error -> log.error("Error sending notification: {}", error.getMessage(), error))
+                .onErrorComplete();
     }
     
     /**
      * Отправить уведомление об успешной операции
      */
-    public void sendSuccessNotification(String userId, String title, String message) {
-        sendNotification(userId, "SUCCESS", title, message, null);
+    public Mono<Void> sendSuccessNotification(String userId, String title, String message) {
+        return sendNotification(userId, "SUCCESS", title, message, null);
     }
     
     /**
      * Отправить информационное уведомление
      */
-    public void sendInfoNotification(String userId, String title, String message) {
-        sendNotification(userId, "INFO", title, message, null);
+    public Mono<Void> sendInfoNotification(String userId, String title, String message) {
+        return sendNotification(userId, "INFO", title, message, null);
     }
     
     /**
      * Отправить предупреждение
      */
-    public void sendWarningNotification(String userId, String title, String message) {
-        sendNotification(userId, "WARNING", title, message, null);
+    public Mono<Void> sendWarningNotification(String userId, String title, String message) {
+        return sendNotification(userId, "WARNING", title, message, null);
     }
     
     /**
      * Отправить уведомление об ошибке
      */
-    public void sendErrorNotification(String userId, String title, String message) {
-        sendNotification(userId, "ERROR", title, message, null);
+    public Mono<Void> sendErrorNotification(String userId, String title, String message) {
+        return sendNotification(userId, "ERROR", title, message, null);
     }
 }

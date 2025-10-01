@@ -25,7 +25,7 @@ public class ExchangeController {
         log.info("Request to get exchange rates for display");
         
         try {
-            List<CurrencyRateDisplayDto> rates = exchangeService.getExchangeRatesForDisplay();
+            List<CurrencyRateDisplayDto> rates = exchangeService.getExchangeRatesForDisplay().block();
             return ResponseEntity.ok(rates);
         } catch (Exception e) {
             log.error("Error getting exchange rates: {}", e.getMessage(), e);

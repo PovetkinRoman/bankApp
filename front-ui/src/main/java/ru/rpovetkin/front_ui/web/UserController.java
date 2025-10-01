@@ -17,6 +17,7 @@ import ru.rpovetkin.front_ui.dto.UpdateUserDataResponse;
 import ru.rpovetkin.front_ui.dto.UserDto;
 import ru.rpovetkin.front_ui.service.AccountsService;
 
+import reactor.core.publisher.Mono;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -54,7 +55,7 @@ public class UserController {
                 .confirmPassword(confirmPassword)
                 .build();
         
-        ChangePasswordResponse response = accountsService.changePassword(request);
+        ChangePasswordResponse response = accountsService.changePassword(request).block();
         
         if (response.isSuccess()) {
             log.info("Password changed successfully for user: {}", login);
@@ -100,7 +101,7 @@ public class UserController {
         
         // Сначала обрабатываем создание счетов
         if (hasAccountsToCreate) {
-            List<String> accountCreationErrors = createSelectedAccounts(login, account);
+                    List<String> accountCreationErrors = createSelectedAccounts(login, account).block();
             if (!accountCreationErrors.isEmpty()) {
                 redirectAttributes.addFlashAttribute("userAccountsErrors", accountCreationErrors);
                 return "redirect:/main";
@@ -115,7 +116,7 @@ public class UserController {
         
         try {
             // Получаем текущие данные пользователя
-            UserDto currentUserData = accountsService.getUserByLogin(login);
+                    UserDto currentUserData = accountsService.getUserByLogin(login).block();
             if (currentUserData == null) {
                 redirectAttributes.addFlashAttribute("userAccountsErrors", List.of("Пользователь не найден"));
                 return "redirect:/main";
@@ -131,7 +132,7 @@ public class UserController {
                     .birthdate(updatedBirthdate)
                     .build();
             
-            UpdateUserDataResponse response = accountsService.updateUserData(request);
+                    UpdateUserDataResponse response = accountsService.updateUserData(request).block();
             
             if (response.isSuccess()) {
                 log.info("User data updated successfully for user: {}", login);
@@ -154,12 +155,12 @@ public class UserController {
     /**
      * Создать выбранные пользователем счета
      */
-    private List<String> createSelectedAccounts(String login, List<String> selectedCurrencies) {
+    private Mono<List<String>> createSelectedAccounts(String login, List<String> selectedCurrencies) {
         List<String> errors = new ArrayList<>();
         
         for (String currencyStr : selectedCurrencies) {
             try {
-                boolean success = accountsService.createAccount(login, currencyStr);
+                boolean success = accountsService.createAccount(login, currencyStr).block();
                 if (!success) {
                     errors.add("Не удалось создать счет в валюте " + currencyStr);
                 }
@@ -169,6 +170,6 @@ public class UserController {
             }
         }
         
-        return errors;
+        return Mono.just(errors);
     }
 }

@@ -1,29 +1,22 @@
 package ru.rpovetkin.exchange_generator.service;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import ru.rpovetkin.exchange_generator.dto.ExchangeRateDto;
-import ru.rpovetkin.exchange_generator.entity.ExchangeRate;
 import ru.rpovetkin.exchange_generator.enums.Currency;
-import ru.rpovetkin.exchange_generator.repository.ExchangeRateRepository;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ExchangeRateService {
 
-    private final ExchangeRateRepository exchangeRateRepository;
     private final ExchangeIntegrationService exchangeIntegrationService;
     private final Random random = new Random();
 
@@ -63,7 +56,7 @@ public class ExchangeRateService {
             newRates.put(Currency.RUB, BigDecimal.ONE);
             
             // Отправляем курсы в exchange сервис
-            exchangeIntegrationService.sendExchangeRates(newRates);
+            exchangeIntegrationService.sendExchangeRates(newRates).subscribe();
             
             log.debug("Successfully generated and sent new exchange rates");
         } catch (Exception e) {

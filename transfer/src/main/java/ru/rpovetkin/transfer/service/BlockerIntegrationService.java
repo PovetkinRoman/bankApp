@@ -32,55 +32,48 @@ public class BlockerIntegrationService {
     /**
      * Проверить перевод в blocker сервисе
      */
-    public TransferCheckResponse checkTransfer(TransferCheckRequest request) {
+    public Mono<TransferCheckResponse> checkTransfer(TransferCheckRequest request) {
         log.info("Checking transfer with blocker service: {} -> {} amount: {}", 
                 request.getFromUser(), request.getToUser(), request.getAmount());
         
-        try {
-            WebClient webClient = webClientBuilder.build();
-            String serviceUrl = consulService.getServiceUrlBlocking("gateway");
-            String accessToken = fetchServiceAccessToken();
-            
-            Mono<TransferCheckResponse> responseMono = webClient
-                    .post()
-                    .uri(serviceUrl + "/api/blocker/check-transfer")
-                    .headers(h -> { if (accessToken != null) h.setBearerAuth(accessToken); })
-                    .bodyValue(request)
-                    .retrieve()
-                    .bodyToMono(TransferCheckResponse.class);
+        return fetchServiceAccessToken()
+                .flatMap(accessToken -> {
+                    WebClient webClient = webClientBuilder.build();
                     
-            TransferCheckResponse response = responseMono.block();
-            
-            if (response != null) {
-                log.info("Blocker check result: blocked={}, reason={}, checkId={}", 
-                        response.isBlocked(), response.getReason(), response.getCheckId());
-                return response;
-            } else {
-                log.warn("No response from blocker service, allowing transfer");
-                return createAllowResponse("No response from blocker service");
-            }
-            
-        } catch (Exception e) {
-            log.error("Error calling blocker service: {}", e.getMessage(), e);
-            return createAllowResponse("Blocker service unavailable");
-        }
+                    return consulService.getServiceUrl("gateway")
+                            .flatMap(serviceUrl -> webClient
+                                    .post()
+                                    .uri(serviceUrl + "/api/blocker/check-transfer")
+                                    .headers(h -> { if (accessToken != null) h.setBearerAuth(accessToken); })
+                                    .bodyValue(request)
+                                    .retrieve()
+                                    .bodyToMono(TransferCheckResponse.class))
+                            .map(response -> {
+                                if (response != null) {
+                                    log.info("Blocker check result: blocked={}, reason={}, checkId={}", 
+                                            response.isBlocked(), response.getReason(), response.getCheckId());
+                                    return response;
+                                } else {
+                                    log.warn("No response from blocker service, allowing transfer");
+                                    return createAllowResponse("No response from blocker service");
+                                }
+                            });
+                })
+                .doOnError(error -> log.error("Error calling blocker service: {}", error.getMessage(), error))
+                .onErrorReturn(createAllowResponse("Blocker service unavailable"));
     }
 
-    private String fetchServiceAccessToken() {
-        try {
-            String form = "grant_type=client_credentials&client_id=" + clientId + "&client_secret=" + clientSecret;
-            return webClientBuilder.build().post()
-                    .uri(tokenUri)
-                    .header("Content-Type", "application/x-www-form-urlencoded")
-                    .bodyValue(form)
-                    .retrieve()
-                    .bodyToMono(java.util.Map.class)
-                    .map(m -> (String) m.get("access_token"))
-                    .block();
-        } catch (Exception e) {
-            log.warn("Failed to fetch service access token for blocker: {}", e.getMessage());
-            return null;
-        }
+    private Mono<String> fetchServiceAccessToken() {
+        String form = "grant_type=client_credentials&client_id=" + clientId + "&client_secret=" + clientSecret;
+        return webClientBuilder.build().post()
+                .uri(tokenUri)
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .bodyValue(form)
+                .retrieve()
+                .bodyToMono(java.util.Map.class)
+                .map(m -> (String) m.get("access_token"))
+                .doOnError(error -> log.warn("Failed to fetch service access token for blocker: {}", error.getMessage()))
+                .onErrorResume(error -> Mono.just(""));
     }
     
     private TransferCheckResponse createAllowResponse(String reason) {

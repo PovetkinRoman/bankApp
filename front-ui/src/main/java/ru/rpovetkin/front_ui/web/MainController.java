@@ -33,7 +33,7 @@ public class MainController {
         log.info("Current authenticated user: {}", username);
         
         try {
-            UserDto user = accountsService.getUserByLogin(username);
+            UserDto user = accountsService.getUserByLogin(username).block();
             if (user != null) {
                 model.addAttribute("login", user.getLogin());
                 model.addAttribute("name", user.getName());
@@ -68,7 +68,7 @@ public class MainController {
      */
     private void addAccountsToModel(Model model, String username) {
         try {
-            List<AccountDto> accounts = accountsService.getUserAccounts(username);
+            List<AccountDto> accounts = accountsService.getUserAccounts(username).block();
             model.addAttribute("accounts", accounts);
             
             // Добавляем валюты для переводов (только те, для которых есть счета)
@@ -90,7 +90,7 @@ public class MainController {
         } catch (Exception e) {
             log.error("Error getting accounts for user {}: {}", username, e.getMessage(), e);
             // Добавляем пустой список счетов в случае ошибки
-            List<AccountDto> fallbackAccounts = accountsService.getUserAccounts(username);
+            List<AccountDto> fallbackAccounts = accountsService.getUserAccounts(username).block();
             model.addAttribute("accounts", fallbackAccounts);
             model.addAttribute("currency", List.of()); // Пустой список валют при ошибке
             model.addAttribute("transferAccounts", List.of()); // Пустой список счетов для переводов при ошибке
@@ -102,7 +102,7 @@ public class MainController {
      */
     private void addCashDataToModel(Model model, String username) {
         try {
-            List<AccountDto> availableCurrencies = cashService.getAvailableCurrencies(username);
+            List<AccountDto> availableCurrencies = cashService.getAvailableCurrencies(username).block();
             model.addAttribute("cashCurrencies", availableCurrencies);
             log.debug("Added {} available currencies for cash operations for user: {}", availableCurrencies.size(), username);
         } catch (Exception e) {
@@ -116,7 +116,7 @@ public class MainController {
      */
     private void addUsersToModel(Model model) {
         try {
-            List<UserDto> users = accountsService.getAllUsers();
+            List<UserDto> users = accountsService.getAllUsers().block();
             model.addAttribute("users", users);
             log.debug("Added {} users to model for transfers", users.size());
         } catch (Exception e) {

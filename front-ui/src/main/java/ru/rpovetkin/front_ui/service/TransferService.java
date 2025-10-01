@@ -25,7 +25,7 @@ public class TransferService {
     /**
      * Выполнить перевод между пользователями
      */
-    public TransferResponse executeTransfer(String fromUser, String toUser, String currency, BigDecimal amount, String description) {
+    public Mono<TransferResponse> executeTransfer(String fromUser, String toUser, String currency, BigDecimal amount, String description) {
         log.info("Transfer request from {} to {} amount {} {} - {}", fromUser, toUser, amount, currency, description);
         
         // Backward-compatible single-currency call delegates to dual-currency overload
@@ -35,7 +35,7 @@ public class TransferService {
     /**
      * Выполнить перевод между пользователями с поддержкой разных валют
      */
-    public TransferResponse executeTransfer(String fromUser, String toUser, String fromCurrency, String toCurrency,
+    public Mono<TransferResponse> executeTransfer(String fromUser, String toUser, String fromCurrency, String toCurrency,
                                             BigDecimal amountFrom, BigDecimal amountTo, String description) {
         log.info("Transfer request from {} to {}: {} {} -> {} {} - {}",
                 fromUser, toUser, amountFrom, fromCurrency, amountTo, toCurrency, description);
@@ -52,55 +52,45 @@ public class TransferService {
                 .description(description)
                 .build();
         
-        try {
-            return consulService.getServiceUrl("gateway")
-                    .flatMap(serviceUrl -> {
-                        log.info("Using transfer service URL: {}", serviceUrl);
-                        return webClient
-                                .post()
-                                .uri(serviceUrl + "/api/transfer/execute")
-                                .bodyValue(request)
-                                .exchangeToMono(clientResponse -> {
-                                    if (clientResponse.statusCode().is2xxSuccessful()) {
-                                        return clientResponse.bodyToMono(TransferResponse.class);
-                                    } else if (clientResponse.statusCode().is4xxClientError()) {
-                                        // Для 4xx ошибок пытаемся получить TransferResponse с детальным сообщением
-                                        return clientResponse.bodyToMono(TransferResponse.class)
-                                                .onErrorReturn(TransferResponse.builder()
-                                                        .success(false)
-                                                        .message("Операция отклонена")
-                                                        .build());
-                                    } else {
-                                        return Mono.just(TransferResponse.builder()
-                                                .success(false)
-                                                .message("Сервис переводов временно недоступен")
-                                                .build());
-                                    }
-                                })
-                                .onErrorReturn(TransferResponse.builder()
-                                        .success(false)
-                                        .message("Ошибка соединения с сервисом переводов")
-                                        .build());
-                    })
-                    .doOnSuccess(response -> {
-                        log.info("Transfer result from {} to {}: {}", fromUser, toUser, response.isSuccess());
-                        if (!response.isSuccess()) {
-                            log.warn("Transfer failed: {}", response.getMessage());
-                        }
-                    })
-                    .doOnError(error -> log.error("Error calling transfer service: {}", error.getMessage(), error))
-                    .onErrorReturn(TransferResponse.builder()
-                            .success(false)
-                            .message("Transfer service unavailable")
-                            .build())
-                    .block();
-            
-        } catch (Exception e) {
-            log.error("Error executing transfer: {}", e.getMessage(), e);
-            return TransferResponse.builder()
-                    .success(false)
-                    .message("Error communicating with transfer service: " + e.getMessage())
-                    .build();
-        }
+        return consulService.getServiceUrl("gateway")
+                .flatMap(serviceUrl -> {
+                    log.info("Using transfer service URL: {}", serviceUrl);
+                    return webClient
+                            .post()
+                            .uri(serviceUrl + "/api/transfer/execute")
+                            .bodyValue(request)
+                            .exchangeToMono(clientResponse -> {
+                                if (clientResponse.statusCode().is2xxSuccessful()) {
+                                    return clientResponse.bodyToMono(TransferResponse.class);
+                                } else if (clientResponse.statusCode().is4xxClientError()) {
+                                    // Для 4xx ошибок пытаемся получить TransferResponse с детальным сообщением
+                                    return clientResponse.bodyToMono(TransferResponse.class)
+                                            .onErrorReturn(TransferResponse.builder()
+                                                    .success(false)
+                                                    .message("Операция отклонена")
+                                                    .build());
+                                } else {
+                                    return Mono.just(TransferResponse.builder()
+                                            .success(false)
+                                            .message("Сервис переводов временно недоступен")
+                                            .build());
+                                }
+                            })
+                            .onErrorReturn(TransferResponse.builder()
+                                    .success(false)
+                                    .message("Ошибка соединения с сервисом переводов")
+                                    .build());
+                })
+                .doOnSuccess(response -> {
+                    log.info("Transfer result from {} to {}: {}", fromUser, toUser, response.isSuccess());
+                    if (!response.isSuccess()) {
+                        log.warn("Transfer failed: {}", response.getMessage());
+                    }
+                })
+                .doOnError(error -> log.error("Error calling transfer service: {}", error.getMessage(), error))
+                .onErrorReturn(TransferResponse.builder()
+                        .success(false)
+                        .message("Transfer service unavailable")
+                        .build());
     }
 }

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 import ru.rpovetkin.exchange_generator.dto.ExchangeRateUpdateDto;
 import ru.rpovetkin.exchange_generator.enums.Currency;
 
@@ -30,54 +31,48 @@ public class ExchangeIntegrationService {
     /**
      * Отправить курсы валют в exchange сервис
      */
-    public void sendExchangeRates(Map<Currency, BigDecimal> ratesToRub) {
+    public Mono<Void> sendExchangeRates(Map<Currency, BigDecimal> ratesToRub) {
         log.debug("Sending exchange rates to exchange service: {}", ratesToRub);
 
-        try {
-            ExchangeRateUpdateDto updateDto = ExchangeRateUpdateDto.builder()
-                    .ratesToRub(ratesToRub)
-                    .timestamp(System.currentTimeMillis())
-                    .build();
+        ExchangeRateUpdateDto updateDto = ExchangeRateUpdateDto.builder()
+                .ratesToRub(ratesToRub)
+                .timestamp(System.currentTimeMillis())
+                .build();
 
-            WebClient webClient = webClientBuilder.build();
+        return fetchServiceAccessToken()
+                .flatMap(accessToken -> {
+                    WebClient webClient = webClientBuilder.build();
 
-            String accessToken = fetchServiceAccessToken();
-
-            consulService.getServiceUrl("gateway")
-                    .flatMap(serviceUrl -> {
-                        log.debug("Using exchange service URL: {}", serviceUrl);
-                        return webClient
-                                .post()
-                                .uri(serviceUrl + "/api/exchange/rates/update")
-                                .headers(h -> { if (accessToken != null) h.setBearerAuth(accessToken); })
-                                .bodyValue(updateDto)
-                                .retrieve()
-                                .bodyToMono(String.class)
-                                .onErrorReturn("Service unavailable");
-                    })
-                    .doOnSuccess(response -> log.debug("Exchange service response: {}", response))
-                    .doOnError(error -> log.error("Error sending exchange rates to exchange service: {}", error.getMessage(), error))
-                    .subscribe();
-
-        } catch (Exception e) {
-            log.error("Error sending exchange rates to exchange service: {}", e.getMessage(), e);
-        }
+                    return consulService.getServiceUrl("gateway")
+                            .flatMap(serviceUrl -> {
+                                log.debug("Using exchange service URL: {}", serviceUrl);
+                                return webClient
+                                        .post()
+                                        .uri(serviceUrl + "/api/exchange/rates/update")
+                                        .headers(h -> { if (accessToken != null) h.setBearerAuth(accessToken); })
+                                        .bodyValue(updateDto)
+                                        .retrieve()
+                                        .bodyToMono(String.class)
+                                        .onErrorReturn("Service unavailable");
+                            })
+                            .doOnSuccess(response -> log.debug("Exchange service response: {}", response))
+                            .doOnError(error -> log.error("Error sending exchange rates to exchange service: {}", error.getMessage(), error))
+                            .then();
+                })
+                .doOnError(error -> log.error("Error sending exchange rates to exchange service: {}", error.getMessage(), error))
+                .onErrorComplete();
     }
 
-    private String fetchServiceAccessToken() {
-        try {
-            String form = "grant_type=client_credentials&client_id=" + clientId + "&client_secret=" + clientSecret;
-            return webClientBuilder.build().post()
-                    .uri(tokenUri)
-                    .header("Content-Type", "application/x-www-form-urlencoded")
-                    .bodyValue(form)
-                    .retrieve()
-                    .bodyToMono(java.util.Map.class)
-                    .map(m -> (String) m.get("access_token"))
-                    .block();
-        } catch (Exception e) {
-            log.warn("Failed to fetch service access token for exchange: {}", e.getMessage());
-            return null;
-        }
+    private Mono<String> fetchServiceAccessToken() {
+        String form = "grant_type=client_credentials&client_id=" + clientId + "&client_secret=" + clientSecret;
+        return webClientBuilder.build().post()
+                .uri(tokenUri)
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .bodyValue(form)
+                .retrieve()
+                .bodyToMono(java.util.Map.class)
+                .map(m -> (String) m.get("access_token"))
+                .doOnError(error -> log.warn("Failed to fetch service access token for exchange: {}", error.getMessage()))
+                .onErrorResume(error -> Mono.just(""));
     }
 }
