@@ -4,8 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 import ru.rpovetkin.cash.dto.AccountDto;
+import ru.rpovetkin.cash.dto.AccountOperationRequest;
+import ru.rpovetkin.cash.dto.AccountOperationResponse;
 import ru.rpovetkin.cash.dto.Currency;
 
 import java.math.BigDecimal;
@@ -70,10 +71,11 @@ public class AccountsIntegrationService {
         log.info("Depositing {} {} to account for user: {}", amount, currency, login);
         
         try {
-            String requestBody = String.format(
-                "{\"login\":\"%s\",\"currency\":\"%s\",\"amount\":%s}", 
-                login, currency.name(), amount.toString()
-            );
+            AccountOperationRequest request = AccountOperationRequest.builder()
+                    .login(login)
+                    .currency(currency)
+                    .amount(amount)
+                    .build();
             
             return consulService.getServiceUrl("accounts")
                     .flatMap(serviceUrl -> {
@@ -82,15 +84,16 @@ public class AccountsIntegrationService {
                                 .post()
                                 .uri(serviceUrl + "/api/accounts/deposit")
                                 .header("Content-Type", "application/json")
-                                .bodyValue(requestBody)
+                                .bodyValue(request)
                                 .retrieve()
-                                .bodyToMono(String.class)
+                                .bodyToMono(AccountOperationResponse.class)
                                 .retry(2) // Retry up to 2 times on failure
                                 .doOnError(throwable -> log.warn("Error calling accounts service: {}", throwable.getMessage()));
                     })
                     .map(response -> {
-                        boolean success = response != null && response.contains("\"success\":true");
-                        log.info("Deposit operation for user {} result: {}", login, success);
+                        boolean success = response != null && response.isSuccess();
+                        String message = response != null ? response.getMessage() : "No response";
+                        log.info("Deposit operation for user {} result: {} - {}", login, success, message);
                         return success;
                     })
                     .doOnError(error -> log.error("Error depositing to account: {}", error.getMessage(), error))
@@ -110,10 +113,11 @@ public class AccountsIntegrationService {
         log.info("Withdrawing {} {} from account for user: {}", amount, currency, login);
         
         try {
-            String requestBody = String.format(
-                "{\"login\":\"%s\",\"currency\":\"%s\",\"amount\":%s}", 
-                login, currency.name(), amount.toString()
-            );
+            AccountOperationRequest request = AccountOperationRequest.builder()
+                    .login(login)
+                    .currency(currency)
+                    .amount(amount)
+                    .build();
             
             return consulService.getServiceUrl("accounts")
                     .flatMap(serviceUrl -> {
@@ -122,15 +126,16 @@ public class AccountsIntegrationService {
                                 .post()
                                 .uri(serviceUrl + "/api/accounts/withdraw")
                                 .header("Content-Type", "application/json")
-                                .bodyValue(requestBody)
+                                .bodyValue(request)
                                 .retrieve()
-                                .bodyToMono(String.class)
+                                .bodyToMono(AccountOperationResponse.class)
                                 .retry(2) // Retry up to 2 times on failure
                                 .doOnError(throwable -> log.warn("Error calling accounts service: {}", throwable.getMessage()));
                     })
                     .map(response -> {
-                        boolean success = response != null && response.contains("\"success\":true");
-                        log.info("Withdrawal operation for user {} result: {}", login, success);
+                        boolean success = response != null && response.isSuccess();
+                        String message = response != null ? response.getMessage() : "No response";
+                        log.info("Withdrawal operation for user {} result: {} - {}", login, success, message);
                         return success;
                     })
                     .doOnError(error -> log.error("Error withdrawing from account: {}", error.getMessage(), error))
