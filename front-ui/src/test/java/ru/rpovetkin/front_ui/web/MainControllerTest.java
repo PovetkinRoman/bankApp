@@ -12,8 +12,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.rpovetkin.front_ui.service.AccountsService;
 import ru.rpovetkin.front_ui.service.CashService;
-import ru.rpovetkin.front_ui.service.ExchangeService;
-import ru.rpovetkin.front_ui.service.TransferService;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -29,8 +27,6 @@ class MainControllerTest {
 
     @MockBean private AccountsService accountsService;
     @MockBean private CashService cashService;
-    @MockBean private ExchangeService exchangeService;
-    @MockBean private TransferService transferService;
 
     @Test
     @DisplayName("GET /main returns 200")
