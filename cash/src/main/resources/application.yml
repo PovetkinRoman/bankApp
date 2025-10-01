@@ -58,3 +58,8 @@ services:
     url: http://gateway:8088
   notifications:
     url: http://notifications
+
+# Конфигурация лимитов безопасности
+blocker:
+  limits:
+    max-transfer-amount: 50000  # Максимальная сумма перевода без блокировки

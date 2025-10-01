@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import ru.rpovetkin.cash.config.BlockerLimitsConfig;
 import ru.rpovetkin.cash.dto.TransferCheckRequest;
 import ru.rpovetkin.cash.dto.TransferCheckResponse;
 
@@ -16,6 +17,7 @@ public class BlockerIntegrationService {
     
     private final WebClient webClient;
     private final ConsulService consulService;
+    private final BlockerLimitsConfig limitsConfig;
     
     @Value("${services.blocker.url:http://gateway:8088}")
     private String blockerServiceUrl;
@@ -67,11 +69,11 @@ public class BlockerIntegrationService {
             // Stricter fallback: block high-risk amounts when blocker is unavailable
             try {
                 boolean highRisk = request != null && request.getAmount() != null
-                        && request.getAmount().compareTo(new java.math.BigDecimal("50000")) > 0;
+                        && request.getAmount().compareTo(limitsConfig.getMaxTransferAmount()) > 0;
                 if (highRisk) {
                     return TransferCheckResponse.builder()
                             .blocked(true)
-                            .reason("LIMIT_50000_BLOCK: сумма превышает лимит безопасности (50 000)")
+                            .reason("LIMIT_EXCEEDED_BLOCK: сумма превышает лимит безопасности (" + limitsConfig.getMaxTransferAmount() + " )")
                             .riskLevel("HIGH")
                             .checkId("FALLBACK-BLOCK-" + System.currentTimeMillis())
                             .build();

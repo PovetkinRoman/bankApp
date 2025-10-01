@@ -46,3 +46,8 @@ management:
     web:
       exposure:
         include: health,info,loggers,refresh
+
+# Конфигурация лимитов безопасности
+blocker:
+  limits:
+    max-transfer-amount: 50000  # Максимальная сумма перевода без блокировки

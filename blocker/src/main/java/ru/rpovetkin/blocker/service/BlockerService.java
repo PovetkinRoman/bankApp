@@ -3,6 +3,7 @@ package ru.rpovetkin.blocker.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.rpovetkin.blocker.config.BlockerLimitsConfig;
 import ru.rpovetkin.blocker.dto.TransferCheckRequest;
 import ru.rpovetkin.blocker.dto.TransferCheckResponse;
 
@@ -14,6 +15,8 @@ import java.util.UUID;
 @Slf4j
 public class BlockerService {
     
+    private final BlockerLimitsConfig limitsConfig;
+    
    
     public TransferCheckResponse checkTransfer(TransferCheckRequest request) {
         String checkId = UUID.randomUUID().toString();
@@ -22,11 +25,11 @@ public class BlockerService {
                 request.getFromUser(), request.getToUser(), 
                 request.getAmount(), request.getCurrency(), checkId);
         
-        // Жёсткое правило: блокировать суммы свыше 50 000
-        if (request.getAmount() != null && request.getAmount().compareTo(new BigDecimal("50000")) > 0) {
+        // Жёсткое правило: блокировать суммы свыше установленного лимита
+        if (request.getAmount() != null && request.getAmount().compareTo(limitsConfig.getMaxTransferAmount()) > 0) {
             TransferCheckResponse response = TransferCheckResponse.builder()
                     .blocked(true)
-                    .reason("LIMIT_50000_BLOCK: сумма превышает лимит безопасности (50\u202f000)")
+                    .reason("LIMIT_EXCEEDED_BLOCK: сумма превышает лимит безопасности (" + limitsConfig.getMaxTransferAmount() + ")")
                     .riskLevel("HIGH")
                     .checkId(checkId)
                     .build();
@@ -76,8 +79,8 @@ public class BlockerService {
     private boolean shouldBlockTransfer(TransferCheckRequest request) {
         BigDecimal amount = request.getAmount();
         
-        // Блокируем очень крупные суммы (свыше 50,000)
-        if (amount.compareTo(new BigDecimal("50000")) > 0) {
+        // Блокируем очень крупные суммы (свыше установленного лимита)
+        if (amount.compareTo(limitsConfig.getMaxTransferAmount()) > 0) {
             return true;
         }
         
