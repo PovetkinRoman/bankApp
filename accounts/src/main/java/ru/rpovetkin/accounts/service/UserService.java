@@ -99,23 +99,7 @@ public class UserService {
             errors.add("Name is required");
         }
         
-        if (request.getBirthdate() == null || request.getBirthdate().trim().isEmpty()) {
-            errors.add("Birthdate is required");
-        } else {
-            try {
-                LocalDate birthdate = LocalDate.parse(request.getBirthdate());
-                LocalDate today = LocalDate.now();
-                LocalDate eighteenYearsAgo = today.minusYears(18);
-                
-                if (birthdate.isAfter(today)) {
-                    errors.add("Birthdate cannot be in the future");
-                } else if (birthdate.isAfter(eighteenYearsAgo)) {
-                    errors.add("User must be at least 18 years old");
-                }
-            } catch (Exception e) {
-                errors.add("Invalid birthdate format. Use YYYY-MM-DD");
-            }
-        }
+        errors.addAll(validateBirthdate(request.getBirthdate()));
         
         return errors;
     }
@@ -277,17 +261,30 @@ public class UserService {
             errors.add("Name is required");
         }
         
-        if (request.getBirthdate() == null || request.getBirthdate().trim().isEmpty()) {
+        errors.addAll(validateBirthdate(request.getBirthdate()));
+        
+        return errors;
+    }
+    
+    /**
+     * Валидирует дату рождения пользователя
+     * @param birthdate строка с датой рождения в формате YYYY-MM-DD
+     * @return список ошибок валидации
+     */
+    private List<String> validateBirthdate(String birthdate) {
+        List<String> errors = new ArrayList<>();
+        
+        if (birthdate == null || birthdate.trim().isEmpty()) {
             errors.add("Birthdate is required");
         } else {
             try {
-                LocalDate birthdate = LocalDate.parse(request.getBirthdate());
+                LocalDate birthdateParsed = LocalDate.parse(birthdate);
                 LocalDate today = LocalDate.now();
                 LocalDate eighteenYearsAgo = today.minusYears(18);
                 
-                if (birthdate.isAfter(today)) {
+                if (birthdateParsed.isAfter(today)) {
                     errors.add("Birthdate cannot be in the future");
-                } else if (birthdate.isAfter(eighteenYearsAgo)) {
+                } else if (birthdateParsed.isAfter(eighteenYearsAgo)) {
                     errors.add("User must be at least 18 years old");
                 }
             } catch (Exception e) {
