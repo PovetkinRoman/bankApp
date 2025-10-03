@@ -1,0 +1,50 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: notifications
+  config:
+    import: "optional:consul:"
+  cloud:
+    compatibility-verifier:
+      enabled: false
+    consul:
+      host: ${SPRING_CLOUD_CONSUL_HOST:consul}
+      port: ${SPRING_CLOUD_CONSUL_PORT:8500}
+      config:
+        enabled: true
+        format: yaml
+        prefix: config
+        default-context: application
+        data-key: data
+        watch:
+          enabled: true
+      discovery:
+        enabled: ${SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED:true}
+        register: ${SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER:true}
+        service-name: ${SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME:notifications}
+        instance-id: ${SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID:notifications-${random.uuid}}
+        hostname: notifications-app
+        health-check-path: /actuator/health
+        health-check-interval: 15s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,loggers,refresh
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs}
+
+logging:
+  level:
+    ru.rpovetkin.notifications: DEBUG
+    org.springframework.messaging: DEBUG
+    org.springframework.web.socket: DEBUG
+    root: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

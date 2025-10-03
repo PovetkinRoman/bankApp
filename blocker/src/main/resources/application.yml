@@ -1,0 +1,53 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: blocker
+  config:
+    import: "optional:consul:"
+  cloud:
+    compatibility-verifier:
+      enabled: false
+    consul:
+      host: ${SPRING_CLOUD_CONSUL_HOST:consul}
+      port: ${SPRING_CLOUD_CONSUL_PORT:8500}
+      config:
+        enabled: true
+        format: yaml
+        prefix: config
+        default-context: application
+        data-key: data
+        watch:
+          enabled: true
+      discovery:
+        enabled: ${SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED:true}
+        register: ${SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER:true}
+        service-name: ${SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME:blocker}
+        instance-id: ${SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID:blocker-${random.uuid}}
+        hostname: blocker-app
+        health-check-path: /actuator/health
+        health-check-interval: 15s
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs}
+
+logging:
+  level:
+    ru.rpovetkin.blocker: INFO
+    root: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,loggers,refresh
+
+# Конфигурация лимитов безопасности
+blocker:
+  limits:
+    max-transfer-amount: 50000  # Максимальная сумма перевода без блокировки

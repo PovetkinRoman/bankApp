@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="002-update-currency-to-enum" author="developer">
+        <!-- Удаляем старые записи если есть -->
+        <sql>DELETE FROM user_accounts;</sql>
+        
+        <!-- Изменяем колонку currency на VARCHAR(3) и добавляем проверку на допустимые значения -->
+        <modifyDataType tableName="user_accounts" columnName="currency" newDataType="VARCHAR(3)"/>
+        
+        <!-- Добавляем ограничение на допустимые значения валют -->
+        <sql>
+            ALTER TABLE user_accounts 
+            ADD CONSTRAINT ck_currency_values 
+            CHECK (currency IN ('RUB', 'USD', 'CNY'))
+        </sql>
+        
+        <!-- Обновляем precision и scale для balance -->
+        <modifyDataType tableName="user_accounts" columnName="balance" newDataType="DECIMAL(19,4)"/>
+    </changeSet>
+
+</databaseChangeLog>

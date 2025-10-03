@@ -1,0 +1,65 @@
+spring:
+  application:
+    name: cash
+  config:
+    import: "optional:consul:"
+  cloud:
+    compatibility-verifier:
+      enabled: false
+    consul:
+      host: ${SPRING_CLOUD_CONSUL_HOST:consul}
+      port: ${SPRING_CLOUD_CONSUL_PORT:8500}
+      config:
+        enabled: true
+        format: yaml
+        prefix: config
+        default-context: application
+        data-key: data
+        watch:
+          enabled: true
+      discovery:
+        enabled: ${SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED:true}
+        register: ${SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER:true}
+        service-name: ${SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME:cash}
+        instance-id: ${SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID:cash-1}
+        hostname: cash-app
+        health-check-path: /actuator/health
+        health-check-interval: 15s
+  security:
+    oauth2:
+      client:
+        registration:
+          cash-service:
+            client-id: ${OAUTH2_CLIENT_ID:cash-service}
+            client-secret: ${OAUTH2_CLIENT_SECRET:cash-secret-key-12345}
+            authorization-grant-type: client_credentials
+            scope: openid,profile,email
+            provider: keycloak
+        provider:
+          keycloak:
+            token-uri: ${KEYCLOAK_TOKEN_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/token}
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs}
+
+server:
+  port: 8082
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,loggers,refresh
+
+services:
+  accounts:
+    url: http://accounts
+  blocker:
+    url: http://gateway:8088
+  notifications:
+    url: http://notifications
+
+# Конфигурация лимитов безопасности
+blocker:
+  limits:
+    max-transfer-amount: 50000  # Максимальная сумма перевода без блокировки
