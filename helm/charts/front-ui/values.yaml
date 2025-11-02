@@ -1,0 +1,39 @@
+# Default values for front-ui
+# This is a YAML-formatted file.
+
+replicaCount: 1
+
+image:
+  repository: bankapp/front-ui
+  pullPolicy: IfNotPresent
+  tag: "0.0.1-SNAPSHOT"
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+env: {}
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+livenessProbe:
+  httpGet:
+    path: /actuator/health
+    port: 8080
+  initialDelaySeconds: 60
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /actuator/health
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 5
+

@@ -1,0 +1,167 @@
+# Default values for bankapp umbrella chart
+
+# PostgreSQL Database
+postgresql:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "13.21-alpine3.22"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 5432
+    targetPort: 5432
+  
+  env:
+    POSTGRES_DB: bankapp
+    POSTGRES_USER: root
+    POSTGRES_PASSWORD: root
+  
+  persistence:
+    enabled: false
+    size: 10Gi
+    storageClassName: "standard"
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+# Consul Service Discovery
+consul:
+  enabled: true
+  image:
+    repository: hashicorp/consul
+    tag: "1.17.0"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    httpPort: 8500
+    dnsPort: 8600
+  
+  command:
+    - consul
+    - agent
+    - -dev
+    - -ui
+    - -client=0.0.0.0
+    - -bootstrap-expect=1
+  
+  persistence:
+    enabled: false
+    size: 1Gi
+    storageClassName: "standard"
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+# Keycloak Identity Provider
+keycloak:
+  enabled: true
+  image:
+    repository: quay.io/keycloak/keycloak
+    tag: "24.0.2"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  
+  env:
+    KEYCLOAK_ADMIN: admin
+    KEYCLOAK_ADMIN_PASSWORD: admin
+    KC_DB: postgres
+    KC_DB_URL_HOST: bankapp-postgresql
+    KC_DB_URL_PORT: "5432"
+    KC_DB_URL_DATABASE: bankapp
+    KC_DB_USERNAME: root
+    KC_DB_PASSWORD: root
+  
+  command:
+    - start-dev
+    - --import-realm
+    - -Dkeycloak.import.strategy=OVERWRITE_EXISTING
+  
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8080
+    initialDelaySeconds: 120
+    periodSeconds: 10
+  
+  readinessProbe:
+    httpGet:
+      path: /health/ready
+      port: 8080
+    initialDelaySeconds: 60
+    periodSeconds: 5
+
+# Front-UI Service
+front-ui:
+  enabled: true
+  image:
+    repository: bankapp/front-ui
+    tag: "0.0.1-SNAPSHOT"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  
+  replicaCount: 1
+  
+  env:
+    SPRING_CLOUD_COMPATIBILITY_VERIFIER_ENABLED: "false"
+    SPRING_CLOUD_CONSUL_HOST: "bankapp-consul"
+    SPRING_CLOUD_CONSUL_PORT: "8500"
+    SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED: "true"
+    SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER: "true"
+    SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME: "front-ui"
+    SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID: "front-ui-1"
+    KEYCLOAK_TOKEN_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/token"
+    KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
+    OAUTH2_CLIENT_ID: "front-ui-service"
+    OAUTH2_CLIENT_SECRET: "front-ui-secret-key-12345"
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  
+  livenessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8080
+    initialDelaySeconds: 60
+    periodSeconds: 10
+  
+  readinessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8080
+    initialDelaySeconds: 30
+    periodSeconds: 5
+

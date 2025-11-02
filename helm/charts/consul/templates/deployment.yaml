@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "consul.fullname" . }}
+  labels:
+    {{- include "consul.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "consul.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "consul.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: consul
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8500
+              protocol: TCP
+            - name: dns
+              containerPort: 8600
+              protocol: UDP
+          command:
+            {{- toYaml .Values.command | nindent 12 }}
+          env:
+            - name: CONSUL_BIND_INTERFACE
+              value: "eth0"
+          volumeMounts:
+            - name: consul-data
+              mountPath: /consul/data
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /v1/status/leader
+              port: 8500
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /v1/status/leader
+              port: 8500
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        {{- if .Values.persistence.enabled }}
+        - name: consul-data
+          persistentVolumeClaim:
+            claimName: {{ include "consul.fullname" . }}-pvc
+        {{- else }}
+        - name: consul-data
+          emptyDir: {}
+        {{- end }}
+

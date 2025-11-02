@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "front-ui.fullname" . }}-config
+  labels:
+    {{- include "front-ui.labels" . | nindent 4 }}
+data:
+  application.yml: |
+    spring:
+      application:
+        name: front-ui
+      config:
+        import: "optional:consul:"
+      security:
+        oauth2:
+          resourceserver:
+            jwt:
+              jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs}
+      cloud:
+        compatibility-verifier:
+          enabled: false
+        consul:
+          host: ${SPRING_CLOUD_CONSUL_HOST:consul}
+          port: ${SPRING_CLOUD_CONSUL_PORT:8500}
+          config:
+            enabled: true
+            format: yaml
+            prefix: config
+            default-context: application
+            data-key: data
+            watch:
+              enabled: true
+          discovery:
+            enabled: true
+            register: true
+            service-name: front-ui
+            instance-id: front-ui-1
+            hostname: {{ include "front-ui.fullname" . }}
+    
+    accounts:
+      service:
+        url: http://accounts
+    
+    cash:
+      service:
+        url: http://cash
+    
+    transfer:
+      service:
+        url: http://transfer
+    
+    exchange:
+      service:
+        url: http://exchange
+    
+    server:
+      forward-headers-strategy: native
+    
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info,loggers,refresh
+
