@@ -18,3 +18,4 @@ spec:
   selector:
     {{- include "consul.selectorLabels" . | nindent 4 }}
 
+

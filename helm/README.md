@@ -57,3 +57,4 @@ helm uninstall bankapp
 - Переменные окружения настраиваются через values.yaml
 - Image policy установлен в `IfNotPresent` для использования локальных образов
 
+

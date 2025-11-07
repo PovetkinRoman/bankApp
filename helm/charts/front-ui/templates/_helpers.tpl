@@ -50,3 +50,4 @@ app.kubernetes.io/name: {{ include "front-ui.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
+

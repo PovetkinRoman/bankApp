@@ -48,3 +48,4 @@ app.kubernetes.io/name: {{ include "consul.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
+
