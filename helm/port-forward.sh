@@ -24,6 +24,12 @@ echo "✅ Keycloak: http://localhost:8180"
 kubectl port-forward -n bankapp svc/bankapp-accounts 8081:8081 > /tmp/pf-accounts.log 2>&1 &
 echo "✅ Accounts: http://localhost:8081"
 
+kubectl port-forward -n bankapp svc/bankapp-cash 8082:8082 > /tmp/pf-cash.log 2>&1 &
+echo "✅ Cash: http://localhost:8082"
+
+kubectl port-forward -n bankapp svc/bankapp-transfer 8083:8083 > /tmp/pf-transfer.log 2>&1 &
+echo "✅ Transfer: http://localhost:8083"
+
 kubectl port-forward -n bankapp svc/bankapp-consul 8500:8500 > /tmp/pf-consul.log 2>&1 &
 echo "✅ Consul: http://localhost:8500"
 

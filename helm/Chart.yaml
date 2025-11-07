@@ -30,4 +30,12 @@ dependencies:
     version: 0.1.0
     repository: "file://charts/accounts"
     condition: accounts.enabled
+  - name: cash
+    version: 0.1.0
+    repository: "file://charts/cash"
+    condition: cash.enabled
+  - name: transfer
+    version: 0.1.0
+    repository: "file://charts/transfer"
+    condition: transfer.enabled
 

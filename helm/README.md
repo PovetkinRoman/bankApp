@@ -10,11 +10,13 @@ helm/
 ├── values.yaml             # Global values
 ├── charts/
 │   ├── accounts/           # Подчарт для accounts сервиса
+│   ├── cash/               # Подчарт для cash сервиса
 │   ├── consul/             # Подчарт для Consul
 │   ├── front-ui/           # Подчарт для фронта
 │   ├── gateway/            # Подчарт для API gateway
 │   ├── keycloak/           # Подчарт для Keycloak
-│   └── postgresql/         # Подчарт для PostgreSQL
+│   ├── postgresql/         # Подчарт для PostgreSQL
+│   └── transfer/           # Подчарт для transfer сервиса
 └── README.md
 ```
 
@@ -26,6 +28,8 @@ helm/
    docker build -f front-ui/dockerfile -t bankapp/front-ui:0.0.1-SNAPSHOT .
    docker build -f gateway/dockerfile -t bankapp/gateway:0.0.1-SNAPSHOT .
    docker build -f accounts/dockerfile -t bankapp/accounts:0.0.1-SNAPSHOT .
+   docker build -f cash/dockerfile -t bankapp/cash:0.0.1-SNAPSHOT .
+   docker build -f transfer/dockerfile -t bankapp/transfer:0.0.1-SNAPSHOT .
    ```
 
 2. Установите chart:

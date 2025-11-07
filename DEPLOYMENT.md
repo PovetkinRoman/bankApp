@@ -26,6 +26,8 @@ cd /Users/roman/IdeaProjects/practicum/bankApp
 docker build -f accounts/dockerfile -t bankapp/accounts:0.0.1-SNAPSHOT .
 docker build -f gateway/dockerfile -t bankapp/gateway:0.0.1-SNAPSHOT .
 docker build -f front-ui/dockerfile -t bankapp/front-ui:0.0.1-SNAPSHOT .
+docker build -f cash/dockerfile -t bankapp/cash:0.0.1-SNAPSHOT .
+docker build -f transfer/dockerfile -t bankapp/transfer:0.0.1-SNAPSHOT .
 ```
 
 ### 2. Развертывание через Helm
@@ -98,6 +100,8 @@ kubectl port-forward -n bankapp svc/bankapp-keycloak 8180:8080 &
 | front-ui | 8080 | Веб-интерфейс приложения |
 | gateway | 8088 | API Gateway |
 | accounts | 8081 | Сервис управления пользователями |
+| cash | 8082 | Сервис управления операциями с наличными |
+| transfer | 8083 | Сервис управления переводами |
 | keycloak | 8080 | Identity Provider |
 | consul | 8500 | Service Discovery |
 | postgresql | 5432 | База данных |
@@ -137,6 +141,8 @@ kubectl get pods -n bankapp
 
 # Логи конкретного сервиса
 kubectl logs -n bankapp deployment/bankapp-accounts
+kubectl logs -n bankapp deployment/bankapp-cash
+kubectl logs -n bankapp deployment/bankapp-transfer
 kubectl logs -n bankapp deployment/bankapp-gateway
 kubectl logs -n bankapp deployment/bankapp-front-ui
 ```
