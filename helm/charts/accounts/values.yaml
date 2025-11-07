@@ -1,0 +1,53 @@
+replicaCount: 1
+
+image:
+  repository: bankapp/accounts
+  pullPolicy: IfNotPresent
+  tag: "0.0.1-SNAPSHOT"
+
+service:
+  type: ClusterIP
+  port: 8081
+  targetPort: 8081
+
+env:
+  SPRING_CLOUD_CONSUL_HOST: "bankapp-consul"
+  SPRING_CLOUD_CONSUL_PORT: "8500"
+  SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED: "true"
+  SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER: "true"
+  SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME: "accounts"
+  SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID: "accounts-1"
+  SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: "bankapp-accounts.bankapp.svc.cluster.local"
+  SPRING_CLOUD_CONSUL_DISCOVERY_PREFER_IP_ADDRESS: "true"
+  KEYCLOAK_TOKEN_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/token"
+  KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
+  OAUTH2_CLIENT_ID: "accounts-service"
+  OAUTH2_CLIENT_SECRET: "accounts-secret-key-12345"
+  DB_HOST: "bankapp-postgresql"
+  DB_PORT: "5432"
+  DB_NAME: "bankapp"
+  DB_USER: "root"
+  DB_PASSWORD: "root"
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+livenessProbe:
+  httpGet:
+    path: /actuator/health
+    port: 8081
+  initialDelaySeconds: 60
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /actuator/health
+    port: 8081
+  initialDelaySeconds: 30
+  periodSeconds: 5
+
