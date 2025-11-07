@@ -30,6 +30,15 @@ echo "✅ Cash: http://localhost:8082"
 kubectl port-forward -n bankapp svc/bankapp-transfer 8083:8083 > /tmp/pf-transfer.log 2>&1 &
 echo "✅ Transfer: http://localhost:8083"
 
+kubectl port-forward -n bankapp svc/bankapp-exchange 8084:8084 > /tmp/pf-exchange.log 2>&1 &
+echo "✅ Exchange: http://localhost:8084"
+
+kubectl port-forward -n bankapp svc/bankapp-exchange-generator 8085:8085 > /tmp/pf-exchange-generator.log 2>&1 &
+echo "✅ Exchange Generator: http://localhost:8085"
+
+kubectl port-forward -n bankapp svc/bankapp-notifications 8087:8087 > /tmp/pf-notifications.log 2>&1 &
+echo "✅ Notifications: http://localhost:8087"
+
 kubectl port-forward -n bankapp svc/bankapp-consul 8500:8500 > /tmp/pf-consul.log 2>&1 &
 echo "✅ Consul: http://localhost:8500"
 

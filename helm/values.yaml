@@ -160,15 +160,17 @@ front-ui:
     httpGet:
       path: /actuator/health
       port: 8080
-    initialDelaySeconds: 60
+    initialDelaySeconds: 180
     periodSeconds: 10
-  
+    failureThreshold: 5
+
   readinessProbe:
     httpGet:
       path: /actuator/health
       port: 8080
-    initialDelaySeconds: 30
-    periodSeconds: 5
+    initialDelaySeconds: 150
+    periodSeconds: 10
+    failureThreshold: 5
 
 # Gateway Service
 gateway:
@@ -208,15 +210,17 @@ gateway:
     httpGet:
       path: /actuator/health
       port: 8088
-    initialDelaySeconds: 60
+    initialDelaySeconds: 180
     periodSeconds: 10
+    failureThreshold: 5
 
   readinessProbe:
     httpGet:
       path: /actuator/health
       port: 8088
-    initialDelaySeconds: 30
-    periodSeconds: 5
+    initialDelaySeconds: 150
+    periodSeconds: 10
+    failureThreshold: 5
 
 # Accounts Service
 accounts:
@@ -264,15 +268,17 @@ accounts:
     httpGet:
       path: /actuator/health
       port: 8081
-    initialDelaySeconds: 60
+    initialDelaySeconds: 180
     periodSeconds: 10
+    failureThreshold: 5
 
   readinessProbe:
     httpGet:
       path: /actuator/health
       port: 8081
-    initialDelaySeconds: 30
-    periodSeconds: 5
+    initialDelaySeconds: 150
+    periodSeconds: 10
+    failureThreshold: 5
 
 # Cash Service
 cash:
@@ -315,15 +321,17 @@ cash:
     httpGet:
       path: /actuator/health
       port: 8082
-    initialDelaySeconds: 60
+    initialDelaySeconds: 180
     periodSeconds: 10
+    failureThreshold: 5
 
   readinessProbe:
     httpGet:
       path: /actuator/health
       port: 8082
-    initialDelaySeconds: 30
-    periodSeconds: 5
+    initialDelaySeconds: 150
+    periodSeconds: 10
+    failureThreshold: 5
 
 # Transfer Service
 transfer:
@@ -366,13 +374,169 @@ transfer:
     httpGet:
       path: /actuator/health
       port: 8083
-    initialDelaySeconds: 60
+    initialDelaySeconds: 180
     periodSeconds: 10
+    failureThreshold: 5
 
   readinessProbe:
     httpGet:
       path: /actuator/health
       port: 8083
-    initialDelaySeconds: 30
-    periodSeconds: 5
+    initialDelaySeconds: 150
+    periodSeconds: 10
+    failureThreshold: 5
+
+# Exchange Service
+exchange:
+  enabled: true
+  image:
+    repository: bankapp/exchange
+    tag: "0.0.1-SNAPSHOT"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8084
+    targetPort: 8084
+
+  replicaCount: 1
+
+  env:
+    SPRING_CLOUD_CONSUL_HOST: "bankapp-consul"
+    SPRING_CLOUD_CONSUL_PORT: "8500"
+    SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED: "true"
+    SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER: "true"
+    SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME: "exchange"
+    SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID: "exchange-1"
+    SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: "bankapp-exchange.bankapp.svc.cluster.local"
+    SPRING_CLOUD_CONSUL_DISCOVERY_PREFER_IP_ADDRESS: "true"
+    KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+  livenessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8084
+    initialDelaySeconds: 180
+    periodSeconds: 10
+    failureThreshold: 5
+
+  readinessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8084
+    initialDelaySeconds: 150
+    periodSeconds: 10
+    failureThreshold: 5
+
+# Exchange Generator Service
+exchange-generator:
+  enabled: true
+  image:
+    repository: bankapp/exchange-generator
+    tag: "0.0.1-SNAPSHOT"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8085
+    targetPort: 8085
+
+  replicaCount: 1
+
+  env:
+    SPRING_CLOUD_CONSUL_HOST: "bankapp-consul"
+    SPRING_CLOUD_CONSUL_PORT: "8500"
+    SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED: "true"
+    SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER: "true"
+    SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME: "exchange-generator"
+    SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID: "exchange-generator-1"
+    SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: "bankapp-exchange-generator.bankapp.svc.cluster.local"
+    SPRING_CLOUD_CONSUL_DISCOVERY_PREFER_IP_ADDRESS: "true"
+    KEYCLOAK_TOKEN_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/token"
+    KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
+    OAUTH2_CLIENT_ID: "exchange-generator-service"
+    OAUTH2_CLIENT_SECRET: "exchange-generator-secret-key-12345"
+    EXCHANGE_SERVICE_URL: "http://bankapp-exchange:8084"
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+  livenessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8085
+    initialDelaySeconds: 180
+    periodSeconds: 10
+    failureThreshold: 5
+
+  readinessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8085
+    initialDelaySeconds: 150
+    periodSeconds: 10
+    failureThreshold: 5
+
+# Notifications Service
+notifications:
+  enabled: true
+  image:
+    repository: bankapp/notifications
+    tag: "0.0.1-SNAPSHOT"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8087
+    targetPort: 8087
+
+  replicaCount: 1
+
+  env:
+    SPRING_CLOUD_CONSUL_HOST: "bankapp-consul"
+    SPRING_CLOUD_CONSUL_PORT: "8500"
+    SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED: "true"
+    SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER: "true"
+    SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME: "notifications"
+    SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID: "notifications-1"
+    SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: "bankapp-notifications.bankapp.svc.cluster.local"
+    SPRING_CLOUD_CONSUL_DISCOVERY_PREFER_IP_ADDRESS: "true"
+    KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+  livenessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8087
+    initialDelaySeconds: 180
+    periodSeconds: 10
+    failureThreshold: 5
+
+  readinessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8087
+    initialDelaySeconds: 150
+    periodSeconds: 10
+    failureThreshold: 5
 

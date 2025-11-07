@@ -1,0 +1,7 @@
+apiVersion: v2
+name: notifications
+description: A Helm chart for the notifications microservice
+type: application
+version: 0.1.0
+appVersion: "0.0.1-SNAPSHOT"
+

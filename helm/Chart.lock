@@ -23,5 +23,14 @@ dependencies:
 - name: transfer
   repository: file://charts/transfer
   version: 0.1.0
-digest: sha256:f54dcec77c23598a29d9db25999a9c20c9899367883520d58b604bc4b89c5e31
-generated: "2025-11-07T10:26:05.92773+07:00"
+- name: exchange
+  repository: file://charts/exchange
+  version: 0.1.0
+- name: exchange-generator
+  repository: file://charts/exchange-generator
+  version: 0.1.0
+- name: notifications
+  repository: file://charts/notifications
+  version: 0.1.0
+digest: sha256:0b9b3074a1aab11cc7f1ccd645a3eceb54c0ddb53b1bbf96eef3a4d75d564752
+generated: "2025-11-07T10:47:05.253493+07:00"

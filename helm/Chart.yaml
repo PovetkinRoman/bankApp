@@ -38,4 +38,16 @@ dependencies:
     version: 0.1.0
     repository: "file://charts/transfer"
     condition: transfer.enabled
+  - name: exchange
+    version: 0.1.0
+    repository: "file://charts/exchange"
+    condition: exchange.enabled
+  - name: exchange-generator
+    version: 0.1.0
+    repository: "file://charts/exchange-generator"
+    condition: exchange-generator.enabled
+  - name: notifications
+    version: 0.1.0
+    repository: "file://charts/notifications"
+    condition: notifications.enabled
 
