@@ -25,7 +25,7 @@ spec:
           command:
             - /bin/bash
             - -c
-            - /opt/keycloak/bin/kc.sh start-dev --import-realm -Dkeycloak.import.strategy=OVERWRITE_EXISTING
+            - /opt/keycloak/bin/kc.sh start-dev --import-realm --health-enabled=true -Dkeycloak.import.strategy=OVERWRITE_EXISTING
           env:
             - name: KEYCLOAK_ADMIN
               value: {{ .Values.env.KEYCLOAK_ADMIN | quote }}

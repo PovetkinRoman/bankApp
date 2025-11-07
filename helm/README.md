@@ -9,52 +9,53 @@ helm/
 ├── Chart.yaml              # Parent chart
 ├── values.yaml             # Global values
 ├── charts/
-│   └── front-ui/           # Подчарт для front-ui сервиса
-│       ├── Chart.yaml
-│       ├── values.yaml
-│       └── templates/
-│           ├── deployment.yaml
-│           ├── service.yaml
-│           ├── configmap.yaml
-│           └── _helpers.tpl
+│   ├── accounts/           # Подчарт для accounts сервиса
+│   ├── consul/             # Подчарт для Consul
+│   ├── front-ui/           # Подчарт для фронта
+│   ├── gateway/            # Подчарт для API gateway
+│   ├── keycloak/           # Подчарт для Keycloak
+│   └── postgresql/         # Подчарт для PostgreSQL
 └── README.md
 ```
 
 ## Установка
 
-1. Убедитесь, что Docker image собран и доступен в Kubernetes:
+1. Убедитесь, что Docker image'ы собраны и доступны в Kubernetes:
    ```bash
    eval $(minikube docker-env)
    docker build -f front-ui/dockerfile -t bankapp/front-ui:0.0.1-SNAPSHOT .
+   docker build -f gateway/dockerfile -t bankapp/gateway:0.0.1-SNAPSHOT .
+   docker build -f accounts/dockerfile -t bankapp/accounts:0.0.1-SNAPSHOT .
    ```
 
 2. Установите chart:
    ```bash
-   helm install bankapp . --values values.yaml
+   helm install bankapp . -n bankapp --create-namespace --values values.yaml
    ```
 
 3. Проверьте статус:
    ```bash
-   kubectl get pods -l app.kubernetes.io/name=front-ui
+   kubectl get pods -n bankapp
    helm list
    ```
 
 ## Обновление
 
 ```bash
-helm upgrade bankapp . --values values.yaml
+helm upgrade bankapp . -n bankapp --values values.yaml
 ```
 
 ## Удаление
 
 ```bash
-helm uninstall bankapp
+helm uninstall bankapp -n bankapp
 ```
 
 ## Примечания
 
 - Для работы приложения необходимо развернуть зависимости: Consul, Keycloak, PostgreSQL
-- Переменные окружения настраиваются через values.yaml
+- Gateway и Accounts зависят от Consul и Keycloak — убедитесь, что они подняты корректно
+- Переменные окружения настраиваются через `values.yaml`
 - Image policy установлен в `IfNotPresent` для использования локальных образов
 
 
