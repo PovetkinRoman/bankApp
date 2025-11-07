@@ -179,6 +179,20 @@ pkill -f 'kubectl port-forward.*bankapp'
 - **Keycloak**: Параметры identity provider
 - **Сервисы**: Переменные окружения, ресурсы, health checks
 
+## Performance & Optimization
+
+### Оптимизация времени запуска
+
+Если сервисы долго запускаются (более 1-2 минут), смотрите подробный гайд по оптимизации:
+**[KUBERNETES_OPTIMIZATION.md](KUBERNETES_OPTIMIZATION.md)**
+
+Основные моменты:
+- Использование `startupProbe` для Spring Boot приложений
+- Оптимизация `initialDelaySeconds` в health checks
+- Правильная настройка `failureThreshold`
+
+**Ожидаемое время запуска после оптимизации: 30-60 секунд для всех сервисов**
+
 ## Troubleshooting
 
 ### Поды не запускаются

@@ -101,19 +101,29 @@ keycloak:
       cpu: 500m
       memory: 512Mi
   
+  startupProbe:
+    httpGet:
+      path: /health
+      port: 8080
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 30
+  
   livenessProbe:
     httpGet:
       path: /health
       port: 8080
-    initialDelaySeconds: 120
+    initialDelaySeconds: 0
     periodSeconds: 10
+    failureThreshold: 3
   
   readinessProbe:
     httpGet:
       path: /health/ready
       port: 8080
-    initialDelaySeconds: 60
+    initialDelaySeconds: 0
     periodSeconds: 5
+    failureThreshold: 3
 
 # Front-UI Service
 front-ui:
@@ -156,21 +166,29 @@ front-ui:
       cpu: 250m
       memory: 256Mi
   
+  startupProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8080
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 24
+  
   livenessProbe:
     httpGet:
       path: /actuator/health
       port: 8080
-    initialDelaySeconds: 180
+    initialDelaySeconds: 0
     periodSeconds: 10
-    failureThreshold: 5
+    failureThreshold: 3
 
   readinessProbe:
     httpGet:
       path: /actuator/health
       port: 8080
-    initialDelaySeconds: 150
-    periodSeconds: 10
-    failureThreshold: 5
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    failureThreshold: 3
 
 # Gateway Service
 gateway:
@@ -206,21 +224,29 @@ gateway:
       cpu: 250m
       memory: 256Mi
 
+  startupProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8088
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 24
+
   livenessProbe:
     httpGet:
       path: /actuator/health
       port: 8088
-    initialDelaySeconds: 180
+    initialDelaySeconds: 0
     periodSeconds: 10
-    failureThreshold: 5
+    failureThreshold: 3
 
   readinessProbe:
     httpGet:
       path: /actuator/health
       port: 8088
-    initialDelaySeconds: 150
-    periodSeconds: 10
-    failureThreshold: 5
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    failureThreshold: 3
 
 # Accounts Service
 accounts:
@@ -264,21 +290,29 @@ accounts:
       cpu: 250m
       memory: 256Mi
 
+  startupProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8081
+    initialDelaySeconds: 15
+    periodSeconds: 5
+    failureThreshold: 30
+
   livenessProbe:
     httpGet:
       path: /actuator/health
       port: 8081
-    initialDelaySeconds: 180
+    initialDelaySeconds: 0
     periodSeconds: 10
-    failureThreshold: 5
+    failureThreshold: 3
 
   readinessProbe:
     httpGet:
       path: /actuator/health
       port: 8081
-    initialDelaySeconds: 150
-    periodSeconds: 10
-    failureThreshold: 5
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    failureThreshold: 3
 
 # Cash Service
 cash:
@@ -317,21 +351,29 @@ cash:
       cpu: 250m
       memory: 256Mi
 
+  startupProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8082
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 24
+
   livenessProbe:
     httpGet:
       path: /actuator/health
       port: 8082
-    initialDelaySeconds: 180
+    initialDelaySeconds: 0
     periodSeconds: 10
-    failureThreshold: 5
+    failureThreshold: 3
 
   readinessProbe:
     httpGet:
       path: /actuator/health
       port: 8082
-    initialDelaySeconds: 150
-    periodSeconds: 10
-    failureThreshold: 5
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    failureThreshold: 3
 
 # Transfer Service
 transfer:
@@ -370,21 +412,29 @@ transfer:
       cpu: 250m
       memory: 256Mi
 
+  startupProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8083
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 24
+
   livenessProbe:
     httpGet:
       path: /actuator/health
       port: 8083
-    initialDelaySeconds: 180
+    initialDelaySeconds: 0
     periodSeconds: 10
-    failureThreshold: 5
+    failureThreshold: 3
 
   readinessProbe:
     httpGet:
       path: /actuator/health
       port: 8083
-    initialDelaySeconds: 150
-    periodSeconds: 10
-    failureThreshold: 5
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    failureThreshold: 3
 
 # Exchange Service
 exchange:
@@ -420,21 +470,29 @@ exchange:
       cpu: 250m
       memory: 256Mi
 
+  startupProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8084
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 24
+
   livenessProbe:
     httpGet:
       path: /actuator/health
       port: 8084
-    initialDelaySeconds: 180
+    initialDelaySeconds: 0
     periodSeconds: 10
-    failureThreshold: 5
+    failureThreshold: 3
 
   readinessProbe:
     httpGet:
       path: /actuator/health
       port: 8084
-    initialDelaySeconds: 150
-    periodSeconds: 10
-    failureThreshold: 5
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    failureThreshold: 3
 
 # Exchange Generator Service
 exchange-generator:
@@ -474,21 +532,29 @@ exchange-generator:
       cpu: 250m
       memory: 256Mi
 
+  startupProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8085
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 24
+
   livenessProbe:
     httpGet:
       path: /actuator/health
       port: 8085
-    initialDelaySeconds: 180
+    initialDelaySeconds: 0
     periodSeconds: 10
-    failureThreshold: 5
+    failureThreshold: 3
 
   readinessProbe:
     httpGet:
       path: /actuator/health
       port: 8085
-    initialDelaySeconds: 150
-    periodSeconds: 10
-    failureThreshold: 5
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    failureThreshold: 3
 
 # Notifications Service
 notifications:
@@ -524,19 +590,27 @@ notifications:
       cpu: 250m
       memory: 256Mi
 
+  startupProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8087
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 24
+
   livenessProbe:
     httpGet:
       path: /actuator/health
       port: 8087
-    initialDelaySeconds: 180
+    initialDelaySeconds: 0
     periodSeconds: 10
-    failureThreshold: 5
+    failureThreshold: 3
 
   readinessProbe:
     httpGet:
       path: /actuator/health
       port: 8087
-    initialDelaySeconds: 150
-    periodSeconds: 10
-    failureThreshold: 5
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    failureThreshold: 3
 

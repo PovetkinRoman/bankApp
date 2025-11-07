@@ -29,19 +29,27 @@ resources:
     cpu: 250m
     memory: 256Mi
 
+startupProbe:
+  httpGet:
+    path: /actuator/health
+    port: 8088
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  failureThreshold: 24
+
 livenessProbe:
   httpGet:
     path: /actuator/health
     port: 8088
-  initialDelaySeconds: 180
+  initialDelaySeconds: 0
   periodSeconds: 10
-  failureThreshold: 5
+  failureThreshold: 3
 
 readinessProbe:
   httpGet:
     path: /actuator/health
     port: 8088
-  initialDelaySeconds: 150
-  periodSeconds: 10
-  failureThreshold: 5
+  initialDelaySeconds: 0
+  periodSeconds: 5
+  failureThreshold: 3
 
