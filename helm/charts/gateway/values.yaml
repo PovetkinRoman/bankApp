@@ -11,15 +11,15 @@ service:
   targetPort: 8088
 
 env:
-  SPRING_CLOUD_CONSUL_HOST: "bankapp-consul"
-  SPRING_CLOUD_CONSUL_PORT: "8500"
-  SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED: "true"
-  SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER: "true"
-  SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME: "gateway"
-  SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID: "gateway-1"
-  SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: "bankapp-gateway.bankapp.svc.cluster.local"
-  SPRING_CLOUD_CONSUL_DISCOVERY_PREFER_IP_ADDRESS: "true"
+  KEYCLOAK_AUTH_SERVER_URL: "http://bankapp-keycloak:8080"
   KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
+  ACCOUNTS_SERVICE_URL: "http://bankapp-accounts:8081"
+  CASH_SERVICE_URL: "http://bankapp-cash:8082"
+  TRANSFER_SERVICE_URL: "http://bankapp-transfer:8083"
+  EXCHANGE_SERVICE_URL: "http://bankapp-exchange:8084"
+  NOTIFICATIONS_SERVICE_URL: "http://bankapp-notifications:8087"
+  BLOCKER_SERVICE_URL: "http://bankapp-blocker:8086"
+  FRONT_UI_SERVICE_URL: "http://bankapp-front-ui:8080"
 
 resources:
   limits:

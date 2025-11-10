@@ -1,30 +1,19 @@
 spring:
   application:
     name: gateway
-  config:
-    import: "optional:consul:"
+  autoconfigure:
+    exclude:
+      - org.springframework.cloud.consul.discovery.ConsulDiscoveryClientConfiguration
+      - org.springframework.cloud.consul.serviceregistry.ConsulAutoServiceRegistrationAutoConfiguration
+      - org.springframework.cloud.consul.serviceregistry.ConsulServiceRegistryAutoConfiguration
+      - org.springframework.cloud.consul.config.ConsulConfigAutoConfiguration
   cloud:
-    compatibility-verifier:
-      enabled: false
     consul:
-      host: ${SPRING_CLOUD_CONSUL_HOST:consul}
-      port: ${SPRING_CLOUD_CONSUL_PORT:8500}
-      config:
-        enabled: true
-        format: yaml
-        prefix: config
-        default-context: application
-        data-key: data
-        watch:
-          enabled: true
+      enabled: false
       discovery:
-        enabled: ${SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED:true}
-        register: ${SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER:true}
-        service-name: ${SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME:gateway}
-        instance-id: ${SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID:gateway-1}
-        hostname: gateway-app
-        health-check-path: /actuator/health
-        health-check-interval: 15s
+        enabled: false
+      config:
+        enabled: false
     gateway:
       discovery:
         locator:
@@ -37,37 +26,46 @@ spring:
           filters:
             - RedirectTo=302, /login
         - id: accounts-users-route
-          uri: lb://accounts
+          uri: ${ACCOUNTS_SERVICE_URL:http://bankapp-accounts:8081}
           predicates:
             - Path=/api/users/**
         - id: accounts-route
-          uri: lb://accounts
+          uri: ${ACCOUNTS_SERVICE_URL:http://bankapp-accounts:8081}
           predicates:
             - Path=/api/accounts/**
         - id: cash-route
-          uri: lb://cash
+          uri: ${CASH_SERVICE_URL:http://bankapp-cash:8082}
           predicates:
             - Path=/api/cash/**
         - id: transfer-route
-          uri: lb://transfer
+          uri: ${TRANSFER_SERVICE_URL:http://bankapp-transfer:8083}
           predicates:
             - Path=/api/transfer/**
         - id: exchange-route
-          uri: lb://exchange
+          uri: ${EXCHANGE_SERVICE_URL:http://bankapp-exchange:8084}
           predicates:
             - Path=/api/exchange/**
         - id: notifications-route
-          uri: lb://notifications
+          uri: ${NOTIFICATIONS_SERVICE_URL:http://bankapp-notifications:8087}
           predicates:
             - Path=/api/notifications/**
         - id: blocker-route
-          uri: lb://blocker
+          uri: ${BLOCKER_SERVICE_URL:http://bankapp-blocker:8086}
           predicates:
             - Path=/api/blocker/**
         - id: front-ui-route
-          uri: lb://front-ui
+          uri: ${FRONT_UI_SERVICE_URL:http://bankapp-front-ui:8080}
           predicates:
             - Path=/**
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs}
+
+keycloak:
+  auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://keycloak:8080}
 
 server:
   port: 8088
