@@ -23,7 +23,6 @@ import java.util.List;
 public class CashService {
 
     private final WebClient webClient;
-    private final ConsulService consulService;
 
     @Value("${cash.service.url}")
     private String cashServiceUrl;
@@ -34,15 +33,12 @@ public class CashService {
     public Mono<List<AccountDto>> getAvailableCurrencies(String login) {
         log.info("Getting available currencies for cash operations for user: {}", login);
         
-        return consulService.getServiceUrl("gateway")
-                .flatMap(serviceUrl -> {
-                    log.debug("Using cash service URL: {}", serviceUrl);
-                        return webClient
-                                .get()
-                                .uri(serviceUrl + "/api/cash/currencies/" + login)
-                                .retrieve()
-                                .bodyToMono(new ParameterizedTypeReference<List<AccountApiResponse>>() {});
-                })
+        log.debug("Using cash service URL: {}", cashServiceUrl);
+        return webClient
+                .get()
+                .uri(cashServiceUrl + "/api/cash/currencies/" + login)
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<List<AccountApiResponse>>() {})
                 .map(response -> {
                     if (response != null) {
                         List<AccountDto> accounts = response.stream()
@@ -92,35 +88,32 @@ public class CashService {
     }
 
     private Mono<CashOperationResponse> performCashOperation(CashOperationRequest request, String endpoint) {
-        return consulService.getServiceUrl("gateway")
-                .flatMap(serviceUrl -> {
-                    log.debug("Using cash service URL: {}", serviceUrl);
-                    return webClient
-                            .post()
-                            .uri(serviceUrl + endpoint)
-                            .bodyValue(request)
-                            .exchangeToMono(clientResponse -> {
-                                if (clientResponse.statusCode().is2xxSuccessful()) {
-                                    return clientResponse.bodyToMono(CashOperationResponse.class);
-                                } else if (clientResponse.statusCode().is4xxClientError()) {
-                                    // Для 4xx ошибок пытаемся получить детальный ответ от сервиса
-                                    return clientResponse.bodyToMono(CashOperationResponse.class)
-                                            .onErrorReturn(CashOperationResponse.builder()
-                                                    .success(false)
-                                                    .message("Операция заблокирована системой безопасности")
-                                                    .build());
-                                } else {
-                                    return Mono.just(CashOperationResponse.builder()
-                                            .success(false)
-                                            .message("Сервис наличных временно недоступен")
-                                            .build());
-                                }
-                            })
-                            .onErrorReturn(CashOperationResponse.builder()
-                                    .success(false)
-                                    .message("Ошибка соединения с сервисом наличных")
-                                    .build());
+        log.debug("Using cash service URL: {}", cashServiceUrl);
+        return webClient
+                .post()
+                .uri(cashServiceUrl + endpoint)
+                .bodyValue(request)
+                .exchangeToMono(clientResponse -> {
+                    if (clientResponse.statusCode().is2xxSuccessful()) {
+                        return clientResponse.bodyToMono(CashOperationResponse.class);
+                    } else if (clientResponse.statusCode().is4xxClientError()) {
+                        // Для 4xx ошибок пытаемся получить детальный ответ от сервиса
+                        return clientResponse.bodyToMono(CashOperationResponse.class)
+                                .onErrorReturn(CashOperationResponse.builder()
+                                        .success(false)
+                                        .message("Операция заблокирована системой безопасности")
+                                        .build());
+                    } else {
+                        return Mono.just(CashOperationResponse.builder()
+                                .success(false)
+                                .message("Сервис наличных временно недоступен")
+                                .build());
+                    }
                 })
+                .onErrorReturn(CashOperationResponse.builder()
+                        .success(false)
+                        .message("Ошибка соединения с сервисом наличных")
+                        .build())
                 .doOnSuccess(response -> {
                     log.info("Cash operation {} result for user {}: {}", 
                         request.getOperation(), request.getLogin(), response.isSuccess());

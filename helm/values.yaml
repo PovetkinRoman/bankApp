@@ -140,23 +140,16 @@ front-ui:
   
   replicaCount: 1
   
+  oauth2ClientSecret: "front-ui-secret-key-12345"
+  
   env:
-    SPRING_CLOUD_COMPATIBILITY_VERIFIER_ENABLED: "false"
-    SPRING_CLOUD_CONSUL_HOST: "bankapp-consul"
-    SPRING_CLOUD_CONSUL_PORT: "8500"
-    SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED: "true"
-    SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER: "true"
-    SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME: "front-ui"
-    SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID: "front-ui-1"
-    SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: "bankapp-front-ui.bankapp.svc.cluster.local"
-    SPRING_CLOUD_CONSUL_DISCOVERY_PREFER_IP_ADDRESS: "true"
-    CONSUL_FALLBACK_GATEWAY: "http://bankapp-gateway:8088"
-    CONSUL_FALLBACK_EXCHANGE: "http://bankapp-exchange:8082"
     KEYCLOAK_AUTH_SERVER_URL: "http://bankapp-keycloak:8080"
-    KEYCLOAK_TOKEN_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/token"
     KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
     OAUTH2_CLIENT_ID: "front-ui-service"
-    OAUTH2_CLIENT_SECRET: "front-ui-secret-key-12345"
+    ACCOUNTS_SERVICE_URL: "http://bankapp-accounts:8081"
+    CASH_SERVICE_URL: "http://bankapp-cash:8082"
+    TRANSFER_SERVICE_URL: "http://bankapp-transfer:8083"
+    EXCHANGE_SERVICE_URL: "http://bankapp-exchange:8084"
   
   resources:
     limits:

@@ -13,7 +13,17 @@ service:
   port: 8080
   targetPort: 8080
 
-env: {}
+# OAuth2 client secret (sensitive data)
+oauth2ClientSecret: "front-ui-secret-key-12345"
+
+env:
+  KEYCLOAK_AUTH_SERVER_URL: "http://bankapp-keycloak:8080"
+  KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
+  OAUTH2_CLIENT_ID: "front-ui-service"
+  ACCOUNTS_SERVICE_URL: "http://bankapp-accounts:8081"
+  CASH_SERVICE_URL: "http://bankapp-cash:8082"
+  TRANSFER_SERVICE_URL: "http://bankapp-transfer:8083"
+  EXCHANGE_SERVICE_URL: "http://bankapp-exchange:8084"
 
 resources:
   limits:
@@ -22,10 +32,6 @@ resources:
   requests:
     cpu: 250m
     memory: 256Mi
-
-
-
-
 
 startupProbe:
   httpGet:
