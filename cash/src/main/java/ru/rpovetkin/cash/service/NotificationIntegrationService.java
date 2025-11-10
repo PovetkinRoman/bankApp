@@ -15,10 +15,9 @@ import ru.rpovetkin.cash.dto.NotificationResponse;
 public class NotificationIntegrationService {
     
     private final WebClient webClient;
-    private final ConsulService consulService;
     
-    @Value("${services.notifications.url:http://notifications}")
-    private String notificationsServiceUrl;
+    @Value("${services.gateway.url:http://bankapp-gateway:8088}")
+    private String gatewayServiceUrl;
 
     @Value("${spring.security.oauth2.client.provider.keycloak.token-uri:http://keycloak:8080/realms/bankapp/protocol/openid-connect/token}")
     private String tokenUri;
@@ -45,12 +44,11 @@ public class NotificationIntegrationService {
             
             log.info("Sending notification to user {}: {}", userId, title);
             
-            String serviceUrl = consulService.getServiceUrl("gateway").block();
             String accessToken = fetchServiceAccessToken();
 
             Mono<NotificationResponse> responseMono = webClient
                     .post()
-                    .uri(serviceUrl + "/api/notifications/send")
+                    .uri(gatewayServiceUrl + "/api/notifications/send")
                     .headers(h -> { if (accessToken != null) h.setBearerAuth(accessToken); })
                     .bodyValue(request)
                     .retrieve()

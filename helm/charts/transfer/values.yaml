@@ -10,19 +10,19 @@ service:
   port: 8083
   targetPort: 8083
 
+# OAuth2 client secret (sensitive data)
+oauth2ClientSecret: "transfer-secret-key-12345"
+
 env:
-  SPRING_CLOUD_CONSUL_HOST: "bankapp-consul"
-  SPRING_CLOUD_CONSUL_PORT: "8500"
-  SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED: "true"
-  SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER: "true"
-  SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME: "transfer"
-  SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID: "transfer-1"
-  SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: "bankapp-transfer.bankapp.svc.cluster.local"
-  SPRING_CLOUD_CONSUL_DISCOVERY_PREFER_IP_ADDRESS: "true"
+  KEYCLOAK_AUTH_SERVER_URL: "http://bankapp-keycloak:8080"
   KEYCLOAK_TOKEN_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/token"
   KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
   OAUTH2_CLIENT_ID: "transfer-service"
-  OAUTH2_CLIENT_SECRET: "transfer-secret-key-12345"
+  ACCOUNTS_SERVICE_URL: "http://bankapp-accounts:8081"
+  NOTIFICATIONS_SERVICE_URL: "http://bankapp-notifications:8085"
+  EXCHANGE_SERVICE_URL: "http://bankapp-exchange:8084"
+  BLOCKER_SERVICE_URL: "http://bankapp-gateway:8088"
+  GATEWAY_SERVICE_URL: "http://bankapp-gateway:8088"
 
 resources:
   limits:

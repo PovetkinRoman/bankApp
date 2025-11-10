@@ -15,10 +15,9 @@ import ru.rpovetkin.transfer.dto.TransferCheckResponse;
 public class BlockerIntegrationService {
     
     private final WebClient.Builder webClientBuilder;
-    private final ConsulService consulService;
     
-    @Value("${services.blocker.url:http://blocker}")
-    private String blockerServiceUrl;
+    @Value("${services.gateway.url:http://bankapp-gateway:8088}")
+    private String gatewayServiceUrl;
 
     @Value("${spring.security.oauth2.client.provider.keycloak.token-uri:http://keycloak:8080/realms/bankapp/protocol/openid-connect/token}")
     private String tokenUri;
@@ -40,7 +39,7 @@ public class BlockerIntegrationService {
                 .flatMap(accessToken -> {
                     WebClient webClient = webClientBuilder.build();
                     
-                    return consulService.getServiceUrl("gateway")
+                    return Mono.just(gatewayServiceUrl)
                             .flatMap(serviceUrl -> webClient
                                     .post()
                                     .uri(serviceUrl + "/api/blocker/check-transfer")
