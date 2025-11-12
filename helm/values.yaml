@@ -321,14 +321,6 @@ cash:
   replicaCount: 1
 
   env:
-    SPRING_CLOUD_CONSUL_HOST: "bankapp-consul"
-    SPRING_CLOUD_CONSUL_PORT: "8500"
-    SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED: "true"
-    SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER: "true"
-    SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME: "cash"
-    SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID: "cash-1"
-    SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: "bankapp-cash.bankapp.svc.cluster.local"
-    SPRING_CLOUD_CONSUL_DISCOVERY_PREFER_IP_ADDRESS: "true"
     KEYCLOAK_TOKEN_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/token"
     KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
     OAUTH2_CLIENT_ID: "cash-service"
@@ -382,14 +374,6 @@ transfer:
   replicaCount: 1
 
   env:
-    SPRING_CLOUD_CONSUL_HOST: "bankapp-consul"
-    SPRING_CLOUD_CONSUL_PORT: "8500"
-    SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED: "true"
-    SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER: "true"
-    SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME: "transfer"
-    SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID: "transfer-1"
-    SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: "bankapp-transfer.bankapp.svc.cluster.local"
-    SPRING_CLOUD_CONSUL_DISCOVERY_PREFER_IP_ADDRESS: "true"
     KEYCLOAK_TOKEN_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/token"
     KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
     OAUTH2_CLIENT_ID: "transfer-service"
@@ -553,14 +537,6 @@ notifications:
   replicaCount: 1
 
   env:
-    SPRING_CLOUD_CONSUL_HOST: "bankapp-consul"
-    SPRING_CLOUD_CONSUL_PORT: "8500"
-    SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED: "true"
-    SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER: "true"
-    SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME: "notifications"
-    SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID: "notifications-1"
-    SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: "bankapp-notifications.bankapp.svc.cluster.local"
-    SPRING_CLOUD_CONSUL_DISCOVERY_PREFER_IP_ADDRESS: "true"
     KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
 
   resources:
@@ -611,14 +587,6 @@ blocker:
   replicaCount: 1
 
   env:
-    SPRING_CLOUD_CONSUL_HOST: "bankapp-consul"
-    SPRING_CLOUD_CONSUL_PORT: "8500"
-    SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED: "true"
-    SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER: "true"
-    SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME: "blocker"
-    SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID: "blocker-1"
-    SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: "bankapp-blocker.bankapp.svc.cluster.local"
-    SPRING_CLOUD_CONSUL_DISCOVERY_PREFER_IP_ADDRESS: "true"
     KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
 
   resources:

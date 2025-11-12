@@ -23,10 +23,16 @@ spec:
               containerPort: {{ .Values.service.targetPort }}
               protocol: TCP
           env:
+            - name: SPRING_CONFIG_LOCATION
+              value: "classpath:/application.yml,/config/application.yml"
             {{- range $key, $value := .Values.env }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
           {{- if .Values.startupProbe }}
           startupProbe:
             {{- toYaml .Values.startupProbe | nindent 12 }}
@@ -41,4 +47,8 @@ spec:
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "notifications.fullname" . }}-config
 
