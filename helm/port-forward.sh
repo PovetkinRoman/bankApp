@@ -42,9 +42,6 @@ echo "✅ Notifications: http://localhost:8087"
 kubectl port-forward -n bankapp svc/bankapp-blocker 8086:8086 > /tmp/pf-blocker.log 2>&1 &
 echo "✅ Blocker: http://localhost:8086"
 
-kubectl port-forward -n bankapp svc/bankapp-consul 8500:8500 > /tmp/pf-consul.log 2>&1 &
-echo "✅ Consul: http://localhost:8500"
-
 echo ""
 echo "All port-forwards are running in the background."
 echo "Logs are available in /tmp/pf-*.log"
