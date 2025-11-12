@@ -9,19 +9,6 @@ data:
     spring:
       application:
         name: accounts
-      autoconfigure:
-        exclude:
-          - org.springframework.cloud.consul.discovery.ConsulDiscoveryClientConfiguration
-          - org.springframework.cloud.consul.serviceregistry.ConsulAutoServiceRegistrationAutoConfiguration
-          - org.springframework.cloud.consul.serviceregistry.ConsulServiceRegistryAutoConfiguration
-          - org.springframework.cloud.consul.config.ConsulConfigAutoConfiguration
-      cloud:
-        consul:
-          enabled: false
-          discovery:
-            enabled: false
-          config:
-            enabled: false
       datasource:
         url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:bankapp}
         username: ${DB_USER:root}

@@ -9,19 +9,7 @@ data:
     spring:
       application:
         name: gateway
-      autoconfigure:
-        exclude:
-          - org.springframework.cloud.consul.discovery.ConsulDiscoveryClientConfiguration
-          - org.springframework.cloud.consul.serviceregistry.ConsulAutoServiceRegistrationAutoConfiguration
-          - org.springframework.cloud.consul.serviceregistry.ConsulServiceRegistryAutoConfiguration
-          - org.springframework.cloud.consul.config.ConsulConfigAutoConfiguration
       cloud:
-        consul:
-          enabled: false
-          discovery:
-            enabled: false
-          config:
-            enabled: false
         gateway:
           discovery:
             locator:

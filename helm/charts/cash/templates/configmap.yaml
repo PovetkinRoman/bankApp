@@ -9,19 +9,6 @@ data:
     spring:
       application:
         name: cash
-      autoconfigure:
-        exclude:
-          - org.springframework.cloud.consul.discovery.ConsulDiscoveryClientConfiguration
-          - org.springframework.cloud.consul.serviceregistry.ConsulAutoServiceRegistrationAutoConfiguration
-          - org.springframework.cloud.consul.serviceregistry.ConsulServiceRegistryAutoConfiguration
-          - org.springframework.cloud.consul.config.ConsulConfigAutoConfiguration
-      cloud:
-        consul:
-          enabled: false
-          discovery:
-            enabled: false
-          config:
-            enabled: false
       security:
         oauth2:
           resourceserver:
