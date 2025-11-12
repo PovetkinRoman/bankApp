@@ -39,6 +39,9 @@ echo "✅ Exchange Generator: http://localhost:8085"
 kubectl port-forward -n bankapp svc/bankapp-notifications 8087:8087 > /tmp/pf-notifications.log 2>&1 &
 echo "✅ Notifications: http://localhost:8087"
 
+kubectl port-forward -n bankapp svc/bankapp-blocker 8086:8086 > /tmp/pf-blocker.log 2>&1 &
+echo "✅ Blocker: http://localhost:8086"
+
 kubectl port-forward -n bankapp svc/bankapp-consul 8500:8500 > /tmp/pf-consul.log 2>&1 &
 echo "✅ Consul: http://localhost:8500"
 

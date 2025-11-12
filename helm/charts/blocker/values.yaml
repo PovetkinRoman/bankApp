@@ -1,0 +1,55 @@
+replicaCount: 1
+
+image:
+  repository: bankapp/blocker
+  pullPolicy: IfNotPresent
+  tag: "0.0.1-SNAPSHOT"
+
+service:
+  type: ClusterIP
+  port: 8086
+  targetPort: 8086
+
+env:
+  SPRING_CLOUD_CONSUL_HOST: "bankapp-consul"
+  SPRING_CLOUD_CONSUL_PORT: "8500"
+  SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED: "true"
+  SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER: "true"
+  SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME: "blocker"
+  SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID: "blocker-1"
+  SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: "bankapp-blocker.bankapp.svc.cluster.local"
+  SPRING_CLOUD_CONSUL_DISCOVERY_PREFER_IP_ADDRESS: "true"
+  KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+startupProbe:
+  httpGet:
+    path: /actuator/health
+    port: 8086
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  failureThreshold: 24
+
+livenessProbe:
+  httpGet:
+    path: /actuator/health
+    port: 8086
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /actuator/health
+    port: 8086
+  initialDelaySeconds: 0
+  periodSeconds: 5
+  failureThreshold: 3
+

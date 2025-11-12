@@ -50,4 +50,8 @@ dependencies:
     version: 0.1.0
     repository: "file://charts/notifications"
     condition: notifications.enabled
+  - name: blocker
+    version: 0.1.0
+    repository: "file://charts/blocker"
+    condition: blocker.enabled
 

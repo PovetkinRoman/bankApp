@@ -28,6 +28,10 @@ docker build -f gateway/dockerfile -t bankapp/gateway:0.0.1-SNAPSHOT .
 docker build -f front-ui/dockerfile -t bankapp/front-ui:0.0.1-SNAPSHOT .
 docker build -f cash/dockerfile -t bankapp/cash:0.0.1-SNAPSHOT .
 docker build -f transfer/dockerfile -t bankapp/transfer:0.0.1-SNAPSHOT .
+docker build -f exchange/dockerfile -t bankapp/exchange:0.0.1-SNAPSHOT .
+docker build -f exchange-generator/dockerfile -t bankapp/exchange-generator:0.0.1-SNAPSHOT .
+docker build -f blocker/dockerfile -t bankapp/blocker:0.0.1-SNAPSHOT .
+docker build -f notifications/dockerfile -t bankapp/notifications:0.0.1-SNAPSHOT .
 ```
 
 ### 2. Развертывание через Helm
@@ -102,6 +106,10 @@ kubectl port-forward -n bankapp svc/bankapp-keycloak 8180:8080 &
 | accounts | 8081 | Сервис управления пользователями |
 | cash | 8082 | Сервис управления операциями с наличными |
 | transfer | 8083 | Сервис управления переводами |
+| exchange | 8084 | Сервис обмена валют |
+| exchange-generator | 8085 | Генератор курсов валют |
+| blocker | 8086 | Сервис проверки подозрительных операций |
+| notifications | 8087 | Сервис уведомлений |
 | keycloak | 8080 | Identity Provider |
 | consul | 8500 | Service Discovery |
 | postgresql | 5432 | База данных |
