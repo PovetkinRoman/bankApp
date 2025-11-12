@@ -74,6 +74,11 @@ data:
     keycloak:
       auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://keycloak:8080}
     
+    oauth2:
+      client:
+        id: ${OAUTH2_CLIENT_ID:gateway-service}
+        secret: ${OAUTH2_CLIENT_SECRET:gateway-secret-key-12345}
+    
     server:
       port: 8088
     

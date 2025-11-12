@@ -198,7 +198,10 @@ gateway:
 
   replicaCount: 1
 
+  oauth2ClientSecret: "gateway-secret-key-12345"
+
   env:
+    OAUTH2_CLIENT_ID: "gateway-service"
     KEYCLOAK_AUTH_SERVER_URL: "http://bankapp-keycloak:8080"
     KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
     ACCOUNTS_SERVICE_URL: "http://bankapp-accounts:8081"

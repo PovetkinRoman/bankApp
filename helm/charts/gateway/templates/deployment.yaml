@@ -25,6 +25,11 @@ spec:
           env:
             - name: SPRING_CONFIG_LOCATION
               value: "classpath:/application.yml,/config/application.yml"
+            - name: OAUTH2_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "gateway.fullname" . }}-secret
+                  key: oauth2-client-secret
             {{- range $key, $value := .Values.env }}
             - name: {{ $key }}
               value: {{ $value | quote }}
