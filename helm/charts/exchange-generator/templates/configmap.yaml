@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "exchange-generator.fullname" . }}-config
+  labels:
+    {{- include "exchange-generator.labels" . | nindent 4 }}
+data:
+  application.yml: |
+    spring:
+      application:
+        name: exchange-generator
+      autoconfigure:
+        exclude:
+          - org.springframework.cloud.consul.discovery.ConsulDiscoveryClientConfiguration
+          - org.springframework.cloud.consul.serviceregistry.ConsulAutoServiceRegistrationAutoConfiguration
+          - org.springframework.cloud.consul.serviceregistry.ConsulServiceRegistryAutoConfiguration
+          - org.springframework.cloud.consul.config.ConsulConfigAutoConfiguration
+      cloud:
+        consul:
+          enabled: false
+          discovery:
+            enabled: false
+          config:
+            enabled: false
+      security:
+        oauth2:
+          client:
+            registration:
+              exchange-generator-service:
+                client-id: ${OAUTH2_CLIENT_ID:exchange-generator-service}
+                client-secret: ${OAUTH2_CLIENT_SECRET:exchange-generator-secret-key-12345}
+                authorization-grant-type: client_credentials
+                scope: openid,profile,email
+                provider: keycloak
+            provider:
+              keycloak:
+                token-uri: ${KEYCLOAK_TOKEN_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/token}
+          resourceserver:
+            jwt:
+              jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs}
+    
+    keycloak:
+      auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://keycloak:8080}
+    
+    oauth2:
+      client:
+        id: ${OAUTH2_CLIENT_ID:exchange-generator-service}
+        secret: ${OAUTH2_CLIENT_SECRET:exchange-generator-secret-key-12345}
+    
+    server:
+      port: 8085
+    
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info,loggers,refresh
+    
+    exchange:
+      service:
+        url: ${EXCHANGE_SERVICE_URL:http://bankapp-gateway:8088}
+    
+    logging:
+      level:
+        ru.rpovetkin.exchange_generator: DEBUG
+        org.springframework.security: DEBUG
+

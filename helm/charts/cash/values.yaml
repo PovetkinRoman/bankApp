@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: bankapp/cash
-  pullPolicy: IfNotPresent
+  pullPolicy: Never
   tag: "0.0.1-SNAPSHOT"
 
 service:

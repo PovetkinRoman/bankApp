@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: bankapp/exchange-generator
-  pullPolicy: IfNotPresent
+  pullPolicy: Never
   tag: "0.0.1-SNAPSHOT"
 
 service:
@@ -10,20 +10,15 @@ service:
   port: 8085
   targetPort: 8085
 
+# OAuth2 client secret (sensitive data)
+oauth2ClientSecret: "exchange-generator-secret-key-12345"
+
 env:
-  SPRING_CLOUD_CONSUL_HOST: "bankapp-consul"
-  SPRING_CLOUD_CONSUL_PORT: "8500"
-  SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED: "true"
-  SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER: "true"
-  SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME: "exchange-generator"
-  SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID: "exchange-generator-1"
-  SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: "bankapp-exchange-generator.bankapp.svc.cluster.local"
-  SPRING_CLOUD_CONSUL_DISCOVERY_PREFER_IP_ADDRESS: "true"
+  KEYCLOAK_AUTH_SERVER_URL: "http://bankapp-keycloak:8080"
   KEYCLOAK_TOKEN_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/token"
   KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
   OAUTH2_CLIENT_ID: "exchange-generator-service"
-  OAUTH2_CLIENT_SECRET: "exchange-generator-secret-key-12345"
-  EXCHANGE_SERVICE_URL: "http://bankapp-exchange:8084"
+  EXCHANGE_SERVICE_URL: "http://bankapp-gateway:8088"
 
 resources:
   limits:

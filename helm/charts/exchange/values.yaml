@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: bankapp/exchange
-  pullPolicy: IfNotPresent
+  pullPolicy: Never
   tag: "0.0.1-SNAPSHOT"
 
 service:
@@ -10,16 +10,13 @@ service:
   port: 8084
   targetPort: 8084
 
+# OAuth2 client secret (sensitive data)
+oauth2ClientSecret: "exchange-secret-key-12345"
+
 env:
-  SPRING_CLOUD_CONSUL_HOST: "bankapp-consul"
-  SPRING_CLOUD_CONSUL_PORT: "8500"
-  SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED: "true"
-  SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER: "true"
-  SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME: "exchange"
-  SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID: "exchange-1"
-  SPRING_CLOUD_CONSUL_DISCOVERY_HOSTNAME: "bankapp-exchange.bankapp.svc.cluster.local"
-  SPRING_CLOUD_CONSUL_DISCOVERY_PREFER_IP_ADDRESS: "true"
+  KEYCLOAK_AUTH_SERVER_URL: "http://bankapp-keycloak:8080"
   KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
+  OAUTH2_CLIENT_ID: "exchange-service"
 
 resources:
   limits:
