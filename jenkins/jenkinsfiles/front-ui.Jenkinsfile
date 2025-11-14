@@ -70,8 +70,10 @@ pipeline {
 
     post {
         success {
-            def imageName = "${DOCKER_REGISTRY}/${MODULE_NAME}:${IMAGE_TAG}".toLowerCase()
-            echo "Build успешно завершен. Образ: ${imageName}"
+            script {
+                def imageName = "${DOCKER_REGISTRY}/${MODULE_NAME}:${IMAGE_TAG}".toLowerCase()
+                echo "Build успешно завершен. Образ: ${imageName}"
+            }
         }
         failure {
             echo "Build завершился с ошибкой"
