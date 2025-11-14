@@ -1,0 +1,38 @@
+suite: Ingress template
+templates:
+  - templates/ingress.yaml
+release:
+  name: bankapp
+  namespace: bankapp
+tests:
+  - it: renders ingress with expected host and paths
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          documentIndex: 0
+          of: Ingress
+      - equal:
+          documentIndex: 0
+          path: spec.rules[0].host
+          value: bankapp.local
+      - equal:
+          documentIndex: 0
+          path: spec.rules[0].http.paths[0].path
+          value: /
+      - equal:
+          documentIndex: 0
+          path: spec.rules[0].http.paths[0].backend.service.name
+          value: bankapp-front-ui
+      - equal:
+          documentIndex: 0
+          path: spec.rules[0].http.paths[0].backend.service.port.number
+          value: 8080
+  - it: skips ingress when disabled
+    set:
+      ingress:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+

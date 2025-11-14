@@ -1,0 +1,64 @@
+suite: Gateway API templates
+templates:
+  - templates/gatewayapi.yaml
+release:
+  name: bankapp
+  namespace: bankapp
+tests:
+  - it: renders gateway and all HTTPRoutes when enabled
+    asserts:
+      - hasDocuments:
+          count: 8
+      - documentIndex: 0
+        isKind:
+          of: Gateway
+      - documentIndex: 0
+        isAPIVersion:
+          of: gateway.networking.k8s.io/v1
+      - documentIndex: 0
+        equal:
+          path: metadata.name
+          value: bankapp-gateway
+      - documentIndex: 0
+        equal:
+          path: spec.gatewayClassName
+          value: nginx
+      - documentIndex: 1
+        isKind:
+          of: HTTPRoute
+      - documentIndex: 1
+        equal:
+          path: metadata.name
+          value: bankapp-front-ui
+      - documentIndex: 1
+        equal:
+          path: spec.rules[0].matches[0].path.value
+          value: /
+      - documentIndex: 1
+        equal:
+          path: spec.rules[0].backendRefs[0].port
+          value: 8080
+      - documentIndex: 2
+        equal:
+          path: metadata.name
+          value: bankapp-accounts-api
+      - documentIndex: 2
+        equal:
+          path: spec.rules[0].matches[0].path.value
+          value: /api/users
+      - documentIndex: 2
+        equal:
+          path: spec.rules[0].matches[1].path.value
+          value: /api/accounts
+      - documentIndex: 2
+        equal:
+          path: spec.rules[0].backendRefs[0].port
+          value: 8081
+  - it: skips rendering when gateway API disabled
+    set:
+      gatewayApi:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+

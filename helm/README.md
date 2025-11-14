@@ -49,6 +49,15 @@ helm/
 helm upgrade bankapp . -n bankapp --values values.yaml
 ```
 
+## Тесты Helm-шаблонов
+
+Для запуска unit-тестов (используется плагин [helm-unittest](https://github.com/helm-unittest/helm-unittest)):
+
+```bash
+helm plugin install https://github.com/helm-unittest/helm-unittest # однократно
+helm unittest ./helm
+```
+
 ## Удаление
 
 ```bash
