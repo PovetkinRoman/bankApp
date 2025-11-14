@@ -1,0 +1,200 @@
+{{- if .Values.gatewayApi.enabled }}
+{{- $releaseName := .Release.Name }}
+{{- $namespace := .Release.Namespace }}
+{{- $gatewayName := printf "%s-gateway" $releaseName }}
+{{- $hostname := .Values.gatewayApi.hostname | default "" }}
+{{- $listenerName := .Values.gatewayApi.listenerName | default "http" }}
+{{- $listenerPort := .Values.gatewayApi.listenerPort | default 80 }}
+{{- $listenerProtocol := .Values.gatewayApi.listenerProtocol | default "HTTP" }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ $gatewayName }}
+  labels:
+    app.kubernetes.io/name: {{ $gatewayName }}
+    app.kubernetes.io/part-of: {{ $releaseName }}
+spec:
+  gatewayClassName: {{ .Values.gatewayApi.gatewayClassName }}
+  listeners:
+    - name: {{ $listenerName }}
+      protocol: {{ $listenerProtocol }}
+      port: {{ $listenerPort }}
+      {{- if $hostname }}
+      hostname: {{ $hostname | quote }}
+      {{- end }}
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ printf "%s-front-ui" $releaseName }}
+spec:
+  parentRefs:
+    - name: {{ $gatewayName }}
+      namespace: {{ $namespace }}
+      {{- if $listenerName }}
+      sectionName: {{ $listenerName }}
+      {{- end }}
+  {{- if $hostname }}
+  hostnames:
+    - {{ $hostname | quote }}
+  {{- end }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: {{ printf "%s-front-ui" $releaseName }}
+          port: {{ index .Values "front-ui" "service" "port" }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ printf "%s-accounts-api" $releaseName }}
+spec:
+  parentRefs:
+    - name: {{ $gatewayName }}
+      namespace: {{ $namespace }}
+      {{- if $listenerName }}
+      sectionName: {{ $listenerName }}
+      {{- end }}
+  {{- if $hostname }}
+  hostnames:
+    - {{ $hostname | quote }}
+  {{- end }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/users
+        - path:
+            type: PathPrefix
+            value: /api/accounts
+      backendRefs:
+        - name: {{ printf "%s-accounts" $releaseName }}
+          port: {{ .Values.accounts.service.port }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ printf "%s-cash-api" $releaseName }}
+spec:
+  parentRefs:
+    - name: {{ $gatewayName }}
+      namespace: {{ $namespace }}
+      {{- if $listenerName }}
+      sectionName: {{ $listenerName }}
+      {{- end }}
+  {{- if $hostname }}
+  hostnames:
+    - {{ $hostname | quote }}
+  {{- end }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/cash
+      backendRefs:
+        - name: {{ printf "%s-cash" $releaseName }}
+          port: {{ .Values.cash.service.port }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ printf "%s-transfer-api" $releaseName }}
+spec:
+  parentRefs:
+    - name: {{ $gatewayName }}
+      namespace: {{ $namespace }}
+      {{- if $listenerName }}
+      sectionName: {{ $listenerName }}
+      {{- end }}
+  {{- if $hostname }}
+  hostnames:
+    - {{ $hostname | quote }}
+  {{- end }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/transfer
+      backendRefs:
+        - name: {{ printf "%s-transfer" $releaseName }}
+          port: {{ .Values.transfer.service.port }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ printf "%s-exchange-api" $releaseName }}
+spec:
+  parentRefs:
+    - name: {{ $gatewayName }}
+      namespace: {{ $namespace }}
+      {{- if $listenerName }}
+      sectionName: {{ $listenerName }}
+      {{- end }}
+  {{- if $hostname }}
+  hostnames:
+    - {{ $hostname | quote }}
+  {{- end }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/exchange
+      backendRefs:
+        - name: {{ printf "%s-exchange" $releaseName }}
+          port: {{ .Values.exchange.service.port }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ printf "%s-notifications-api" $releaseName }}
+spec:
+  parentRefs:
+    - name: {{ $gatewayName }}
+      namespace: {{ $namespace }}
+      {{- if $listenerName }}
+      sectionName: {{ $listenerName }}
+      {{- end }}
+  {{- if $hostname }}
+  hostnames:
+    - {{ $hostname | quote }}
+  {{- end }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/notifications
+      backendRefs:
+        - name: {{ printf "%s-notifications" $releaseName }}
+          port: {{ .Values.notifications.service.port }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ printf "%s-blocker-api" $releaseName }}
+spec:
+  parentRefs:
+    - name: {{ $gatewayName }}
+      namespace: {{ $namespace }}
+      {{- if $listenerName }}
+      sectionName: {{ $listenerName }}
+      {{- end }}
+  {{- if $hostname }}
+  hostnames:
+    - {{ $hostname | quote }}
+  {{- end }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/blocker
+      backendRefs:
+        - name: {{ printf "%s-blocker" $releaseName }}
+          port: {{ .Values.blocker.service.port }}
+{{- end }}
+
