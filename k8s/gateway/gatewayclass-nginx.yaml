@@ -1,0 +1,13 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: nginx
+  labels:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/component: gateway-class
+    app.kubernetes.io/managed-by: bankapp
+  annotations:
+    description: GatewayClass for bankapp routing via ingress-nginx controller
+spec:
+  controllerName: k8s.io/ingress-nginx
+

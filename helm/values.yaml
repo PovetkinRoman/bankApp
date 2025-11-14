@@ -157,6 +157,14 @@ gatewayApi:
   listenerPort: 80
   listenerProtocol: HTTP
 
+# Kubernetes Ingress exposure (optional fallback)
+ingress:
+  enabled: true
+  className: "nginx"
+  host: "bankapp.local"
+  annotations: {}
+  tls: []
+
 # Accounts Service
 accounts:
   enabled: true
