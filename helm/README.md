@@ -13,10 +13,11 @@ helm/
 │   ├── cash/               # Подчарт для cash сервиса
 │   ├── consul/             # Подчарт для Consul
 │   ├── front-ui/           # Подчарт для фронта
-│   ├── gateway/            # Подчарт для API gateway
 │   ├── keycloak/           # Подчарт для Keycloak
 │   ├── postgresql/         # Подчарт для PostgreSQL
 │   └── transfer/           # Подчарт для transfer сервиса
+├── templates/
+│   └── gatewayapi.yaml     # Ресурсы Kubernetes Gateway API (Gateway + HTTPRoute)
 └── README.md
 ```
 
@@ -26,7 +27,6 @@ helm/
    ```bash
    eval $(minikube docker-env)
    docker build -f front-ui/dockerfile -t bankapp/front-ui:0.0.1-SNAPSHOT .
-   docker build -f gateway/dockerfile -t bankapp/gateway:0.0.1-SNAPSHOT .
    docker build -f accounts/dockerfile -t bankapp/accounts:0.0.1-SNAPSHOT .
    docker build -f cash/dockerfile -t bankapp/cash:0.0.1-SNAPSHOT .
    docker build -f transfer/dockerfile -t bankapp/transfer:0.0.1-SNAPSHOT .
@@ -57,8 +57,8 @@ helm uninstall bankapp -n bankapp
 
 ## Примечания
 
-- Для работы приложения необходимо развернуть зависимости: Consul, Keycloak, PostgreSQL
-- Gateway и Accounts зависят от Consul и Keycloak — убедитесь, что они подняты корректно
+- Для работы приложения необходимо развернуть зависимости: Keycloak, PostgreSQL
+- Внешний вход реализован через Kubernetes Gateway API (`gatewayapi.yaml`). Убедитесь, что в кластере установлен соответствующий Gateway controller и `GatewayClass`.
 - Переменные окружения настраиваются через `values.yaml`
 - Image policy установлен в `IfNotPresent` для использования локальных образов
 

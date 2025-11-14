@@ -31,10 +31,8 @@ services:
   accounts:
     url: ${ACCOUNTS_SERVICE_URL:http://bankapp-accounts:8081}
   notifications:
-    url: ${NOTIFICATIONS_SERVICE_URL:http://bankapp-notifications:8085}
+    url: ${NOTIFICATIONS_SERVICE_URL:http://bankapp-notifications:8087}
   exchange:
     url: ${EXCHANGE_SERVICE_URL:http://bankapp-exchange:8084}
   blocker:
-    url: ${BLOCKER_SERVICE_URL:http://bankapp-gateway:8088}
-  gateway:
-    url: ${GATEWAY_SERVICE_URL:http://bankapp-gateway:8088}
+    url: ${BLOCKER_SERVICE_URL:http://bankapp-blocker:8086}

@@ -24,7 +24,6 @@ cd /Users/roman/IdeaProjects/practicum/bankApp
 
 # Собрать все сервисы
 docker build -f accounts/dockerfile -t bankapp/accounts:0.0.1-SNAPSHOT .
-docker build -f gateway/dockerfile -t bankapp/gateway:0.0.1-SNAPSHOT .
 docker build -f front-ui/dockerfile -t bankapp/front-ui:0.0.1-SNAPSHOT .
 docker build -f cash/dockerfile -t bankapp/cash:0.0.1-SNAPSHOT .
 docker build -f transfer/dockerfile -t bankapp/transfer:0.0.1-SNAPSHOT .
@@ -57,7 +56,6 @@ kubectl get pods -n bankapp
 
 # Или вручную
 kubectl port-forward -n bankapp svc/bankapp-front-ui 8080:8080 &
-kubectl port-forward -n bankapp svc/bankapp-gateway 8088:8088 &
 kubectl port-forward -n bankapp svc/bankapp-keycloak 8180:8080 &
 ```
 
@@ -67,9 +65,10 @@ kubectl port-forward -n bankapp svc/bankapp-keycloak 8180:8080 &
   - Регистрация: http://localhost:8080/signup
   - Вход: http://localhost:8080/login
   
-- **API Gateway**: http://localhost:8088
-  - Health check: http://localhost:8088/actuator/health
-  - API endpoints: http://localhost:8088/api/*
+- **Gateway API entrypoint**: http://bankapp.local
+  - Health check: http://bankapp.local/api/accounts/actuator/health (пример)
+  - API endpoints: http://bankapp.local/api/*
+  - Настройте DNS/`/etc/hosts` так, чтобы `bankapp.local` указывал на IP контроллера Gateway API (Ingress/Gateway implementation).
 
 - **Keycloak Admin**: http://localhost:8180
   - Username: `admin`
@@ -79,24 +78,25 @@ kubectl port-forward -n bankapp svc/bankapp-keycloak 8180:8080 &
 ## Архитектура
 
 ```
-┌─────────────┐
-│  Front-UI   │ :8080
-│  (Web UI)   │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│   Gateway   │ :8088
-│ (API Gateway)│
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐       ┌─────────────┐       ┌─────────────┐
-│  Accounts   │◄─────►│  Keycloak   │◄─────►│ PostgreSQL  │
-│  Service    │ :8081 │   (Auth)    │ :8080 │    (DB)     │
-└─────────────┘       └─────────────┘       └─────────────┘
+┌──────────────────────────┐
+│ Kubernetes Gateway API   │
+│ (`bankapp-gateway`)      │
+└────────────┬─────────────┘
+             │ HTTPRoute (/api/*, /)
+             ▼
+     ┌─────────────┐       ┌─────────────┐
+     │  Front-UI   │ ◄────►│  Accounts   │
+     │  (Web UI)   │       │  Service    │
+     └──────┬──────┘       └─────────────┘
+            │                       ▲
+            │                       │
+            │       ┌───────────────┴───────────────┐
+            ▼       ▼                               ▼
+     ┌─────────────┐ ┌─────────────┐         ┌─────────────┐
+     │   Cash      │ │  Transfer   │ ...     │ Notifications│
+     └─────────────┘ └─────────────┘         └─────────────┘
 
-Все микросервисы используют Kubernetes Service Discovery через DNS
+Все микросервисы используют Kubernetes Service Discovery через DNS, а внешний трафик распределяется через Gateway API + HTTPRoute.
 ```
 
 ## Развернутые сервисы
@@ -104,7 +104,6 @@ kubectl port-forward -n bankapp svc/bankapp-keycloak 8180:8080 &
 | Сервис | Порт | Описание |
 |--------|------|----------|
 | front-ui | 8080 | Веб-интерфейс приложения |
-| gateway | 8088 | API Gateway |
 | accounts | 8081 | Сервис управления пользователями |
 | cash | 8082 | Сервис управления операциями с наличными |
 | transfer | 8083 | Сервис управления переводами |
@@ -120,7 +119,7 @@ kubectl port-forward -n bankapp svc/bankapp-keycloak 8180:8080 &
 ### Через API
 
 ```bash
-curl -X POST http://localhost:8088/api/users/register \
+curl -X POST http://bankapp.local/api/users/register \
   -H "Content-Type: application/json" \
   -d '{
     "login": "testuser",
@@ -152,7 +151,6 @@ kubectl get pods -n bankapp
 kubectl logs -n bankapp deployment/bankapp-accounts
 kubectl logs -n bankapp deployment/bankapp-cash
 kubectl logs -n bankapp deployment/bankapp-transfer
-kubectl logs -n bankapp deployment/bankapp-gateway
 kubectl logs -n bankapp deployment/bankapp-front-ui
 ```
 

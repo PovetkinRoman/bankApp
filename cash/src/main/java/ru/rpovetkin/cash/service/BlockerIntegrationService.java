@@ -18,8 +18,8 @@ public class BlockerIntegrationService {
     private final WebClient webClient;
     private final BlockerLimitsConfig limitsConfig;
     
-    @Value("${services.gateway.url:http://bankapp-gateway:8088}")
-    private String gatewayServiceUrl;
+    @Value("${services.blocker.url:http://bankapp-blocker:8086}")
+    private String blockerServiceUrl;
 
     @Value("${spring.security.oauth2.client.provider.keycloak.token-uri:http://keycloak:8080/realms/bankapp/protocol/openid-connect/token}")
     private String tokenUri;
@@ -35,15 +35,15 @@ public class BlockerIntegrationService {
      */
     public TransferCheckResponse checkOperation(TransferCheckRequest request) {
         log.info("Checking operation with blocker service: {} {} for user {} using URL: {}", 
-                request.getTransferType(), request.getAmount(), request.getFromUser(), gatewayServiceUrl);
+                request.getTransferType(), request.getAmount(), request.getFromUser(), blockerServiceUrl);
         
         try {
-            // Obtain service token via client_credentials for gateway auth
+            // Obtain service token via client_credentials for service auth
             String accessToken = fetchServiceAccessToken();
 
             Mono<TransferCheckResponse> responseMono = webClient
                     .post()
-                    .uri(gatewayServiceUrl + "/api/blocker/check-transfer")
+                    .uri(blockerServiceUrl + "/api/blocker/check-transfer")
                     .headers(h -> { if (accessToken != null) h.setBearerAuth(accessToken); })
                     .bodyValue(request)
                     .retrieve()

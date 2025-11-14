@@ -29,8 +29,8 @@ public class NotificationService {
     @Value("${spring.security.oauth2.client.registration.keycloak.client-secret:accounts-secret-key-12345}")
     private String clientSecret;
 
-    @Value("${gateway.service.url:http://bankapp-gateway:8080}")
-    private String gatewayServiceUrl;
+    @Value("${services.notifications.url:http://bankapp-notifications:8087}")
+    private String notificationsServiceUrl;
     
     private String getJwtToken() {
         try {
@@ -63,7 +63,7 @@ public class NotificationService {
                 .build();
         
         log.debug("Sending notification to user {}: {}", userId, title);
-        log.debug("Using gateway service URL: {}", gatewayServiceUrl);
+        log.debug("Using notifications service URL: {}", notificationsServiceUrl);
         
         return Mono.fromCallable(() -> getJwtToken())
                 .flatMap(jwtToken -> {
@@ -71,7 +71,7 @@ public class NotificationService {
                     
                     return webClient
                             .post()
-                            .uri(gatewayServiceUrl + "/api/notifications/send")
+                            .uri(notificationsServiceUrl + "/api/notifications/send")
                             .header("Authorization", jwtToken != null ? "Bearer " + jwtToken : "")
                             .bodyValue(request)
                             .retrieve()

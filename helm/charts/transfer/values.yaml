@@ -19,10 +19,9 @@ env:
   KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
   OAUTH2_CLIENT_ID: "transfer-service"
   ACCOUNTS_SERVICE_URL: "http://bankapp-accounts:8081"
-  NOTIFICATIONS_SERVICE_URL: "http://bankapp-notifications:8085"
+  NOTIFICATIONS_SERVICE_URL: "http://bankapp-notifications:8087"
   EXCHANGE_SERVICE_URL: "http://bankapp-exchange:8084"
-  BLOCKER_SERVICE_URL: "http://bankapp-gateway:8088"
-  GATEWAY_SERVICE_URL: "http://bankapp-gateway:8088"
+  BLOCKER_SERVICE_URL: "http://bankapp-blocker:8086"
 
 resources:
   limits:

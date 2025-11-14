@@ -19,9 +19,8 @@ env:
   KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
   OAUTH2_CLIENT_ID: "cash-service"
   ACCOUNTS_SERVICE_URL: "http://bankapp-accounts:8081"
-  BLOCKER_SERVICE_URL: "http://bankapp-gateway:8088"
-  NOTIFICATIONS_SERVICE_URL: "http://bankapp-notifications:8085"
-  GATEWAY_SERVICE_URL: "http://bankapp-gateway:8088"
+  BLOCKER_SERVICE_URL: "http://bankapp-blocker:8086"
+  NOTIFICATIONS_SERVICE_URL: "http://bankapp-notifications:8087"
 
 resources:
   limits:

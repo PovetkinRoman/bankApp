@@ -15,9 +15,6 @@ sleep 2
 kubectl port-forward -n bankapp svc/bankapp-front-ui 8080:8080 > /tmp/pf-front-ui.log 2>&1 &
 echo "✅ Front-UI: http://localhost:8080"
 
-kubectl port-forward -n bankapp svc/bankapp-gateway 8088:8088 > /tmp/pf-gateway.log 2>&1 &
-echo "✅ Gateway: http://localhost:8088"
-
 kubectl port-forward -n bankapp svc/bankapp-keycloak 8180:8080 > /tmp/pf-keycloak.log 2>&1 &
 echo "✅ Keycloak: http://localhost:8180"
 

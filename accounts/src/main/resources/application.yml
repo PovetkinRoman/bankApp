@@ -41,9 +41,9 @@ oauth2:
     id: ${OAUTH2_CLIENT_ID:accounts-service}
     secret: ${OAUTH2_CLIENT_SECRET:accounts-secret-key-12345}
 
-gateway:
-  service:
-    url: ${GATEWAY_SERVICE_URL:http://bankapp-gateway:8080}
+services:
+  notifications:
+    url: ${NOTIFICATIONS_SERVICE_URL:http://bankapp-notifications:8087}
     
 server:
   port: 8081

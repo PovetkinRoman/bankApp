@@ -131,7 +131,7 @@ public class TransferController {
             }
             
             // Всегда используем transfer сервис (включая переводы между своими счетами),
-            // чтобы единообразно проходить через gateway и правила blocker
+            // чтобы единообразно проходить через проверки blocker и общую бизнес-логику
             List<AccountDto> toUserAccounts = accountsService.getUserAccounts(toUser).block();
             boolean hasTargetAccount = toUserAccounts.stream()
                     .anyMatch(acc -> acc.getCurrency().equals(toCurrency) && acc.isExists());

@@ -54,24 +54,6 @@ services:
     networks:
       - bankapp-network
 
-  gateway-app:
-    build:
-      context: .
-      dockerfile: gateway/dockerfile
-    ports:
-      - "8088:8088"
-    environment:
-      - KEYCLOAK_JWK_SET_URI=http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs
-    depends_on:
-      - keycloak
-      - accounts-app
-      - cash-app
-      - transfer-app
-      - exchange-app
-      - notifications-app
-    networks:
-      - bankapp-network
-
   accounts-app:
     build:
       context: .

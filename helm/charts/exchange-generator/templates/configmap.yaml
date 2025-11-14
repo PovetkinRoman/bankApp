@@ -45,7 +45,7 @@ data:
     
     exchange:
       service:
-        url: ${EXCHANGE_SERVICE_URL:http://bankapp-gateway:8088}
+        url: ${EXCHANGE_SERVICE_URL:http://bankapp-exchange:8084}
     
     logging:
       level:

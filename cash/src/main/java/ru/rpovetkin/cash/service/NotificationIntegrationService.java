@@ -16,8 +16,8 @@ public class NotificationIntegrationService {
     
     private final WebClient webClient;
     
-    @Value("${services.gateway.url:http://bankapp-gateway:8088}")
-    private String gatewayServiceUrl;
+    @Value("${services.notifications.url:http://bankapp-notifications:8087}")
+    private String notificationsServiceUrl;
 
     @Value("${spring.security.oauth2.client.provider.keycloak.token-uri:http://keycloak:8080/realms/bankapp/protocol/openid-connect/token}")
     private String tokenUri;
@@ -48,7 +48,7 @@ public class NotificationIntegrationService {
 
             Mono<NotificationResponse> responseMono = webClient
                     .post()
-                    .uri(gatewayServiceUrl + "/api/notifications/send")
+                    .uri(notificationsServiceUrl + "/api/notifications/send")
                     .headers(h -> { if (accessToken != null) h.setBearerAuth(accessToken); })
                     .bodyValue(request)
                     .retrieve()

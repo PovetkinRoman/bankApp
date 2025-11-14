@@ -27,8 +27,8 @@ public class ExchangeIntegrationService {
     @org.springframework.beans.factory.annotation.Value("${spring.security.oauth2.client.registration.exchange-generator-service.client-secret:exchange-generator-secret-key-12345}")
     private String clientSecret;
 
-    @org.springframework.beans.factory.annotation.Value("${exchange.service.url:http://bankapp-gateway:8088}")
-    private String gatewayServiceUrl;
+    @org.springframework.beans.factory.annotation.Value("${exchange.service.url:http://bankapp-exchange:8084}")
+    private String exchangeServiceUrl;
 
     /**
      * Отправить курсы валют в exchange сервис
@@ -44,11 +44,11 @@ public class ExchangeIntegrationService {
         return fetchServiceAccessToken()
                 .flatMap(accessToken -> {
                     WebClient webClient = webClientBuilder.build();
-                    log.debug("Using gateway service URL: {}", gatewayServiceUrl);
+                    log.debug("Using exchange service URL: {}", exchangeServiceUrl);
                     
                     return webClient
                             .post()
-                            .uri(gatewayServiceUrl + "/api/exchange/rates/update")
+                            .uri(exchangeServiceUrl + "/api/exchange/rates/update")
                             .headers(h -> { if (accessToken != null) h.setBearerAuth(accessToken); })
                             .bodyValue(updateDto)
                             .retrieve()
