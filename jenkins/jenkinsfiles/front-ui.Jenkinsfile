@@ -39,10 +39,12 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    def imageName = "${DOCKER_REGISTRY}/${MODULE_NAME}:${IMAGE_TAG}"
+                    // Преобразуем в нижний регистр, так как Docker требует lowercase
+                    def imageName = "${DOCKER_REGISTRY}/${MODULE_NAME}:${IMAGE_TAG}".toLowerCase()
+                    def imageNameLatest = "${DOCKER_REGISTRY}/${MODULE_NAME}:latest".toLowerCase()
                     sh """
                         docker build -t ${imageName} -f ${MODULE_NAME}/dockerfile .
-                        docker tag ${imageName} ${DOCKER_REGISTRY}/${MODULE_NAME}:latest
+                        docker tag ${imageName} ${imageNameLatest}
                     """
                 }
             }
@@ -52,11 +54,13 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'GHCR_TOKEN', variable: 'GHCR_TOKEN')]) {
                     script {
-                        def imageName = "${DOCKER_REGISTRY}/${MODULE_NAME}:${IMAGE_TAG}"
+                        // Преобразуем в нижний регистр, так как Docker требует lowercase
+                        def imageName = "${DOCKER_REGISTRY}/${MODULE_NAME}:${IMAGE_TAG}".toLowerCase()
+                        def imageNameLatest = "${DOCKER_REGISTRY}/${MODULE_NAME}:latest".toLowerCase()
                         sh """
                             echo \$GHCR_TOKEN | docker login ghcr.io -u ${GITHUB_USERNAME} --password-stdin
                             docker push ${imageName}
-                            docker push ${DOCKER_REGISTRY}/${MODULE_NAME}:latest
+                            docker push ${imageNameLatest}
                         """
                     }
                 }
@@ -66,7 +70,8 @@ pipeline {
 
     post {
         success {
-            echo "Build успешно завершен. Образ: ${DOCKER_REGISTRY}/${MODULE_NAME}:${IMAGE_TAG}"
+            def imageName = "${DOCKER_REGISTRY}/${MODULE_NAME}:${IMAGE_TAG}".toLowerCase()
+            echo "Build успешно завершен. Образ: ${imageName}"
         }
         failure {
             echo "Build завершился с ошибкой"
