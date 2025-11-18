@@ -31,9 +31,12 @@ def repo  = parts[1]
 def source = new GitHubSCMSource(owner, repo)
 source.setCredentialsId(credentialsId)
 source.setTraits([
-        new BranchDiscoveryTrait(1),
-        new OriginPullRequestDiscoveryTrait(1),
-        new ForkPullRequestDiscoveryTrait(1, new ForkPullRequestDiscoveryTrait.TrustPermission())
+        // Обнаружение всех веток (3 = exclude и include)
+        new BranchDiscoveryTrait(3),
+        // Обнаружение PR из origin (2 = только текущая ревизия, без merge)
+        new OriginPullRequestDiscoveryTrait(2),
+        // Обнаружение PR из форков (2 = только текущая ревизия, без merge)
+        new ForkPullRequestDiscoveryTrait(2, new ForkPullRequestDiscoveryTrait.TrustPermission())
 ])
 
 def branchSource = new BranchSource(source)

@@ -7,4 +7,5 @@ git:latest
 maven-plugin:latest
 pipeline-stage-view:latest
 blueocean:latest
+ws-cleanup:latest
 
