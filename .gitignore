@@ -1,0 +1,7 @@
+
+# Временные тестовые файлы
+*.html
+cookies*.txt
+# Jenkins environment variables
+jenkins/.env
+.env

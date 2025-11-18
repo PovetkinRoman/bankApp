@@ -71,14 +71,16 @@ pipeline {
                         def imageName = "${DOCKER_REGISTRY}/${MODULE_NAME}:${IMAGE_TAG}".toLowerCase()
                         def imageNameLatest = "${DOCKER_REGISTRY}/${MODULE_NAME}:latest".toLowerCase()
                         
-                        // Retry логина в GHCR с увеличенным timeout
-                        retry(3) {
-                            sh """
-                                set +x
-                                echo "Попытка логина в GHCR..."
-                                echo \$GHCR_TOKEN | timeout 120 docker login ghcr.io -u \$GITHUB_USERNAME --password-stdin
-                            """
-                        }
+                        // Логин в GHCR
+                        sh """
+                            set +x
+                            echo "Логин в GHCR..."
+                            echo "\$GHCR_TOKEN" | docker login ghcr.io -u "\$GITHUB_USERNAME" --password-stdin || {
+                                echo "Первая попытка не удалась, повторяем..."
+                                sleep 5
+                                echo "\$GHCR_TOKEN" | docker login ghcr.io -u "\$GITHUB_USERNAME" --password-stdin
+                            }
+                        """
                         
                         // Push образов
                         sh """
