@@ -116,7 +116,9 @@ pipeline {
             }
             steps {
                 withCredentials([
-                    string(credentialsId: 'DOCKER_REGISTRY', variable: 'DOCKER_REGISTRY')
+                    string(credentialsId: 'DOCKER_REGISTRY', variable: 'DOCKER_REGISTRY'),
+                    string(credentialsId: 'GITHUB_USERNAME', variable: 'GITHUB_USERNAME'),
+                    string(credentialsId: 'GHCR_TOKEN', variable: 'GHCR_TOKEN')
                 ]) {
                     script {
                         def imageName = "${DOCKER_REGISTRY}/${MODULE_NAME}".toLowerCase()
@@ -132,6 +134,15 @@ pipeline {
                             
                             # Создаем namespace если не существует
                             kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
+                            
+                            # Создаем imagePullSecret для GHCR
+                            kubectl create secret docker-registry ghcr-secret \\
+                              --docker-server=ghcr.io \\
+                              --docker-username=\$GITHUB_USERNAME \\
+                              --docker-password=\$GHCR_TOKEN \\
+                              --docker-email=jenkins@example.com \\
+                              -n ${NAMESPACE} \\
+                              --dry-run=client -o yaml | kubectl apply -f -
                             
                             # Деплоим через Helm
                             helm upgrade --install ${MODULE_NAME} helm/charts/${MODULE_NAME} \\
