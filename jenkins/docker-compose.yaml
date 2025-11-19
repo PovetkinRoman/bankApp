@@ -21,6 +21,13 @@ services:
       - 8.8.8.8
       - 8.8.4.4
       - 1.1.1.1
+    networks:
+      - default
+      - minikube
+
+networks:
+  minikube:
+    external: true
 
 volumes:
   jenkins_home:

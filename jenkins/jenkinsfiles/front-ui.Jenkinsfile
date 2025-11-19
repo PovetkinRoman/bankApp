@@ -83,13 +83,28 @@ pipeline {
                             }
                         """
                         
-                        // Push образов
-                        sh """
-                            echo "Pushing image: ${imageName}"
-                            docker push ${imageName}
-                            echo "Pushing image: ${imageNameLatest}"
-                            docker push ${imageNameLatest}
-                        """
+                        // Push образов с retry
+                        def maxRetries = 3
+                        def retryDelay = 10
+                        
+                        for (int i = 1; i <= maxRetries; i++) {
+                            try {
+                                sh """
+                                    echo "Pushing image: ${imageName} (попытка ${i}/${maxRetries})"
+                                    timeout 300 docker push ${imageName}
+                                    echo "Pushing image: ${imageNameLatest} (попытка ${i}/${maxRetries})"
+                                    timeout 300 docker push ${imageNameLatest}
+                                """
+                                echo "✅ Push успешен!"
+                                break
+                            } catch (Exception e) {
+                                if (i == maxRetries) {
+                                    error "❌ Не удалось запушить образ после ${maxRetries} попыток: ${e.message}"
+                                }
+                                echo "⚠️  Попытка ${i} не удалась, повторяем через ${retryDelay} секунд..."
+                                sleep retryDelay
+                            }
+                        }
                     }
                 }
             }
