@@ -17,11 +17,11 @@ service:
 oauth2ClientSecret: "accounts-secret-key-12345"
 
 env:
-  KEYCLOAK_AUTH_SERVER_URL: "http://bankapp-keycloak:8080"
-  KEYCLOAK_TOKEN_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/token"
-  KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
+  KEYCLOAK_AUTH_SERVER_URL: "http://keycloak:8080"
+  KEYCLOAK_TOKEN_URI: "http://keycloak:8080/realms/bankapp/protocol/openid-connect/token"
+  KEYCLOAK_JWK_SET_URI: "http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
   OAUTH2_CLIENT_ID: "accounts-service"
-  NOTIFICATIONS_SERVICE_URL: "http://bankapp-notifications:8087"
+  NOTIFICATIONS_SERVICE_URL: "http://notifications:8087"
   DB_HOST: "bankapp-postgresql"
   DB_PORT: "5432"
   DB_NAME: "bankapp"

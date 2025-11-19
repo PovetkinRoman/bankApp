@@ -15,6 +15,7 @@ env:
   KC_DB_URL_HOST: postgresql
   KC_DB_URL_PORT: "5432"
   KC_DB_URL_DATABASE: bankapp
+  KC_DB_SCHEMA: keycloak
   KC_DB_USERNAME: root
   KC_DB_PASSWORD: root
 

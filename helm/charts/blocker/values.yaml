@@ -14,7 +14,7 @@ service:
   targetPort: 8086
 
 env:
-  KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
+  KEYCLOAK_JWK_SET_URI: "http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
 
 resources:
   limits:

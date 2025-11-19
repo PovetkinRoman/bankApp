@@ -17,8 +17,8 @@ service:
 oauth2ClientSecret: "exchange-secret-key-12345"
 
 env:
-  KEYCLOAK_AUTH_SERVER_URL: "http://bankapp-keycloak:8080"
-  KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
+  KEYCLOAK_AUTH_SERVER_URL: "http://keycloak:8080"
+  KEYCLOAK_JWK_SET_URI: "http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
   OAUTH2_CLIENT_ID: "exchange-service"
 
 resources:

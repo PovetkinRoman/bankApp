@@ -17,13 +17,13 @@ service:
 oauth2ClientSecret: "cash-secret-key-12345"
 
 env:
-  KEYCLOAK_AUTH_SERVER_URL: "http://bankapp-keycloak:8080"
-  KEYCLOAK_TOKEN_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/token"
-  KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
+  KEYCLOAK_AUTH_SERVER_URL: "http://keycloak:8080"
+  KEYCLOAK_TOKEN_URI: "http://keycloak:8080/realms/bankapp/protocol/openid-connect/token"
+  KEYCLOAK_JWK_SET_URI: "http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
   OAUTH2_CLIENT_ID: "cash-service"
-  ACCOUNTS_SERVICE_URL: "http://bankapp-accounts:8081"
-  BLOCKER_SERVICE_URL: "http://bankapp-blocker:8086"
-  NOTIFICATIONS_SERVICE_URL: "http://bankapp-notifications:8087"
+  ACCOUNTS_SERVICE_URL: "http://accounts:8081"
+  BLOCKER_SERVICE_URL: "http://blocker:8086"
+  NOTIFICATIONS_SERVICE_URL: "http://notifications:8087"
 
 resources:
   limits:
