@@ -5,6 +5,9 @@ image:
   pullPolicy: Always
   tag: "0.0.1-SNAPSHOT"
 
+imagePullSecrets:
+  - name: ghcr-secret
+
 service:
   type: ClusterIP
   port: 8087
