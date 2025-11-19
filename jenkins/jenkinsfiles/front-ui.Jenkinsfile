@@ -192,6 +192,20 @@ pipeline {
             }
         }
 
+        stage('Manual Approval for PROD') {
+            when {
+                branch 'main'
+            }
+            steps {
+                script {
+                    echo "🔔 Требуется подтверждение для деплоя в PRODUCTION"
+                    echo "📦 Образ: ${DOCKER_REGISTRY}/${MODULE_NAME}:${IMAGE_TAG}"
+                    echo "🎯 Namespace: ${NAMESPACE_PROD}"
+                }
+                input message: 'Deploy to PROD environment?', ok: 'Yes, deploy'
+            }
+        }
+
         stage('Install PostgreSQL to PROD') {
             when {
                 branch 'main'
@@ -249,8 +263,6 @@ pipeline {
                 branch 'main'
             }
             steps {
-                input message: '🚀 Деплой в PRODUCTION. Продолжить?', ok: 'Deploy to PROD'
-                
                 withCredentials([
                     string(credentialsId: 'DOCKER_REGISTRY', variable: 'DOCKER_REGISTRY'),
                     string(credentialsId: 'GITHUB_USERNAME', variable: 'GITHUB_USERNAME'),
