@@ -50,27 +50,6 @@ app.kubernetes.io/component: kafka
 {{- end }}
 
 {{/*
-Common labels for Zookeeper
-*/}}
-{{- define "zookeeper.labels" -}}
-helm.sh/chart: {{ include "kafka.chart" . }}
-{{ include "zookeeper.selectorLabels" . }}
-{{- if .Chart.AppVersion }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-{{- end }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
-{{- end }}
-
-{{/*
-Selector labels for Zookeeper
-*/}}
-{{- define "zookeeper.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "kafka.name" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
-app.kubernetes.io/component: zookeeper
-{{- end }}
-
-{{/*
 Common labels for Kafka UI
 */}}
 {{- define "kafkaui.labels" -}}
