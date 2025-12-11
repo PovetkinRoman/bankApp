@@ -118,7 +118,7 @@ pipeline {
                         
                         echo ""
                         echo "📋 Kafka Topics (если Kafka доступен):"
-                        kubectl exec -n ${namespace} deploy/kafka -- kafka-topics --bootstrap-server localhost:9092 --list || echo "Не удалось получить список топиков"
+                        kubectl exec -n ${namespace} deploy/kafka -- /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || echo "Не удалось получить список топиков"
                         
                         echo ""
                         echo "✅ Проверка статуса завершена"
@@ -205,7 +205,7 @@ pipeline {
                     echo ""
                     echo "📋 Kafka Topics:"
                     kubectl exec -n ${NAMESPACE_TEST} deploy/kafka -- \\
-                      kafka-topics --bootstrap-server localhost:9092 --list || echo "Топики еще не созданы"
+                      /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || echo "Топики еще не созданы"
                 """
             }
         }
@@ -230,7 +230,7 @@ pipeline {
                         # Получаем текущие топики
                         echo "Текущие топики:"
                         kubectl exec -n ${namespace} deploy/kafka -- \\
-                          kafka-topics --bootstrap-server localhost:9092 --list
+                          /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
                         
                         # Обновляем через Helm (это пересоздаст Job для топиков)
                         helm upgrade ${MODULE_NAME} helm/charts/${MODULE_NAME} \\
@@ -244,13 +244,13 @@ pipeline {
                         echo ""
                         echo "Обновленный список топиков:"
                         kubectl exec -n ${namespace} deploy/kafka -- \\
-                          kafka-topics --bootstrap-server localhost:9092 --list
+                          /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
                         
                         # Показываем детали топиков
                         echo ""
                         echo "Детали топиков:"
                         kubectl exec -n ${namespace} deploy/kafka -- \\
-                          kafka-topics --bootstrap-server localhost:9092 --describe
+                          /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --describe
                     """
                 }
             }
@@ -422,13 +422,13 @@ pipeline {
                     echo ""
                     echo "📋 Kafka Topics:"
                     kubectl exec -n ${NAMESPACE_PROD} deploy/kafka -- \\
-                      kafka-topics --bootstrap-server localhost:9092 --list
+                      /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
                     
                     # Показываем детали топиков
                     echo ""
                     echo "📊 Topics Details:"
                     kubectl exec -n ${NAMESPACE_PROD} deploy/kafka -- \\
-                      kafka-topics --bootstrap-server localhost:9092 --describe
+                      /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --describe
                 """
             }
         }
@@ -447,7 +447,7 @@ pipeline {
                         # Проверяем broker
                         echo "Проверка Kafka broker..."
                         kubectl exec -n ${namespace} deploy/kafka -- \\
-                          kafka-broker-api-versions --bootstrap-server localhost:9092 || {
+                          /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || {
                             echo "❌ Kafka broker недоступен"
                             exit 1
                           }
@@ -458,13 +458,13 @@ pipeline {
                         echo ""
                         echo "Consumer Groups:"
                         kubectl exec -n ${namespace} deploy/kafka -- \\
-                          kafka-consumer-groups --bootstrap-server localhost:9092 --list || echo "Нет consumer groups"
+                          /opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --list || echo "Нет consumer groups"
                         
                         # Проверяем cluster ID
                         echo ""
                         echo "Cluster ID:"
                         kubectl exec -n ${namespace} deploy/kafka -- \\
-                          kafka-cluster --bootstrap-server localhost:9092 cluster-id || echo "Не удалось получить cluster ID"
+                          /opt/kafka/bin/kafka-cluster.sh cluster-id --bootstrap-server localhost:9092 || echo "Не удалось получить cluster ID"
                         
                         echo ""
                         echo "✅ Health check завершен успешно"
@@ -498,7 +498,7 @@ pipeline {
                     
                     echo ""
                     echo "📋 Для просмотра топиков:"
-                    echo "    kubectl exec -n ${namespace} deploy/kafka -- kafka-topics --bootstrap-server localhost:9092 --list"
+                    echo "    kubectl exec -n ${namespace} deploy/kafka -- /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"
                     
                     echo ""
                     echo "🔌 Для подключения к Kafka из приложений используйте:"
