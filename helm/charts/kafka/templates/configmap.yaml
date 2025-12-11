@@ -6,17 +6,28 @@ metadata:
   labels:
     {{- include "kafka.labels" . | nindent 4 }}
 data:
+  # KRaft mode configuration
+  process.roles: "{{ .Values.kafka.kraft.processRoles }}"
+  node.id: "{{ .Values.kafka.kraft.nodeId }}"
+  controller.quorum.voters: "{{ .Values.kafka.kraft.quorumVoters }}"
+  
   # Kafka configuration
-  broker.id: "{{ .Values.kafka.config.brokerId }}"
-  zookeeper.connect: "{{ .Values.kafka.config.zookeeperConnect }}"
   listeners: "{{ .Values.kafka.config.listeners }}"
   advertised.listeners: "{{ .Values.kafka.config.advertisedListeners }}"
+  listener.security.protocol.map: "{{ .Values.kafka.config.listenerSecurityProtocolMap }}"
+  controller.listener.names: "{{ .Values.kafka.config.controllerListenerNames }}"
+  
   num.partitions: "{{ .Values.kafka.config.numPartitions }}"
   default.replication.factor: "{{ .Values.kafka.config.defaultReplicationFactor }}"
   min.insync.replicas: "{{ .Values.kafka.config.minInsyncReplicas }}"
   log.retention.hours: "{{ .Values.kafka.config.logRetentionHours }}"
   log.retention.bytes: "{{ .Values.kafka.config.logRetentionBytes }}"
   log.segment.bytes: "{{ .Values.kafka.config.logSegmentBytes }}"
+  
+  # Cluster ID (если указан)
+  {{- if .Values.kafka.kraft.clusterId }}
+  cluster.id: "{{ .Values.kafka.kraft.clusterId }}"
+  {{- end }}
   
   # Topics configuration
   topics.yaml: |

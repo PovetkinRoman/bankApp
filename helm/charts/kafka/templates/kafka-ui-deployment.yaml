@@ -28,8 +28,6 @@ spec:
           value: "bankapp-kafka"
         - name: KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS
           value: "kafka:9092"
-        - name: KAFKA_CLUSTERS_0_ZOOKEEPER
-          value: "zookeeper:2181"
         - name: DYNAMIC_CONFIG_ENABLED
           value: "true"
         resources:
