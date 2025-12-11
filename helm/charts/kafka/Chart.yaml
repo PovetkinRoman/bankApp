@@ -1,0 +1,9 @@
+apiVersion: v2
+name: kafka
+description: Apache Kafka Helm chart for BankApp
+type: application
+version: 0.1.0
+appVersion: "3.6.1"
+maintainers:
+  - name: BankApp Team
+    email: team@bankapp.com

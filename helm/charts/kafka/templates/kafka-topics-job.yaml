@@ -1,0 +1,57 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kafka-topics-setup-{{ .Release.Revision }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kafka.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  backoffLimit: 5
+  template:
+    metadata:
+      labels:
+        {{- include "kafka.selectorLabels" . | nindent 8 }}
+        job: kafka-topics-setup
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: kafka-topics-setup
+        image: "{{ .Values.kafka.image.repository }}:{{ .Values.kafka.image.tag }}"
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          
+          echo "Waiting for Kafka to be ready..."
+          until kafka-broker-api-versions --bootstrap-server kafka:9092 > /dev/null 2>&1; do
+            echo "Kafka is not ready yet. Waiting..."
+            sleep 5
+          done
+          
+          echo "Kafka is ready! Creating topics..."
+          
+          {{- range .Values.topics }}
+          echo "Creating topic: {{ .name }}"
+          kafka-topics --bootstrap-server kafka:9092 \
+            --create \
+            --if-not-exists \
+            --topic {{ .name }} \
+            --partitions {{ .partitions }} \
+            --replication-factor {{ .replicationFactor }} \
+            {{- range $key, $value := .config }}
+            --config {{ $key }}={{ $value }} \
+            {{- end }}
+            || echo "Topic {{ .name }} already exists or failed to create"
+          
+          echo "Topic {{ .name }} created successfully"
+          {{- end }}
+          
+          echo "All topics created successfully!"
+          
+          echo "Listing all topics:"
+          kafka-topics --bootstrap-server kafka:9092 --list

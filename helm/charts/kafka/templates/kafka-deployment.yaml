@@ -1,0 +1,150 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kafka.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.kafka.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "kafka.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "kafka.selectorLabels" . | nindent 8 }}
+    spec:
+      initContainers:
+      # Init container для форматирования storage в KRaft mode
+      - name: kafka-init
+        image: "{{ .Values.kafka.image.repository }}:{{ .Values.kafka.image.tag }}"
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          
+          # Проверяем, нужно ли форматировать storage
+          if [ ! -f {{ .Values.kafka.persistence.mountPath }}/meta.properties ]; then
+            echo "Formatting Kafka storage for KRaft mode..."
+            
+            # Генерируем cluster ID если не указан
+            {{- if .Values.kafka.kraft.clusterId }}
+            CLUSTER_ID="{{ .Values.kafka.kraft.clusterId }}"
+            {{- else }}
+            CLUSTER_ID=$(kafka-storage random-uuid)
+            {{- end }}
+            
+            echo "Cluster ID: $CLUSTER_ID"
+            
+            # Создаем временный конфиг для форматирования
+            cat > /tmp/kraft-format.properties <<EOF
+          process.roles={{ .Values.kafka.kraft.processRoles }}
+          node.id={{ .Values.kafka.kraft.nodeId }}
+          controller.quorum.voters={{ .Values.kafka.kraft.quorumVoters }}
+          listeners={{ .Values.kafka.config.listeners }}
+          controller.listener.names={{ .Values.kafka.config.controllerListenerNames }}
+          log.dirs={{ .Values.kafka.persistence.mountPath }}
+          EOF
+            
+            # Форматируем storage
+            kafka-storage format -t $CLUSTER_ID -c /tmp/kraft-format.properties
+            
+            echo "Storage formatted successfully"
+          else
+            echo "Storage already formatted, skipping..."
+          fi
+        volumeMounts:
+        - name: kafka-data
+          mountPath: {{ .Values.kafka.persistence.mountPath }}
+      
+      containers:
+      - name: kafka
+        image: "{{ .Values.kafka.image.repository }}:{{ .Values.kafka.image.tag }}"
+        imagePullPolicy: {{ .Values.kafka.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.kafka.service.targetPort }}
+          name: kafka
+        - containerPort: {{ .Values.kafka.service.controllerPort }}
+          name: controller
+        env:
+        # KRaft mode environment variables
+        - name: KAFKA_PROCESS_ROLES
+          value: "{{ .Values.kafka.kraft.processRoles }}"
+        - name: KAFKA_NODE_ID
+          value: "{{ .Values.kafka.kraft.nodeId }}"
+        - name: KAFKA_CONTROLLER_QUORUM_VOTERS
+          value: "{{ .Values.kafka.kraft.quorumVoters }}"
+        - name: KAFKA_LISTENERS
+          value: "{{ .Values.kafka.config.listeners }}"
+        - name: KAFKA_ADVERTISED_LISTENERS
+          value: "{{ .Values.kafka.config.advertisedListeners }}"
+        - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+          value: "{{ .Values.kafka.config.listenerSecurityProtocolMap }}"
+        - name: KAFKA_CONTROLLER_LISTENER_NAMES
+          value: "{{ .Values.kafka.config.controllerListenerNames }}"
+        
+        # Broker configuration
+        - name: KAFKA_NUM_PARTITIONS
+          value: "{{ .Values.kafka.config.numPartitions }}"
+        - name: KAFKA_DEFAULT_REPLICATION_FACTOR
+          value: "{{ .Values.kafka.config.defaultReplicationFactor }}"
+        - name: KAFKA_MIN_INSYNC_REPLICAS
+          value: "{{ .Values.kafka.config.minInsyncReplicas }}"
+        - name: KAFKA_LOG_RETENTION_HOURS
+          value: "{{ .Values.kafka.config.logRetentionHours }}"
+        - name: KAFKA_LOG_RETENTION_BYTES
+          value: "{{ .Values.kafka.config.logRetentionBytes }}"
+        - name: KAFKA_LOG_SEGMENT_BYTES
+          value: "{{ .Values.kafka.config.logSegmentBytes }}"
+        - name: KAFKA_NUM_NETWORK_THREADS
+          value: "{{ .Values.kafka.config.numNetworkThreads }}"
+        - name: KAFKA_NUM_IO_THREADS
+          value: "{{ .Values.kafka.config.numIoThreads }}"
+        - name: KAFKA_SOCKET_SEND_BUFFER_BYTES
+          value: "{{ .Values.kafka.config.socketSendBufferBytes }}"
+        - name: KAFKA_SOCKET_RECEIVE_BUFFER_BYTES
+          value: "{{ .Values.kafka.config.socketReceiveBufferBytes }}"
+        - name: KAFKA_SOCKET_REQUEST_MAX_BYTES
+          value: "{{ .Values.kafka.config.socketRequestMaxBytes }}"
+        - name: KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS
+          value: "{{ .Values.kafka.config.groupInitialRebalanceDelayMs }}"
+        - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
+          value: "{{ .Values.kafka.config.autoCreateTopicsEnable }}"
+        - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+          value: "{{ .Values.kafka.config.offsetsTopicReplicationFactor }}"
+        - name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+          value: "{{ .Values.kafka.config.transactionStateLogReplicationFactor }}"
+        - name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR
+          value: "{{ .Values.kafka.config.transactionStateLogMinIsr }}"
+        - name: KAFKA_LOG_DIRS
+          value: "{{ .Values.kafka.persistence.mountPath }}"
+        
+        # Cluster ID (если указан)
+        {{- if .Values.kafka.kraft.clusterId }}
+        - name: CLUSTER_ID
+          value: "{{ .Values.kafka.kraft.clusterId }}"
+        {{- end }}
+        
+        {{- if .Values.kafka.persistence.enabled }}
+        volumeMounts:
+        - name: kafka-data
+          mountPath: {{ .Values.kafka.persistence.mountPath }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.kafka.resources | nindent 10 }}
+        {{- if .Values.kafka.livenessProbe }}
+        livenessProbe:
+          {{- toYaml .Values.kafka.livenessProbe | nindent 10 }}
+        {{- end }}
+        {{- if .Values.kafka.readinessProbe }}
+        readinessProbe:
+          {{- toYaml .Values.kafka.readinessProbe | nindent 10 }}
+        {{- end }}
+      {{- if .Values.kafka.persistence.enabled }}
+      volumes:
+      - name: kafka-data
+        persistentVolumeClaim:
+          claimName: kafka-data-pvc
+      {{- end }}
