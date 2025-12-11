@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: kafka
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.kafka.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kafka
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kafka
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      initContainers:
+      - name: kafka-format
+        image: "{{ .Values.kafka.image.repository }}:{{ .Values.kafka.image.tag }}"
+        imagePullPolicy: {{ .Values.kafka.image.pullPolicy }}
+        command:
+        - /bin/bash
+        - -c
+        - |
+          if [ ! -f {{ .Values.kafka.persistence.mountPath }}/meta.properties ]; then
+            echo "Formatting storage..."
+            /opt/kafka/bin/kafka-storage.sh format \
+              -t {{ .Values.kafka.kraft.clusterId }} \
+              -c /etc/kafka-config/server.properties
+          else
+            echo "Storage already formatted"
+          fi
+        volumeMounts:
+        - name: kafka-config
+          mountPath: /etc/kafka-config
+        - name: kafka-data
+          mountPath: {{ .Values.kafka.persistence.mountPath }}
+      
+      containers:
+      - name: kafka
+        image: "{{ .Values.kafka.image.repository }}:{{ .Values.kafka.image.tag }}"
+        imagePullPolicy: {{ .Values.kafka.image.pullPolicy }}
+        command:
+        - /opt/kafka/bin/kafka-server-start.sh
+        - /etc/kafka-config/server.properties
+        ports:
+        - containerPort: {{ .Values.kafka.service.targetPort }}
+          name: kafka
+        - containerPort: 9093
+          name: controller
+        volumeMounts:
+        - name: kafka-config
+          mountPath: /etc/kafka-config
+        - name: kafka-data
+          mountPath: {{ .Values.kafka.persistence.mountPath }}
+        
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+      
+      volumes:
+      - name: kafka-config
+        configMap:
+          name: kafka-config
+      - name: kafka-data
+        {{- if .Values.kafka.persistence.enabled }}
+        persistentVolumeClaim:
+          claimName: kafka-data-pvc
+        {{- else }}
+        emptyDir: {}
+        {{- end }}

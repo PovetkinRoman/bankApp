@@ -30,8 +30,8 @@ pipeline {
         )
         string(
             name: 'KAFKA_VERSION',
-            defaultValue: '7.5.3',
-            description: 'Версия Confluent Platform'
+            defaultValue: '3.8.0',
+            description: 'Версия Apache Kafka'
         )
     }
 
@@ -71,7 +71,7 @@ pipeline {
                     helm template ${MODULE_NAME} helm/charts/${MODULE_NAME} \\
                       --namespace ${NAMESPACE_TEST} \\
                       --set kafka.replicaCount=${params.KAFKA_REPLICAS} \\
-                      --set kafkaUI.enabled=${params.ENABLE_KAFKA_UI} \\
+                      --set kafkaUi.enabled=${params.ENABLE_KAFKA_UI} \\
                       > /tmp/kafka-manifests.yaml
                     
                     echo "✅ Helm chart валидация пройдена"
@@ -107,11 +107,11 @@ pipeline {
                         
                         echo ""
                         echo "📨 Kafka Pods:"
-                        kubectl get pods -n ${namespace} -l app.kubernetes.io/component=kafka
+                        kubectl get pods -n ${namespace} -l app.kubernetes.io/name=kafka
                         
                         echo ""
                         echo "🎨 Kafka UI Pods:"
-                        kubectl get pods -n ${namespace} -l app.kubernetes.io/component=kafka-ui || echo "Kafka UI не установлен"
+                        kubectl get pods -n ${namespace} -l app.kubernetes.io/name=kafka-ui || echo "Kafka UI не установлен"
                         
                         echo ""
                         echo "🔌 Services:"
@@ -152,7 +152,7 @@ pipeline {
                           --namespace ${NAMESPACE_TEST} \\
                           --set kafka.image.tag=${params.KAFKA_VERSION} \\
                           --set kafka.replicaCount=${params.KAFKA_REPLICAS} \\
-                          --set kafkaUI.enabled=${params.ENABLE_KAFKA_UI} \\
+                          --set kafkaUi.enabled=${params.ENABLE_KAFKA_UI} \\
                           --wait --timeout=10m
                         
                         echo "✅ Деплой ${MODULE_NAME} в TEST завершен"
@@ -180,11 +180,11 @@ pipeline {
                     # Ждем готовности Kafka
                     echo "Ожидание готовности Kafka..."
                     kubectl wait --for=condition=ready pod \\
-                      -l app.kubernetes.io/component=kafka \\
+                      -l app.kubernetes.io/name=kafka \\
                       -n ${NAMESPACE_TEST} \\
                       --timeout=300s || {
                         echo "⚠️  Kafka не готов, показываем логи:"
-                        kubectl logs -l app.kubernetes.io/component=kafka -n ${NAMESPACE_TEST} --tail=50
+                        kubectl logs -l app.kubernetes.io/name=kafka -n ${NAMESPACE_TEST} --tail=50
                         exit 1
                       }
                     
@@ -194,7 +194,7 @@ pipeline {
                     if [ "${params.ENABLE_KAFKA_UI}" = "true" ]; then
                         echo "Ожидание готовности Kafka UI..."
                         kubectl wait --for=condition=ready pod \\
-                          -l app.kubernetes.io/component=kafka-ui \\
+                          -l app.kubernetes.io/name=kafka-ui \\
                           -n ${NAMESPACE_TEST} \\
                           --timeout=180s || echo "⚠️  Kafka UI не готов"
                     fi
@@ -280,7 +280,7 @@ pipeline {
                           --set zookeeper.image.tag=${params.KAFKA_VERSION} \\
                           --set kafka.replicaCount=${params.KAFKA_REPLICAS} \\
                           --set zookeeper.replicaCount=${params.ZOOKEEPER_REPLICAS} \\
-                          --set kafkaUI.enabled=${params.ENABLE_KAFKA_UI} \\
+                          --set kafkaUi.enabled=${params.ENABLE_KAFKA_UI} \\
                           --wait --timeout=10m
                         
                         echo "✅ Конфигурация обновлена"
@@ -363,7 +363,7 @@ pipeline {
                           --namespace ${NAMESPACE_PROD} \\
                           --set kafka.image.tag=${params.KAFKA_VERSION} \\
                           --set kafka.replicaCount=${params.KAFKA_REPLICAS} \\
-                          --set kafkaUI.enabled=${params.ENABLE_KAFKA_UI} \\
+                          --set kafkaUi.enabled=${params.ENABLE_KAFKA_UI} \\
                           --set kafka.resources.limits.cpu=2000m \\
                           --set kafka.resources.limits.memory=4Gi \\
                           --set kafka.resources.requests.cpu=1000m \\
@@ -396,11 +396,11 @@ pipeline {
                     # Ждем готовности Kafka
                     echo "Ожидание готовности Kafka..."
                     kubectl wait --for=condition=ready pod \\
-                      -l app.kubernetes.io/component=kafka \\
+                      -l app.kubernetes.io/name=kafka \\
                       -n ${NAMESPACE_PROD} \\
                       --timeout=600s || {
                         echo "⚠️  Kafka не готов, показываем логи:"
-                        kubectl logs -l app.kubernetes.io/component=kafka -n ${NAMESPACE_PROD} --tail=100
+                        kubectl logs -l app.kubernetes.io/name=kafka -n ${NAMESPACE_PROD} --tail=100
                         exit 1
                       }
                     
@@ -410,7 +410,7 @@ pipeline {
                     if [ "${params.ENABLE_KAFKA_UI}" = "true" ]; then
                         echo "Ожидание готовности Kafka UI..."
                         kubectl wait --for=condition=ready pod \\
-                          -l app.kubernetes.io/component=kafka-ui \\
+                          -l app.kubernetes.io/name=kafka-ui \\
                           -n ${NAMESPACE_PROD} \\
                           --timeout=300s || echo "⚠️  Kafka UI не готов"
                     fi
