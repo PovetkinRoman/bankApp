@@ -1,0 +1,29 @@
+image:
+  repository: postgres
+  tag: "13.21-alpine3.22"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 5432
+  targetPort: 5432
+
+env:
+  POSTGRES_DB: bankapp
+  POSTGRES_USER: root
+  POSTGRES_PASSWORD: root
+
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClassName: ""
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+

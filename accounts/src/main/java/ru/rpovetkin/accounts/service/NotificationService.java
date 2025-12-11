@@ -19,16 +19,18 @@ public class NotificationService {
     
     private final WebClient.Builder webClientBuilder;
     private final OAuth2AuthorizedClientManager authorizedClientManager;
-    private final ConsulService consulService;
     
     @Value("${spring.security.oauth2.client.provider.keycloak.token-uri:http://keycloak:8080/realms/bankapp/protocol/openid-connect/token}")
     private String tokenUri;
 
-    @Value("${spring.security.oauth2.client.registration.accounts-service.client-id:accounts-service}")
+    @Value("${spring.security.oauth2.client.registration.keycloak.client-id:accounts-service}")
     private String clientId;
 
-    @Value("${spring.security.oauth2.client.registration.accounts-service.client-secret:accounts-secret-key-12345}")
+    @Value("${spring.security.oauth2.client.registration.keycloak.client-secret:accounts-secret-key-12345}")
     private String clientSecret;
+
+    @Value("${services.notifications.url:http://bankapp-notifications:8087}")
+    private String notificationsServiceUrl;
     
     private String getJwtToken() {
         try {
@@ -61,23 +63,23 @@ public class NotificationService {
                 .build();
         
         log.debug("Sending notification to user {}: {}", userId, title);
+        log.debug("Using notifications service URL: {}", notificationsServiceUrl);
         
         return Mono.fromCallable(() -> getJwtToken())
-                .flatMap(jwtToken -> consulService.getServiceUrl("gateway")
-                        .flatMap(serviceUrl -> {
-                            WebClient webClient = webClientBuilder.build();
-                            
-                            return webClient
-                                    .post()
-                                    .uri(serviceUrl + "/api/notifications/send")
-                                    .header("Authorization", jwtToken != null ? "Bearer " + jwtToken : "")
-                                    .bodyValue(request)
-                                    .retrieve()
-                                    .bodyToMono(NotificationResponse.class)
-                                    .doOnSuccess(response -> log.debug("Notification sent successfully: {}", response.getNotificationId()))
-                                    .doOnError(error -> log.error("Failed to send notification: {}", error.getMessage()))
-                                    .then();
-                        }))
+                .flatMap(jwtToken -> {
+                    WebClient webClient = webClientBuilder.build();
+                    
+                    return webClient
+                            .post()
+                            .uri(notificationsServiceUrl + "/api/notifications/send")
+                            .header("Authorization", jwtToken != null ? "Bearer " + jwtToken : "")
+                            .bodyValue(request)
+                            .retrieve()
+                            .bodyToMono(NotificationResponse.class)
+                            .doOnSuccess(response -> log.debug("Notification sent successfully: {}", response.getNotificationId()))
+                            .doOnError(error -> log.error("Failed to send notification: {}", error.getMessage()))
+                            .then();
+                })
                 .doOnError(error -> log.error("Error sending notification: {}", error.getMessage(), error))
                 .onErrorComplete();
     }

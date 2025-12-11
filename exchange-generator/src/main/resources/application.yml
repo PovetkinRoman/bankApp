@@ -1,29 +1,6 @@
 spring:
   application:
     name: exchange-generator
-  config:
-    import: "optional:consul:"
-  cloud:
-    compatibility-verifier:
-      enabled: false
-    consul:
-      host: ${SPRING_CLOUD_CONSUL_HOST:consul}
-      port: ${SPRING_CLOUD_CONSUL_PORT:8500}
-      config:
-        enabled: true
-        format: yaml
-        prefix: config
-        default-context: application
-        data-key: data
-        watch:
-          enabled: true
-      discovery:
-        enabled: ${SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED:true}
-        register: ${SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER:true}
-        service-name: ${SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME:exchange-generator}
-        instance-id: ${SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID:exchange-generator-1}
-        health-check-path: /actuator/health
-        health-check-interval: 15s
   security:
     oauth2:
       client:
@@ -40,6 +17,14 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs}
+
+keycloak:
+  auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://keycloak:8080}
+
+oauth2:
+  client:
+    id: ${OAUTH2_CLIENT_ID:exchange-generator-service}
+    secret: ${OAUTH2_CLIENT_SECRET:exchange-generator-secret-key-12345}
 
 server:
   port: 8085

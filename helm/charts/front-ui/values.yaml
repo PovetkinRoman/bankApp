@@ -1,0 +1,61 @@
+# Default values for front-ui
+# This is a YAML-formatted file.
+
+replicaCount: 1
+
+image:
+  repository: bankapp/front-ui
+  pullPolicy: Always
+  tag: "0.0.1-SNAPSHOT"
+
+imagePullSecrets:
+  - name: ghcr-secret
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+# OAuth2 client secret (sensitive data)
+oauth2ClientSecret: "front-ui-secret-key-12345"
+
+env:
+  KEYCLOAK_AUTH_SERVER_URL: "http://keycloak:8080"
+  KEYCLOAK_JWK_SET_URI: "http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
+  OAUTH2_CLIENT_ID: "front-ui-service"
+  ACCOUNTS_SERVICE_URL: "http://accounts:8081"
+  CASH_SERVICE_URL: "http://cash:8082"
+  TRANSFER_SERVICE_URL: "http://transfer:8083"
+  EXCHANGE_SERVICE_URL: "http://exchange:8084"
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+startupProbe:
+  httpGet:
+    path: /actuator/health
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  failureThreshold: 24
+
+livenessProbe:
+  httpGet:
+    path: /actuator/health
+    port: 8080
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /actuator/health
+    port: 8080
+  initialDelaySeconds: 0
+  periodSeconds: 5
+  failureThreshold: 3

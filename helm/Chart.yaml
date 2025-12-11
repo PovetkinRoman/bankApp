@@ -1,0 +1,49 @@
+apiVersion: v2
+name: bankapp
+description: A Helm umbrella chart for BankApp microservices
+type: application
+version: 0.1.0
+appVersion: "0.0.1-SNAPSHOT"
+
+dependencies:
+  - name: front-ui
+    version: 0.1.0
+    repository: "file://charts/front-ui"
+    condition: front-ui.enabled
+  - name: keycloak
+    version: 0.1.0
+    repository: "file://charts/keycloak"
+    condition: keycloak.enabled
+  - name: postgresql
+    version: 0.1.0
+    repository: "file://charts/postgresql"
+    condition: postgresql.enabled
+  - name: accounts
+    version: 0.1.0
+    repository: "file://charts/accounts"
+    condition: accounts.enabled
+  - name: cash
+    version: 0.1.0
+    repository: "file://charts/cash"
+    condition: cash.enabled
+  - name: transfer
+    version: 0.1.0
+    repository: "file://charts/transfer"
+    condition: transfer.enabled
+  - name: exchange
+    version: 0.1.0
+    repository: "file://charts/exchange"
+    condition: exchange.enabled
+  - name: exchange-generator
+    version: 0.1.0
+    repository: "file://charts/exchange-generator"
+    condition: exchange-generator.enabled
+  - name: notifications
+    version: 0.1.0
+    repository: "file://charts/notifications"
+    condition: notifications.enabled
+  - name: blocker
+    version: 0.1.0
+    repository: "file://charts/blocker"
+    condition: blocker.enabled
+

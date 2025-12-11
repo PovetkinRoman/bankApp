@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "blocker.fullname" . }}-config
+  labels:
+    {{- include "blocker.labels" . | nindent 4 }}
+data:
+  application.yml: |
+    spring:
+      application:
+        name: blocker
+      security:
+        oauth2:
+          resourceserver:
+            jwt:
+              jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs}
+    
+    logging:
+      level:
+        ru.rpovetkin.blocker: INFO
+        root: INFO
+      pattern:
+        console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info,loggers
+    
+    # Конфигурация лимитов безопасности
+    blocker:
+      limits:
+        max-transfer-amount: 50000
+

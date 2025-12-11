@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "cash.fullname" . }}-config
+  labels:
+    {{- include "cash.labels" . | nindent 4 }}
+data:
+  application.yml: |
+    spring:
+      application:
+        name: cash
+      security:
+        oauth2:
+          resourceserver:
+            jwt:
+              jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs}
+    
+    keycloak:
+      auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://keycloak:8080}
+    
+    oauth2:
+      client:
+        id: ${OAUTH2_CLIENT_ID:cash-service}
+        secret: ${OAUTH2_CLIENT_SECRET:cash-secret-key-12345}
+    
+    services:
+      accounts:
+        url: ${ACCOUNTS_SERVICE_URL:http://bankapp-accounts:8081}
+      blocker:
+        url: ${BLOCKER_SERVICE_URL:http://bankapp-blocker:8086}
+      notifications:
+        url: ${NOTIFICATIONS_SERVICE_URL:http://bankapp-notifications:8087}
+    
+    blocker:
+      limits:
+        max-transfer-amount: 50000
+    
+    server:
+      port: 8082
+      forward-headers-strategy: native
+    
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info,loggers
+

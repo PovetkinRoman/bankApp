@@ -1,0 +1,11 @@
+workflow-aggregator:latest
+github-branch-source:latest
+docker-workflow:latest
+kubernetes:latest
+credentials-binding:latest
+git:latest
+maven-plugin:latest
+pipeline-stage-view:latest
+blueocean:latest
+ws-cleanup:latest
+

@@ -17,7 +17,6 @@ import java.util.Map;
 public class ExchangeIntegrationService {
 
     private final WebClient.Builder webClientBuilder;
-    private final ConsulService consulService;
 
     @org.springframework.beans.factory.annotation.Value("${spring.security.oauth2.client.provider.keycloak.token-uri:http://keycloak:8080/realms/bankapp/protocol/openid-connect/token}")
     private String tokenUri;
@@ -27,6 +26,9 @@ public class ExchangeIntegrationService {
 
     @org.springframework.beans.factory.annotation.Value("${spring.security.oauth2.client.registration.exchange-generator-service.client-secret:exchange-generator-secret-key-12345}")
     private String clientSecret;
+
+    @org.springframework.beans.factory.annotation.Value("${exchange.service.url:http://bankapp-exchange:8084}")
+    private String exchangeServiceUrl;
 
     /**
      * Отправить курсы валют в exchange сервис
@@ -42,19 +44,16 @@ public class ExchangeIntegrationService {
         return fetchServiceAccessToken()
                 .flatMap(accessToken -> {
                     WebClient webClient = webClientBuilder.build();
-
-                    return consulService.getServiceUrl("gateway")
-                            .flatMap(serviceUrl -> {
-                                log.debug("Using exchange service URL: {}", serviceUrl);
-                                return webClient
-                                        .post()
-                                        .uri(serviceUrl + "/api/exchange/rates/update")
-                                        .headers(h -> { if (accessToken != null) h.setBearerAuth(accessToken); })
-                                        .bodyValue(updateDto)
-                                        .retrieve()
-                                        .bodyToMono(String.class)
-                                        .onErrorReturn("Service unavailable");
-                            })
+                    log.debug("Using exchange service URL: {}", exchangeServiceUrl);
+                    
+                    return webClient
+                            .post()
+                            .uri(exchangeServiceUrl + "/api/exchange/rates/update")
+                            .headers(h -> { if (accessToken != null) h.setBearerAuth(accessToken); })
+                            .bodyValue(updateDto)
+                            .retrieve()
+                            .bodyToMono(String.class)
+                            .onErrorReturn("Service unavailable")
                             .doOnSuccess(response -> log.debug("Exchange service response: {}", response))
                             .doOnError(error -> log.error("Error sending exchange rates to exchange service: {}", error.getMessage(), error))
                             .then();

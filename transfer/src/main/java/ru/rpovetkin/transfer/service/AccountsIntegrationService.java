@@ -16,9 +16,8 @@ import java.util.Map;
 public class AccountsIntegrationService {
 
     private final WebClient.Builder webClientBuilder;
-    private final ConsulService consulService;
 
-    @Value("${services.accounts.url:http://accounts}")
+    @Value("${services.accounts.url:http://bankapp-accounts:8081}")
     private String accountsServiceUrl;
 
     @Value("${spring.security.oauth2.client.provider.keycloak.token-uri:http://keycloak:8080/realms/bankapp/protocol/openid-connect/token}")
@@ -55,7 +54,7 @@ public class AccountsIntegrationService {
                         endpoint = "/api/accounts/deposit";
                     }
                     
-                    return consulService.getServiceUrl("gateway")
+                    return Mono.just(accountsServiceUrl)
                             .flatMap(serviceUrl -> webClient
                                     .post()
                                     .uri(serviceUrl + endpoint)
@@ -89,7 +88,7 @@ public class AccountsIntegrationService {
                 .flatMap(accessToken -> {
                     WebClient webClient = webClientBuilder.build();
                     
-                    return consulService.getServiceUrl("gateway")
+                    return Mono.just(accountsServiceUrl)
                             .flatMap(serviceUrl -> webClient
                                     .get()
                                     .uri(serviceUrl + "/api/accounts/" + login)

@@ -1,30 +1,6 @@
 spring:
   application:
     name: transfer
-  config:
-    import: "optional:consul:"
-  cloud:
-    compatibility-verifier:
-      enabled: false
-    consul:
-      host: ${SPRING_CLOUD_CONSUL_HOST:consul}
-      port: ${SPRING_CLOUD_CONSUL_PORT:8500}
-      config:
-        enabled: true
-        format: yaml
-        prefix: config
-        default-context: application
-        data-key: data
-        watch:
-          enabled: true
-      discovery:
-        enabled: ${SPRING_CLOUD_CONSUL_DISCOVERY_ENABLED:true}
-        register: ${SPRING_CLOUD_CONSUL_DISCOVERY_REGISTER:true}
-        service-name: ${SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME:transfer}
-        instance-id: ${SPRING_CLOUD_CONSUL_DISCOVERY_INSTANCE_ID:transfer-${random.uuid}}
-        hostname: transfer-app
-        health-check-path: /actuator/health
-        health-check-interval: 15s
   security:
     oauth2:
       client:
@@ -53,10 +29,10 @@ management:
 
 services:
   accounts:
-    url: ${ACCOUNTS_SERVICE_URL:http://accounts}
+    url: ${ACCOUNTS_SERVICE_URL:http://bankapp-accounts:8081}
   notifications:
-    url: ${NOTIFICATIONS_SERVICE_URL:http://notifications}
+    url: ${NOTIFICATIONS_SERVICE_URL:http://bankapp-notifications:8087}
   exchange:
-    url: ${EXCHANGE_SERVICE_URL:http://exchange}
+    url: ${EXCHANGE_SERVICE_URL:http://bankapp-exchange:8084}
   blocker:
-    url: ${BLOCKER_SERVICE_URL:http://blocker}
+    url: ${BLOCKER_SERVICE_URL:http://bankapp-blocker:8086}

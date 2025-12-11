@@ -8,6 +8,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Slf4j
 public class LoginController {
     
+    @GetMapping("/")
+    public String rootRedirect() {
+        log.info("Redirecting from root to login page");
+        return "redirect:/login";
+    }
+    
     @GetMapping("/login")
     public String loginPage() {
         log.info("Accessing login page");

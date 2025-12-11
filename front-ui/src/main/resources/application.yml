@@ -1,49 +1,35 @@
 spring:
   application:
     name: front-ui
-  config:
-    import: "optional:consul:"
   security:
     oauth2:
       resourceserver:
         jwt:
           jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs}
-  cloud:
-    compatibility-verifier:
-      enabled: false
-    consul:
-      host: ${SPRING_CLOUD_CONSUL_HOST:consul}
-      port: ${SPRING_CLOUD_CONSUL_PORT:8500}
-      config:
-        enabled: true
-        format: yaml
-        prefix: config
-        default-context: application
-        data-key: data
-        watch:
-          enabled: true
-      discovery:
-        enabled: true
-        register: true
-        service-name: front-ui
-        instance-id: front-ui-1
-        hostname: front-ui-app
+
+keycloak:
+  auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://keycloak:8080}
+
+oauth2:
+  client:
+    id: ${OAUTH2_CLIENT_ID:front-ui-service}
+    secret: ${OAUTH2_CLIENT_SECRET:front-ui-secret-key-12345}
 
 accounts:
   service:
-    url: http://accounts
+    url: ${ACCOUNTS_SERVICE_URL:http://bankapp-accounts:8081}
 
 cash:
   service:
-    url: http://cash
+    url: ${CASH_SERVICE_URL:http://bankapp-cash:8082}
 
 transfer:
   service:
-    url: http://transfer
+    url: ${TRANSFER_SERVICE_URL:http://bankapp-transfer:8083}
 
 exchange:
   service:
-    url: http://exchange
+    url: ${EXCHANGE_SERVICE_URL:http://bankapp-exchange:8084}
 
 server:
   forward-headers-strategy: native
@@ -52,4 +38,4 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,loggers,refresh
+        include: health,info,loggers

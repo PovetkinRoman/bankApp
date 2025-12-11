@@ -20,7 +20,6 @@ import java.util.Map;
 public class ExchangeService {
 
     private final WebClient webClient;
-    private final ConsulService consulService;
 
     @Value("${exchange.service.url}")
     private String exchangeServiceUrl;
@@ -31,15 +30,12 @@ public class ExchangeService {
     public Mono<List<CurrencyRateDisplayDto>> getExchangeRatesForDisplay() {
         log.debug("Getting exchange rates from exchange service for display");
 
-        return consulService.getServiceUrl("exchange")
-                .flatMap(serviceUrl -> {
-                    log.debug("Using exchange service URL: {}", serviceUrl);
-                        return webClient
-                                .get()
-                                .uri(serviceUrl + "/api/exchange/rates")
-                                .retrieve()
-                                .bodyToMono(List.class);
-                })
+        log.debug("Using exchange service URL: {}", exchangeServiceUrl);
+        return webClient
+                .get()
+                .uri(exchangeServiceUrl + "/api/exchange/rates")
+                .retrieve()
+                .bodyToMono(List.class)
                 .map(response -> {
                     if (response != null) {
                         @SuppressWarnings("unchecked")

@@ -1,0 +1,544 @@
+# Default values for bankapp umbrella chart
+
+# PostgreSQL Database
+postgresql:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "13.21-alpine3.22"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 5432
+    targetPort: 5432
+  
+  env:
+    POSTGRES_DB: bankapp
+    POSTGRES_USER: root
+    POSTGRES_PASSWORD: root
+  
+  persistence:
+    enabled: false
+    size: 10Gi
+    storageClassName: "standard"
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+# Keycloak Identity Provider
+keycloak:
+  enabled: true
+  image:
+    repository: quay.io/keycloak/keycloak
+    tag: "24.0.2"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  
+  env:
+    KEYCLOAK_ADMIN: admin
+    KEYCLOAK_ADMIN_PASSWORD: admin
+    KC_DB: postgres
+    KC_DB_URL_HOST: bankapp-postgresql
+    KC_DB_URL_PORT: "5432"
+    KC_DB_URL_DATABASE: bankapp
+    KC_DB_USERNAME: root
+    KC_DB_PASSWORD: root
+  
+  command:
+    - start-dev
+    - --import-realm
+    - -Dkeycloak.import.strategy=OVERWRITE_EXISTING
+  
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  
+  startupProbe:
+    httpGet:
+      path: /health
+      port: 8080
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 30
+  
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8080
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    failureThreshold: 3
+  
+  readinessProbe:
+    httpGet:
+      path: /health/ready
+      port: 8080
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    failureThreshold: 3
+
+# Front-UI Service
+front-ui:
+  enabled: true
+  image:
+    repository: bankapp/front-ui
+    tag: "0.0.1-SNAPSHOT"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  
+  replicaCount: 1
+  
+  oauth2ClientSecret: "front-ui-secret-key-12345"
+  
+  env:
+    KEYCLOAK_AUTH_SERVER_URL: "http://bankapp-keycloak:8080"
+    KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
+    OAUTH2_CLIENT_ID: "front-ui-service"
+    ACCOUNTS_SERVICE_URL: "http://bankapp-accounts:8081"
+    CASH_SERVICE_URL: "http://bankapp-cash:8082"
+    TRANSFER_SERVICE_URL: "http://bankapp-transfer:8083"
+    EXCHANGE_SERVICE_URL: "http://bankapp-exchange:8084"
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  
+  startupProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8080
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 24
+  
+  livenessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8080
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8080
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    failureThreshold: 3
+
+# Gateway API exposure
+gatewayApi:
+  enabled: true
+  gatewayClassName: "nginx"
+  hostname: "bankapp.local"
+  listenerPort: 80
+  listenerProtocol: HTTP
+
+# Kubernetes Ingress exposure (optional fallback)
+ingress:
+  enabled: true
+  className: "nginx"
+  host: "bankapp.local"
+  annotations: {}
+  tls: []
+
+# Accounts Service
+accounts:
+  enabled: true
+  image:
+    repository: bankapp/accounts
+    tag: "0.0.1-SNAPSHOT"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8081
+    targetPort: 8081
+
+  replicaCount: 1
+
+  oauth2ClientSecret: "accounts-secret-key-12345"
+
+  env:
+    KEYCLOAK_AUTH_SERVER_URL: "http://bankapp-keycloak:8080"
+    KEYCLOAK_TOKEN_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/token"
+    KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
+    OAUTH2_CLIENT_ID: "accounts-service"
+    NOTIFICATIONS_SERVICE_URL: "http://bankapp-notifications:8087"
+    DB_HOST: "bankapp-postgresql"
+    DB_PORT: "5432"
+    DB_NAME: "bankapp"
+    DB_USER: "root"
+    DB_PASSWORD: "root"
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+  startupProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8081
+    initialDelaySeconds: 15
+    periodSeconds: 5
+    failureThreshold: 30
+
+  livenessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8081
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8081
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    failureThreshold: 3
+
+# Cash Service
+cash:
+  enabled: true
+  image:
+    repository: bankapp/cash
+    tag: "0.0.1-SNAPSHOT"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8082
+    targetPort: 8082
+
+  replicaCount: 1
+
+  env:
+    KEYCLOAK_TOKEN_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/token"
+    KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
+    OAUTH2_CLIENT_ID: "cash-service"
+    OAUTH2_CLIENT_SECRET: "cash-secret-key-12345"
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+  startupProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8082
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 24
+
+  livenessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8082
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8082
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    failureThreshold: 3
+
+# Transfer Service
+transfer:
+  enabled: true
+  image:
+    repository: bankapp/transfer
+    tag: "0.0.1-SNAPSHOT"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8083
+    targetPort: 8083
+
+  replicaCount: 1
+
+  env:
+    KEYCLOAK_TOKEN_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/token"
+    KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
+    OAUTH2_CLIENT_ID: "transfer-service"
+    OAUTH2_CLIENT_SECRET: "transfer-secret-key-12345"
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+  startupProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8083
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 24
+
+  livenessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8083
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8083
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    failureThreshold: 3
+
+# Exchange Service
+exchange:
+  enabled: true
+  image:
+    repository: bankapp/exchange
+    tag: "0.0.1-SNAPSHOT"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8084
+    targetPort: 8084
+
+  replicaCount: 1
+
+  oauth2ClientSecret: "exchange-secret-key-12345"
+
+  env:
+    KEYCLOAK_AUTH_SERVER_URL: "http://bankapp-keycloak:8080"
+    KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
+    OAUTH2_CLIENT_ID: "exchange-service"
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+  startupProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8084
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 24
+
+  livenessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8084
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8084
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    failureThreshold: 3
+
+# Exchange Generator Service
+exchange-generator:
+  enabled: true
+  image:
+    repository: bankapp/exchange-generator
+    tag: "0.0.1-SNAPSHOT"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8085
+    targetPort: 8085
+
+  replicaCount: 1
+
+  oauth2ClientSecret: "exchange-generator-secret-key-12345"
+
+  env:
+    KEYCLOAK_AUTH_SERVER_URL: "http://bankapp-keycloak:8080"
+    KEYCLOAK_TOKEN_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/token"
+    KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
+    OAUTH2_CLIENT_ID: "exchange-generator-service"
+    EXCHANGE_SERVICE_URL: "http://bankapp-exchange:8084"
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+  startupProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8085
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 24
+
+  livenessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8085
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8085
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    failureThreshold: 3
+
+# Notifications Service
+notifications:
+  enabled: true
+  image:
+    repository: bankapp/notifications
+    tag: "0.0.1-SNAPSHOT"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8087
+    targetPort: 8087
+
+  replicaCount: 1
+
+  env:
+    KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+  startupProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8087
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 24
+
+  livenessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8087
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8087
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    failureThreshold: 3
+
+# Blocker Service
+blocker:
+  enabled: true
+  image:
+    repository: bankapp/blocker
+    tag: "0.0.1-SNAPSHOT"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8086
+    targetPort: 8086
+
+  replicaCount: 1
+
+  env:
+    KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+  startupProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8086
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 24
+
+  livenessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8086
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /actuator/health
+      port: 8086
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    failureThreshold: 3
+

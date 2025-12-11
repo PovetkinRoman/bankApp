@@ -1,0 +1,62 @@
+replicaCount: 1
+
+image:
+  repository: bankapp/transfer
+  pullPolicy: Never
+  tag: "0.0.1-SNAPSHOT"
+
+imagePullSecrets:
+  - name: ghcr-secret
+
+service:
+  type: ClusterIP
+  port: 8083
+  targetPort: 8083
+
+# OAuth2 client secret (sensitive data)
+oauth2ClientSecret: "transfer-secret-key-12345"
+
+env:
+  KEYCLOAK_AUTH_SERVER_URL: "http://keycloak:8080"
+  KEYCLOAK_TOKEN_URI: "http://keycloak:8080/realms/bankapp/protocol/openid-connect/token"
+  KEYCLOAK_JWK_SET_URI: "http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
+  OAUTH2_CLIENT_ID: "transfer-service"
+  ACCOUNTS_SERVICE_URL: "http://accounts:8081"
+  NOTIFICATIONS_SERVICE_URL: "http://notifications:8087"
+  EXCHANGE_SERVICE_URL: "http://exchange:8084"
+  BLOCKER_SERVICE_URL: "http://blocker:8086"
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+
+
+
+startupProbe:
+  httpGet:
+    path: /actuator/health
+    port: 8083
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  failureThreshold: 24
+
+livenessProbe:
+  httpGet:
+    path: /actuator/health
+    port: 8083
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /actuator/health
+    port: 8083
+  initialDelaySeconds: 0
+  periodSeconds: 5
+  failureThreshold: 3

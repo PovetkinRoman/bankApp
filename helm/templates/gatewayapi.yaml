@@ -1,0 +1,57 @@
+{{- if .Values.gatewayApi.enabled }}
+{{- $routes := include "bankapp.exposureRoutes" . | fromJsonArray }}
+{{- $releaseName := .Release.Name }}
+{{- $namespace := .Release.Namespace }}
+{{- $gatewayName := printf "%s-gateway" $releaseName }}
+{{- $hostname := .Values.gatewayApi.hostname | default "" }}
+{{- $listenerName := .Values.gatewayApi.listenerName | default "http" }}
+{{- $listenerPort := .Values.gatewayApi.listenerPort | default 80 }}
+{{- $listenerProtocol := .Values.gatewayApi.listenerProtocol | default "HTTP" }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ $gatewayName }}
+  labels:
+    app.kubernetes.io/name: {{ $gatewayName }}
+    app.kubernetes.io/part-of: {{ $releaseName }}
+spec:
+  gatewayClassName: {{ .Values.gatewayApi.gatewayClassName }}
+  listeners:
+    - name: {{ $listenerName }}
+      protocol: {{ $listenerProtocol }}
+      port: {{ $listenerPort }}
+      {{- if $hostname }}
+      hostname: {{ $hostname | quote }}
+      {{- end }}
+      allowedRoutes:
+        namespaces:
+          from: Same
+{{- range $route := $routes }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ printf "%s-%s" $releaseName (index $route "name") }}
+spec:
+  parentRefs:
+    - name: {{ $gatewayName }}
+      namespace: {{ $namespace }}
+      {{- if $listenerName }}
+      sectionName: {{ $listenerName }}
+      {{- end }}
+  {{- if $hostname }}
+  hostnames:
+    - {{ $hostname | quote }}
+  {{- end }}
+  rules:
+    - matches:
+        {{- range $path := (index $route "paths") }}
+        - path:
+            type: PathPrefix
+            value: {{ $path }}
+        {{- end }}
+      backendRefs:
+        - name: {{ index $route "serviceName" }}
+          port: {{ index $route "port" }}
+{{- end }}
+{{- end }}

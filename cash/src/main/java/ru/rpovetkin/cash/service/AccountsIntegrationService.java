@@ -2,6 +2,7 @@ package ru.rpovetkin.cash.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -21,25 +22,24 @@ import java.util.List;
 public class AccountsIntegrationService {
 
     private final WebClient webClient; // Теперь это OAuth2-enabled WebClient
-    private final ConsulService consulService;
+    
+    @Value("${services.accounts.url}")
+    private String accountsServiceUrl;
 
     /**
      * Получить список существующих счетов пользователя
      */
     public Mono<List<AccountDto>> getExistingUserAccounts(String login) {
         log.info("Getting existing accounts for user: {}", login);
+        log.debug("Using accounts service URL: {}", accountsServiceUrl);
         
-        return consulService.getServiceUrl("accounts")
-                .flatMap(serviceUrl -> {
-                    log.debug("Using accounts service URL: {}", serviceUrl);
-                    return webClient
-                            .get()
-                            .uri(serviceUrl + "/api/accounts/" + login)
-                            .retrieve()
-                            .bodyToMono(new ParameterizedTypeReference<List<AccountApiResponse>>() {})
-                            .retry(2) // Retry up to 2 times on failure
-                            .doOnError(throwable -> log.warn("Error getting accounts for user {}: {}", login, throwable.getMessage()));
-                })
+        return webClient
+                .get()
+                .uri(accountsServiceUrl + "/api/accounts/" + login)
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<List<AccountApiResponse>>() {})
+                .retry(2) // Retry up to 2 times on failure
+                .doOnError(throwable -> log.warn("Error getting accounts for user {}: {}", login, throwable.getMessage()))
                 .map(response -> {
                     if (response != null) {
                         List<AccountDto> accounts = response.stream()
@@ -70,19 +70,16 @@ public class AccountsIntegrationService {
                 .amount(amount)
                 .build();
         
-        return consulService.getServiceUrl("accounts")
-                .flatMap(serviceUrl -> {
-                    log.debug("Using accounts service URL: {}", serviceUrl);
-                    return webClient
-                            .post()
-                            .uri(serviceUrl + "/api/accounts/deposit")
-                            .header("Content-Type", "application/json")
-                            .bodyValue(request)
-                            .retrieve()
-                            .bodyToMono(AccountOperationResponse.class)
-                            .retry(2) // Retry up to 2 times on failure
-                            .doOnError(throwable -> log.warn("Error calling accounts service: {}", throwable.getMessage()));
-                })
+        log.debug("Using accounts service URL: {}", accountsServiceUrl);
+        return webClient
+                .post()
+                .uri(accountsServiceUrl + "/api/accounts/deposit")
+                .header("Content-Type", "application/json")
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(AccountOperationResponse.class)
+                .retry(2) // Retry up to 2 times on failure
+                .doOnError(throwable -> log.warn("Error calling accounts service: {}", throwable.getMessage()))
                 .map(response -> {
                     boolean success = response != null && response.isSuccess();
                     String message = response != null ? response.getMessage() : "No response";
@@ -105,19 +102,16 @@ public class AccountsIntegrationService {
                 .amount(amount)
                 .build();
         
-        return consulService.getServiceUrl("accounts")
-                .flatMap(serviceUrl -> {
-                    log.debug("Using accounts service URL: {}", serviceUrl);
-                    return webClient
-                            .post()
-                            .uri(serviceUrl + "/api/accounts/withdraw")
-                            .header("Content-Type", "application/json")
-                            .bodyValue(request)
-                            .retrieve()
-                            .bodyToMono(AccountOperationResponse.class)
-                            .retry(2) // Retry up to 2 times on failure
-                            .doOnError(throwable -> log.warn("Error calling accounts service: {}", throwable.getMessage()));
-                })
+        log.debug("Using accounts service URL: {}", accountsServiceUrl);
+        return webClient
+                .post()
+                .uri(accountsServiceUrl + "/api/accounts/withdraw")
+                .header("Content-Type", "application/json")
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(AccountOperationResponse.class)
+                .retry(2) // Retry up to 2 times on failure
+                .doOnError(throwable -> log.warn("Error calling accounts service: {}", throwable.getMessage()))
                 .map(response -> {
                     boolean success = response != null && response.isSuccess();
                     String message = response != null ? response.getMessage() : "No response";

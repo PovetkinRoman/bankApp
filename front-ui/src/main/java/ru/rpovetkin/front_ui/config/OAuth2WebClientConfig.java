@@ -22,12 +22,18 @@ public class OAuth2WebClientConfig {
     @Value("${keycloak.auth-server-url:http://keycloak:8080}")
     private String keycloakServerUrl;
 
+    @Value("${oauth2.client.id:front-ui-service}")
+    private String clientId;
+
+    @Value("${oauth2.client.secret:front-ui-secret-key-12345}")
+    private String clientSecret;
+
     @Bean
     public ClientRegistrationRepository clientRegistrationRepository() {
         ClientRegistration registration = ClientRegistration
                 .withRegistrationId("keycloak")
-                .clientId("front-ui-service")
-                .clientSecret("front-ui-secret-key-12345")
+                .clientId(clientId)
+                .clientSecret(clientSecret)
                 .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
                 .tokenUri(keycloakServerUrl + "/realms/bankapp/protocol/openid-connect/token")
                 .build();
