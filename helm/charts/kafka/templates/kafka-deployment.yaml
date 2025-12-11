@@ -25,22 +25,18 @@ spec:
         - |
           set -e
           
+          # Используем фиксированный cluster ID
+          {{- if .Values.kafka.kraft.clusterId }}
+          CLUSTER_ID="{{ .Values.kafka.kraft.clusterId }}"
+          {{- else }}
+          CLUSTER_ID="SJcOBF5BRHi4H7Rfn4-5dQ"
+          {{- end }}
+          
+          echo "Cluster ID: $CLUSTER_ID"
+          
           # Проверяем, нужно ли форматировать storage
           if [ ! -f {{ .Values.kafka.persistence.mountPath }}/meta.properties ]; then
             echo "Formatting Kafka storage for KRaft mode..."
-            
-            # Используем фиксированный cluster ID или генерируем новый
-            {{- if .Values.kafka.kraft.clusterId }}
-            CLUSTER_ID="{{ .Values.kafka.kraft.clusterId }}"
-            {{- else }}
-            # Генерируем фиксированный UUID на основе namespace и имени
-            CLUSTER_ID="SJcOBF5BRHi4H7Rfn4-5dQ"
-            {{- end }}
-            
-            echo "Cluster ID: $CLUSTER_ID"
-            
-            # Сохраняем cluster ID в файл для основного контейнера
-            echo "$CLUSTER_ID" > {{ .Values.kafka.persistence.mountPath }}/cluster-id
             
             # Создаем временный конфиг для форматирования
             cat > /tmp/kraft-format.properties <<EOF
@@ -58,11 +54,7 @@ spec:
             
             echo "Storage formatted successfully"
           else
-            echo "Storage already formatted, skipping..."
-            # Читаем существующий cluster ID
-            if [ -f {{ .Values.kafka.persistence.mountPath }}/cluster-id ]; then
-              echo "Using existing Cluster ID: $(cat {{ .Values.kafka.persistence.mountPath }}/cluster-id)"
-            fi
+            echo "Storage already formatted, skipping formatting..."
           fi
         volumeMounts:
         - name: kafka-data
@@ -72,17 +64,6 @@ spec:
       - name: kafka
         image: "{{ .Values.kafka.image.repository }}:{{ .Values.kafka.image.tag }}"
         imagePullPolicy: {{ .Values.kafka.image.pullPolicy }}
-        command:
-        - /bin/bash
-        - -c
-        - |
-          # Читаем cluster ID из файла если он есть
-          if [ -f {{ .Values.kafka.persistence.mountPath }}/cluster-id ]; then
-            export CLUSTER_ID=$(cat {{ .Values.kafka.persistence.mountPath }}/cluster-id)
-            echo "Using Cluster ID: $CLUSTER_ID"
-          fi
-          # Запускаем Kafka
-          exec /etc/confluent/docker/run
         ports:
         - containerPort: {{ .Values.kafka.service.targetPort }}
           name: kafka
@@ -140,6 +121,14 @@ spec:
           value: "{{ .Values.kafka.config.transactionStateLogMinIsr }}"
         - name: KAFKA_LOG_DIRS
           value: "{{ .Values.kafka.persistence.mountPath }}"
+        
+        # Cluster ID для KRaft mode
+        - name: CLUSTER_ID
+          {{- if .Values.kafka.kraft.clusterId }}
+          value: "{{ .Values.kafka.kraft.clusterId }}"
+          {{- else }}
+          value: "SJcOBF5BRHi4H7Rfn4-5dQ"
+          {{- end }}
         
         {{- if .Values.kafka.persistence.enabled }}
         volumeMounts:
