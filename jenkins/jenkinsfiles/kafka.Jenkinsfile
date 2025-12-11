@@ -28,11 +28,6 @@ pipeline {
             defaultValue: '',
             description: 'Дополнительные топики в формате JSON (опционально)'
         )
-        string(
-            name: 'KAFKA_VERSION',
-            defaultValue: '3.8.0',
-            description: 'Версия Apache Kafka'
-        )
     }
 
     stages {
@@ -150,7 +145,6 @@ pipeline {
                         # Деплоим через Helm (KRaft mode)
                         helm upgrade --install ${MODULE_NAME} helm/charts/${MODULE_NAME} \\
                           --namespace ${NAMESPACE_TEST} \\
-                          --set kafka.image.tag=${params.KAFKA_VERSION} \\
                           --set kafka.replicaCount=${params.KAFKA_REPLICAS} \\
                           --set kafkaUi.enabled=${params.ENABLE_KAFKA_UI} \\
                           --wait --timeout=10m
@@ -276,10 +270,7 @@ pipeline {
                         # Обновляем через Helm с новыми параметрами
                         helm upgrade ${MODULE_NAME} helm/charts/${MODULE_NAME} \\
                           --namespace ${namespace} \\
-                          --set kafka.image.tag=${params.KAFKA_VERSION} \\
-                          --set zookeeper.image.tag=${params.KAFKA_VERSION} \\
                           --set kafka.replicaCount=${params.KAFKA_REPLICAS} \\
-                          --set zookeeper.replicaCount=${params.ZOOKEEPER_REPLICAS} \\
                           --set kafkaUi.enabled=${params.ENABLE_KAFKA_UI} \\
                           --wait --timeout=10m
                         
@@ -361,7 +352,6 @@ pipeline {
                         # Деплоим через Helm с production настройками (KRaft mode)
                         helm upgrade --install ${MODULE_NAME} helm/charts/${MODULE_NAME} \\
                           --namespace ${NAMESPACE_PROD} \\
-                          --set kafka.image.tag=${params.KAFKA_VERSION} \\
                           --set kafka.replicaCount=${params.KAFKA_REPLICAS} \\
                           --set kafkaUi.enabled=${params.ENABLE_KAFKA_UI} \\
                           --set kafka.resources.limits.cpu=2000m \\
