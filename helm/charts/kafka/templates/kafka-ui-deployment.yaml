@@ -34,12 +34,16 @@ spec:
         - name: DYNAMIC_CONFIG_ENABLED
           value: "true"
         resources:
+          {{- if .Values.kafkaUi.resources }}
+          {{- toYaml .Values.kafkaUi.resources | nindent 10 }}
+          {{- else }}
           requests:
-            memory: "256Mi"
-            cpu: "100m"
-          limits:
             memory: "512Mi"
             cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+          {{- end }}
         readinessProbe:
           httpGet:
             path: /actuator/health

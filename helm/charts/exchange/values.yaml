@@ -23,11 +23,11 @@ env:
 
 resources:
   limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
     cpu: 500m
     memory: 512Mi
-  requests:
-    cpu: 250m
-    memory: 256Mi
 
 
 
@@ -36,22 +36,25 @@ startupProbe:
   httpGet:
     path: /actuator/health
     port: 8084
-  initialDelaySeconds: 10
-  periodSeconds: 5
-  failureThreshold: 24
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30  # Максимум: 30 + (10 * 30) = 330 секунд (5.5 минут)
 
 livenessProbe:
   httpGet:
     path: /actuator/health
     port: 8084
-  initialDelaySeconds: 0
-  periodSeconds: 10
+  initialDelaySeconds: 150  # Начинаем проверять после успешного старта
+  periodSeconds: 30
+  timeoutSeconds: 5
   failureThreshold: 3
 
 readinessProbe:
   httpGet:
     path: /actuator/health
     port: 8084
-  initialDelaySeconds: 0
-  periodSeconds: 5
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
   failureThreshold: 3
