@@ -14,6 +14,10 @@ import ru.rpovetkin.accounts.dto.NotificationRequest;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Конфигурация Kafka Producer для отправки уведомлений
+ * Настроена для гарантии доставки "At least once"
+ */
 @Configuration
 public class KafkaProducerConfig {
 
@@ -23,10 +27,33 @@ public class KafkaProducerConfig {
     @Bean
     public ProducerFactory<String, NotificationRequest> producerFactory() {
         Map<String, Object> configProps = new HashMap<>();
+        
+        // Basic configuration
         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
         configProps.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
+        
+        // At least once delivery configuration
+        // acks=all: Лидер + все синхронизированные реплики должны подтвердить запись
+        configProps.put(ProducerConfig.ACKS_CONFIG, "all");
+        
+        // retries: Количество повторных попыток при ошибке
+        configProps.put(ProducerConfig.RETRIES_CONFIG, 3);
+        
+        // max.in.flight.requests.per.connection=1: Гарантирует порядок при retry
+        // Для unordered messages можно использовать 5, но мы ставим 1 для надежности
+        configProps.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 1);
+        
+        // enable.idempotence: Гарантирует отсутствие дубликатов при retry
+        configProps.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+        
+        // request.timeout.ms: Таймаут ожидания ответа от брокера
+        configProps.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, 30000);
+        
+        // delivery.timeout.ms: Общий таймаут доставки (включая retries)
+        configProps.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 120000);
+        
         return new DefaultKafkaProducerFactory<>(configProps);
     }
 
