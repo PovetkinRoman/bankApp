@@ -1,0 +1,17 @@
+spring:
+  kafka:
+    bootstrap-servers: ${spring.embedded.kafka.brokers}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    topics:
+      notifications: test-notifications
+
+services:
+  accounts:
+    url: http://localhost:8081
+  exchange:
+    url: http://localhost:8084
+  blocker:
+    url: http://localhost:8086
+

@@ -55,8 +55,8 @@ public class ExchangeRateService {
             // RUB к RUB всегда 1.0
             newRates.put(Currency.RUB, BigDecimal.ONE);
             
-            // Отправляем курсы в exchange сервис
-            exchangeIntegrationService.sendExchangeRates(newRates).subscribe();
+            // Отправляем курсы в exchange сервис через Kafka
+            exchangeIntegrationService.sendExchangeRates(newRates);
             
             log.debug("Successfully generated and sent new exchange rates");
         } catch (Exception e) {

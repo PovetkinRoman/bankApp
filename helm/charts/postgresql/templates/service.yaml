@@ -13,6 +13,5 @@ spec:
       name: postgresql
   selector:
     {{- include "postgresql.selectorLabels" . | nindent 4 }}
-  clusterIP: None
 
 

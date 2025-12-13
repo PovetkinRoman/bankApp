@@ -6,6 +6,20 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    consumer:
+      group-id: exchange-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+      auto-offset-reset: latest
+      enable-auto-commit: true
+      auto-commit-interval: 1000
+      max-poll-records: 1
+    topics:
+      exchange-rates: exchange-rates
 
 keycloak:
   auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://keycloak:8080}
@@ -28,3 +42,4 @@ logging:
   level:
     ru.rpovetkin.exchange: DEBUG
     org.springframework.security: DEBUG
+    org.springframework.kafka: DEBUG
