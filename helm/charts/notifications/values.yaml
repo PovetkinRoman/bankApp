@@ -2,11 +2,8 @@ replicaCount: 1
 
 image:
   repository: bankapp/notifications
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
   tag: "0.0.1-SNAPSHOT"
-
-imagePullSecrets:
-  - name: ghcr-secret
 
 service:
   type: ClusterIP

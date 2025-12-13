@@ -43,7 +43,7 @@ oauth2:
 
 services:
   notifications:
-    url: ${NOTIFICATIONS_SERVICE_URL:http://bankapp-notifications:8087}
+    url: ${NOTIFICATIONS_SERVICE_URL:http://notifications:8087}
     
 server:
   port: 8081
