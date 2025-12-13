@@ -352,6 +352,7 @@ exchange:
     KEYCLOAK_AUTH_SERVER_URL: "http://bankapp-keycloak:8080"
     KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
     OAUTH2_CLIENT_ID: "exchange-service"
+    KAFKA_BOOTSTRAP_SERVERS: "bankapp-kafka:9092"
 
   resources:
     limits:
@@ -407,7 +408,7 @@ exchange-generator:
     KEYCLOAK_TOKEN_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/token"
     KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
     OAUTH2_CLIENT_ID: "exchange-generator-service"
-    EXCHANGE_SERVICE_URL: "http://bankapp-exchange:8084"
+    KAFKA_BOOTSTRAP_SERVERS: "bankapp-kafka:9092"
 
   resources:
     limits:

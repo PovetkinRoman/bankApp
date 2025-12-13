@@ -1,0 +1,21 @@
+spring:
+  kafka:
+    bootstrap-servers: ${spring.embedded.kafka.brokers}
+    consumer:
+      group-id: exchange-group-test
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+      auto-offset-reset: latest
+      enable-auto-commit: true
+      auto-commit-interval: 1000
+      max-poll-records: 1
+    topics:
+      exchange-rates: exchange-rates-test
+
+logging:
+  level:
+    ru.rpovetkin.exchange: DEBUG
+    org.springframework.kafka: DEBUG
+
