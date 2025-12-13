@@ -114,7 +114,7 @@ public class AccountService {
             user.getLogin(),
             "Новый счет создан",
             String.format("Счет в валюте %s успешно создан", request.getCurrency().getTitle())
-        ).subscribe();
+        );
 
         return AccountOperationResponse.builder()
                 .success(true)
@@ -177,7 +177,7 @@ public class AccountService {
             String.format("Счет пополнен на %s %s. Текущий баланс: %s %s", 
                 request.getAmount(), request.getCurrency().getTitle(),
                 savedAccount.getBalance(), savedAccount.getCurrency().getTitle())
-        ).subscribe();
+        );
 
         return AccountOperationResponse.builder()
                 .success(true)
@@ -250,7 +250,7 @@ public class AccountService {
             String.format("Со счета снято %s %s. Остаток: %s %s", 
                 request.getAmount(), request.getCurrency().getTitle(),
                 savedAccount.getBalance(), savedAccount.getCurrency().getTitle())
-        ).subscribe();
+        );
 
         return AccountOperationResponse.builder()
                 .success(true)

@@ -9,6 +9,16 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    consumer:
+      group-id: notifications-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+    topics:
+      notifications: account-notifications
 
 management:
   endpoints:
@@ -19,6 +29,7 @@ management:
 logging:
   level:
     ru.rpovetkin.notifications: DEBUG
+    org.springframework.kafka: DEBUG
     org.springframework.messaging: DEBUG
     org.springframework.web.socket: DEBUG
     root: INFO
