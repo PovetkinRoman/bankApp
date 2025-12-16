@@ -1,0 +1,16 @@
+spring:
+  kafka:
+    bootstrap-servers: ${spring.embedded.kafka.brokers}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: 0
+      retries: 0
+    topics:
+      exchange-rates: exchange-rates-test
+
+logging:
+  level:
+    ru.rpovetkin.exchange_generator: DEBUG
+    org.springframework.kafka: DEBUG
+

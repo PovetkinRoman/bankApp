@@ -2,11 +2,8 @@ replicaCount: 1
 
 image:
   repository: bankapp/blocker
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
   tag: "0.0.1-SNAPSHOT"
-
-imagePullSecrets:
-  - name: ghcr-secret
 
 service:
   type: ClusterIP
@@ -18,11 +15,11 @@ env:
 
 resources:
   limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
     cpu: 500m
     memory: 512Mi
-  requests:
-    cpu: 250m
-    memory: 256Mi
 
 startupProbe:
   httpGet:

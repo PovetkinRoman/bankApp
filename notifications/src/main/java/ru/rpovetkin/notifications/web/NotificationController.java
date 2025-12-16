@@ -26,9 +26,12 @@ public class NotificationController {
     
     /**
      * Отправить уведомление пользователю (для использования другими микросервисами)
+     * DEPRECATED: Теперь используется Kafka для межсервисной коммуникации
      */
+    @Deprecated
     @PostMapping("/send")
     public ResponseEntity<NotificationResponse> sendNotification(@RequestBody NotificationRequest request) {
+        log.warn("REST endpoint /send is deprecated. Use Kafka instead.");
         log.info("Received notification request for user {} from {}", 
                 request.getUserId(), request.getSource());
         

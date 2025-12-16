@@ -59,7 +59,7 @@ public class TransferService {
                             request.getFromUser(),
                             "Перевод заблокирован",
                             "Ваш перевод пользователю " + request.getToUser() + " заблокирован: " + blockerResponse.getReason()
-                        ).subscribe();
+                        );
                         
                         return Mono.just(TransferResponse.builder()
                                 .success(false)
@@ -140,14 +140,14 @@ public class TransferService {
                                                         "Перевод отправлен",
                                                         String.format("Перевод %s %s пользователю %s выполнен успешно", 
                                                             amountFrom, fromCurrency, request.getToUser())
-                                                    ).subscribe();
+                                                    );
                                                     
                                                     notificationService.sendSuccessNotification(
                                                         request.getToUser(),
                                                         "Получен перевод",
                                                         String.format("Вы получили перевод %s %s от пользователя %s", 
                                                             amountTo, toCurrency, request.getFromUser())
-                                                    ).subscribe();
+                                                    );
                                                     
                                                     return Mono.just(TransferResponse.builder()
                                                             .success(true)
