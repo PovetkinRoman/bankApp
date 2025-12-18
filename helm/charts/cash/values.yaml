@@ -24,6 +24,10 @@ env:
   ACCOUNTS_SERVICE_URL: "http://accounts:8081"
   BLOCKER_SERVICE_URL: "http://blocker:8086"
   NOTIFICATIONS_SERVICE_URL: "http://notifications:8087"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  ZIPKIN_BASE_URL: "http://bankapp-zipkin:9411"
+  ZIPKIN_ENABLED: "true"
+  TRACING_SAMPLE_RATE: "1.0"
 
 resources:
   limits:
