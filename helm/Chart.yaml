@@ -46,4 +46,8 @@ dependencies:
     version: 0.1.0
     repository: "file://charts/blocker"
     condition: blocker.enabled
+  - name: zipkin
+    version: 0.1.0
+    repository: "file://charts/zipkin"
+    condition: zipkin.enabled
 

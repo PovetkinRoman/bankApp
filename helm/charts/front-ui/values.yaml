@@ -24,6 +24,9 @@ env:
   CASH_SERVICE_URL: "http://cash:8082"
   TRANSFER_SERVICE_URL: "http://transfer:8083"
   EXCHANGE_SERVICE_URL: "http://exchange:8084"
+  ZIPKIN_BASE_URL: "http://zipkin:9411"
+  ZIPKIN_ENABLED: "true"
+  TRACING_SAMPLE_RATE: "1.0"
 
 resources:
   limits:

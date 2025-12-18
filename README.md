@@ -169,6 +169,7 @@ BankApp построен на микросервисной архитектур�
 ### Мониторинг
 - **Spring Boot Actuator**
 - **Kubernetes Health Checks** (liveness, readiness, startup probes)
+- **Zipkin Distributed Tracing** (Micrometer Tracing)
 
 ## 🚀 Быстрый старт
 
@@ -212,6 +213,7 @@ kubectl get pods -n test | grep kafka
 - PostgreSQL (база данных)
 - Keycloak (аутентификация)
 - Apache Kafka (message broker)
+- Zipkin (distributed tracing)
 - Все микросервисы (accounts, cash, transfer, exchange, exchange-generator, blocker, notifications)
 - Front-UI (веб-интерфейс)
 - Gateway API для маршрутизации
@@ -504,6 +506,7 @@ kubectl wait --for=condition=ready pod --all -n test --timeout=600s
 - `bankapp-postgresql-0` - База данных PostgreSQL
 - `bankapp-keycloak-*` - Identity Provider
 - `bankapp-kafka-*` - Kafka broker(s)
+- `bankapp-zipkin-*` - Distributed tracing server
 - `bankapp-accounts-*` - Сервис аккаунтов
 - `bankapp-cash-*` - Сервис операций с наличными
 - `bankapp-transfer-*` - Сервис переводов
@@ -532,6 +535,9 @@ kubectl port-forward -n test svc/notifications 8087:8087 &
 
 # Для Kafka (опционально, для отладки)
 kubectl port-forward -n test svc/kafka 9092:9092 &
+
+# Для Zipkin UI (distributed tracing)
+kubectl port-forward -n test svc/bankapp-zipkin 9411:9411 &
 ```
 
 #### Шаг 6: Проверка доступности приложения
@@ -544,11 +550,15 @@ open http://localhost:8080
 open http://localhost:8090
 # Логин: admin / admin
 
+# Zipkin UI (Distributed Tracing)
+open http://localhost:9411
+
 # Health checks для микросервисов
 curl http://localhost:8081/actuator/health  # Accounts
 curl http://localhost:8082/actuator/health  # Cash
 curl http://localhost:8083/actuator/health  # Transfer
 curl http://localhost:8087/actuator/health  # Notifications
+curl http://localhost:9411/health           # Zipkin
 ```
 
 #### Шаг 7: Тестирование через UI
@@ -849,6 +859,10 @@ curl http://localhost:8081/actuator/loggers
 - [KAFKA_VERIFICATION_JANE_TEST.md](KAFKA_VERIFICATION_JANE_TEST.md) - Верификация Kafka
 - [KAFKA_AT_LEAST_ONCE_TESTING.md](KAFKA_AT_LEAST_ONCE_TESTING.md) - Тесты гарантии доставки
 
+### Распределённая трассировка (Zipkin)
+- [ZIPKIN_INTEGRATION.md](ZIPKIN_INTEGRATION.md) - Полное руководство по Zipkin интеграции
+- [ZIPKIN_QUICK_START.md](ZIPKIN_QUICK_START.md) - Быстрый старт с Zipkin
+
 ### Быстрые гайды
 - [QUICK_TEST_GUIDE_RU.md](QUICK_TEST_GUIDE_RU.md) - Быстрое тестирование
 - [KAFKA_MODULES_COMPARISON.md](KAFKA_MODULES_COMPARISON.md) - Сравнение модулей
@@ -891,6 +905,7 @@ curl http://localhost:8081/actuator/loggers
 - Kubernetes health checks (liveness, readiness, startup)
 - Структурированное логирование
 - Kafka metrics и monitoring
+- Zipkin distributed tracing (Micrometer Tracing)
 
 ### ✅ CI/CD
 - Jenkins автоматизация с Docker
