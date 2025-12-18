@@ -14,6 +14,16 @@ data:
         username: ${DB_USER:root}
         password: ${DB_PASSWORD:root}
         driver-class-name: org.postgresql.Driver
+      
+      # Zipkin Distributed Tracing Configuration
+      zipkin:
+        base-url: ${ZIPKIN_BASE_URL:http://bankapp-zipkin:9411}
+        enabled: ${ZIPKIN_ENABLED:true}
+      
+      # Sleuth/Micrometer Tracing Configuration
+      sleuth:
+        sampler:
+          probability: ${TRACING_SAMPLE_RATE:1.0}
       jpa:
         hibernate:
           ddl-auto: none
@@ -60,5 +70,15 @@ data:
       endpoints:
         web:
           exposure:
-            include: health,info,loggers,refresh
+            include: health,info,loggers,refresh,metrics,prometheus
+      
+      # Tracing configuration
+      tracing:
+        sampling:
+          probability: ${TRACING_SAMPLE_RATE:1.0}
+      
+      # Zipkin exporter configuration
+      zipkin:
+        tracing:
+          endpoint: ${ZIPKIN_BASE_URL:http://bankapp-zipkin:9411}/api/v2/spans
 

@@ -27,6 +27,9 @@ env:
   DB_NAME: "bankapp"
   DB_USER: "root"
   DB_PASSWORD: "root"
+  ZIPKIN_BASE_URL: "http://bankapp-zipkin:9411"
+  ZIPKIN_ENABLED: "true"
+  TRACING_SAMPLE_RATE: "1.0"
 
 resources:
   limits:

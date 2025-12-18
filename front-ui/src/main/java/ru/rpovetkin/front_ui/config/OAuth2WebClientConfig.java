@@ -65,12 +65,14 @@ public class OAuth2WebClientConfig {
 
     @Bean
     @Primary
-    public WebClient oAuth2WebClient(OAuth2AuthorizedClientManager authorizedClientManager) {
+    public WebClient oAuth2WebClient(
+            OAuth2AuthorizedClientManager authorizedClientManager,
+            WebClient.Builder webClientBuilder) {  // Inject auto-configured builder with tracing
         ServletOAuth2AuthorizedClientExchangeFilterFunction oauth2Client =
                 new ServletOAuth2AuthorizedClientExchangeFilterFunction(authorizedClientManager);
         oauth2Client.setDefaultClientRegistrationId("keycloak");
         
-        return WebClient.builder()
+        return webClientBuilder
                 .filter(oauth2Client)
                 .build();
     }
