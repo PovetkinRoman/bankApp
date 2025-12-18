@@ -1,6 +1,8 @@
 package ru.rpovetkin.front_ui.config;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.reactive.function.client.WebClientCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -67,11 +69,21 @@ public class OAuth2WebClientConfig {
     @Primary
     public WebClient oAuth2WebClient(
             OAuth2AuthorizedClientManager authorizedClientManager,
-            WebClient.Builder webClientBuilder) {  // Inject auto-configured builder with tracing
+            WebClient.Builder webClientBuilder,
+            ObjectProvider<WebClientCustomizer> customizerProvider) {
+        
         ServletOAuth2AuthorizedClientExchangeFilterFunction oauth2Client =
                 new ServletOAuth2AuthorizedClientExchangeFilterFunction(authorizedClientManager);
         oauth2Client.setDefaultClientRegistrationId("keycloak");
         
+        // CRITICAL: Apply ALL WebClientCustomizers (including ObservationWebClientCustomizer
+        // which adds trace propagation) BEFORE building the WebClient.
+        // This ensures trace context headers (traceparent, b3) are added to outgoing HTTP requests.
+        customizerProvider.orderedStream().forEach(customizer -> {
+            customizer.customize(webClientBuilder);
+        });
+        
+        // Add OAuth2 filter after tracing is configured
         return webClientBuilder
                 .filter(oauth2Client)
                 .build();
