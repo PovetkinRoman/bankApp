@@ -4,18 +4,19 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
+import org.springframework.web.client.RestClient;
 import ru.rpovetkin.cash.config.BlockerLimitsConfig;
 import ru.rpovetkin.cash.dto.TransferCheckRequest;
 import ru.rpovetkin.cash.dto.TransferCheckResponse;
+
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class BlockerIntegrationService {
     
-    private final WebClient webClient;
+    private final RestClient restClient;
     private final BlockerLimitsConfig limitsConfig;
     
     @Value("${services.blocker.url:http://bankapp-blocker:8086}")
@@ -42,17 +43,15 @@ public class BlockerIntegrationService {
             // Obtain service token via client_credentials for service auth
             String accessToken = fetchServiceAccessToken();
 
-            Mono<TransferCheckResponse> responseMono = webClient
+            TransferCheckResponse response = restClient
                     .post()
                     .uri(blockerServiceUrl + "/api/blocker/check-transfer")
                     .headers(h -> { if (accessToken != null) h.setBearerAuth(accessToken); })
-                    .bodyValue(request)
+                    .body(request)
                     .retrieve()
-                    .bodyToMono(TransferCheckResponse.class)
-                    .doOnSuccess(resp -> log.info("[HTTP] Received response from blocker service"))
-                    .doOnError(err -> log.error("[HTTP] Error calling blocker service: {}", err.getMessage()));
-                    
-            TransferCheckResponse response = responseMono.block();
+                    .body(TransferCheckResponse.class);
+            
+            log.info("[HTTP] Received response from blocker service");
             
             if (response != null) {
                 log.info("Blocker check result: blocked={}, reason={}, checkId={}", 
@@ -88,14 +87,19 @@ public class BlockerIntegrationService {
         try {
             log.debug("[HTTP] Fetching OAuth2 token from Keycloak");
             String form = "grant_type=client_credentials&client_id=" + clientId + "&client_secret=" + clientSecret;
-            return webClient.post()
+            
+            @SuppressWarnings("unchecked")
+            Map<String, Object> tokenResponse = restClient.post()
                     .uri(tokenUri)
                     .header("Content-Type", "application/x-www-form-urlencoded")
-                    .bodyValue(form)
+                    .body(form)
                     .retrieve()
-                    .bodyToMono(java.util.Map.class)
-                    .map(m -> (String) m.get("access_token"))
-                    .block();
+                    .body(Map.class);
+            
+            if (tokenResponse != null && tokenResponse.containsKey("access_token")) {
+                return (String) tokenResponse.get("access_token");
+            }
+            return null;
         } catch (Exception e) {
             log.warn("Failed to fetch service access token: {}", e.getMessage());
             return null;
