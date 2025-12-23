@@ -116,7 +116,7 @@ public class TransferController {
             }
             
             // Проверяем баланс отправителя
-            List<AccountDto> fromUserAccounts = accountsService.getUserAccounts(fromUser).block();
+            List<AccountDto> fromUserAccounts = accountsService.getUserAccounts(fromUser);
             AccountDto fromAccount = fromUserAccounts.stream()
                     .filter(acc -> acc.getCurrency().equals(fromCurrency) && acc.isExists())
                     .findFirst()
@@ -132,7 +132,7 @@ public class TransferController {
             
             // Всегда используем transfer сервис (включая переводы между своими счетами),
             // чтобы единообразно проходить через проверки blocker и общую бизнес-логику
-            List<AccountDto> toUserAccounts = accountsService.getUserAccounts(toUser).block();
+            List<AccountDto> toUserAccounts = accountsService.getUserAccounts(toUser);
             boolean hasTargetAccount = toUserAccounts.stream()
                     .anyMatch(acc -> acc.getCurrency().equals(toCurrency) && acc.isExists());
 
@@ -150,7 +150,7 @@ public class TransferController {
                     convertedAmount,
                     String.format("Transfer %s %s to %s (credit %s %s)",
                             amount, fromCurrency.name(), toUser, convertedAmount, toCurrency.name())
-            ).block();
+            );
 
             if (!transferResponse.isSuccess()) {
                 log.warn("Transfer service failed: {}", transferResponse.getMessage());
@@ -179,7 +179,7 @@ public class TransferController {
             }
             
             // Получаем актуальные курсы валют
-            List<CurrencyRateDisplayDto> rates = exchangeService.getExchangeRatesForDisplay().block();
+            List<CurrencyRateDisplayDto> rates = exchangeService.getExchangeRatesForDisplay();
             
             java.math.BigDecimal fromToRub = java.math.BigDecimal.ONE; // RUB = 1
             java.math.BigDecimal toToRub = java.math.BigDecimal.ONE;   // RUB = 1

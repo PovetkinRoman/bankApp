@@ -41,6 +41,13 @@ data:
           resourceserver:
             jwt:
               jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs}
+      kafka:
+        bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+        producer:
+          key-serializer: org.apache.kafka.common.serialization.StringSerializer
+          value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+        topics:
+          notifications: account-notifications
     
     keycloak:
       auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://keycloak:8080}

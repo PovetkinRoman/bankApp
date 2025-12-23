@@ -3,9 +3,9 @@ package ru.rpovetkin.front_ui.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
+import org.springframework.web.client.RestClient;
 import ru.rpovetkin.front_ui.dto.CurrencyRateDisplayDto;
 
 import java.math.BigDecimal;
@@ -19,7 +19,7 @@ import java.util.Map;
 @Slf4j
 public class ExchangeService {
 
-    private final WebClient webClient;
+    private final RestClient restClient;
 
     @Value("${exchange.service.url}")
     private String exchangeServiceUrl;
@@ -27,25 +27,25 @@ public class ExchangeService {
     /**
      * Получить курсы валют для отображения на фронте
      */
-    public Mono<List<CurrencyRateDisplayDto>> getExchangeRatesForDisplay() {
+    public List<CurrencyRateDisplayDto> getExchangeRatesForDisplay() {
         log.debug("Getting exchange rates from exchange service for display");
-
         log.debug("Using exchange service URL: {}", exchangeServiceUrl);
-        return webClient
-                .get()
-                .uri(exchangeServiceUrl + "/api/exchange/rates")
-                .retrieve()
-                .bodyToMono(List.class)
-                .map(response -> {
-                    if (response != null) {
-                        @SuppressWarnings("unchecked")
-                        List<Object> responseList = (List<Object>) response;
-                        return convertToDisplayFormat(responseList);
-                    }
-                    return getDefaultRates();
-                })
-                .doOnError(error -> log.error("Error getting exchange rates from exchange service: {}", error.getMessage(), error))
-                .onErrorReturn(getDefaultRates());
+        
+        try {
+            List<Object> response = restClient
+                    .get()
+                    .uri(exchangeServiceUrl + "/api/exchange/rates")
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<List<Object>>() {});
+            
+            if (response != null) {
+                return convertToDisplayFormat(response);
+            }
+            return getDefaultRates();
+        } catch (Exception error) {
+            log.error("Error getting exchange rates from exchange service: {}", error.getMessage(), error);
+            return getDefaultRates();
+        }
     }
 
     /**
