@@ -195,6 +195,8 @@ accounts:
     DB_NAME: "bankapp"
     DB_USER: "root"
     DB_PASSWORD: "root"
+    ZIPKIN_BASE_URL: "http://bankapp-zipkin:9411"
+    TRACING_SAMPLE_RATE: "1.0"
 
   resources:
     limits:
@@ -463,6 +465,8 @@ notifications:
   env:
     KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
     KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+    ZIPKIN_BASE_URL: "http://bankapp-zipkin:9411"
+    TRACING_SAMPLE_RATE: "1.0"
 
   resources:
     limits:

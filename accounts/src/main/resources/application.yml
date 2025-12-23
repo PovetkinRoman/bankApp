@@ -27,6 +27,9 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      observation-enabled: true
+    template:
+      observation-enabled: true
     topics:
       notifications: account-notifications
 
@@ -51,6 +54,9 @@ management:
   tracing:
     sampling:
       probability: ${TRACING_SAMPLE_RATE:1.0}
+    # Включаем пропагацию для Kafka
+    propagation:
+      type: b3
   
   # Zipkin exporter configuration
   zipkin:

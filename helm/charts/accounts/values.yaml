@@ -22,6 +22,7 @@ env:
   KEYCLOAK_JWK_SET_URI: "http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
   OAUTH2_CLIENT_ID: "accounts-service"
   NOTIFICATIONS_SERVICE_URL: "http://notifications:8087"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
   DB_HOST: "bankapp-postgresql"
   DB_PORT: "5432"
   DB_NAME: "bankapp"

@@ -46,6 +46,8 @@ data:
         producer:
           key-serializer: org.apache.kafka.common.serialization.StringSerializer
           value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+        template:
+          observation-enabled: true
         topics:
           notifications: account-notifications
     
@@ -74,6 +76,8 @@ data:
       tracing:
         sampling:
           probability: ${TRACING_SAMPLE_RATE:1.0}
+        propagation:
+          type: b3
       
       # Zipkin exporter configuration
       zipkin:
@@ -88,4 +92,3 @@ data:
         root: INFO
       pattern:
         console: "%d{HH:mm:ss.SSS} [%thread] [%X{traceId}/%X{spanId}] %-5level %logger{36} - %msg%n"
-

@@ -1,5 +1,6 @@
 package ru.rpovetkin.accounts.config;
 
+import io.micrometer.observation.ObservationRegistry;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,7 +17,7 @@ import java.util.Map;
 
 /**
  * Конфигурация Kafka Producer для отправки уведомлений
- * Настроена для гарантии доставки "At least once"
+ * Настроена для гарантии доставки "At least once" с поддержкой distributed tracing
  */
 @Configuration
 public class KafkaProducerConfig {
@@ -58,8 +59,12 @@ public class KafkaProducerConfig {
     }
 
     @Bean
-    public KafkaTemplate<String, NotificationRequest> kafkaTemplate() {
-        return new KafkaTemplate<>(producerFactory());
+    public KafkaTemplate<String, NotificationRequest> kafkaTemplate(
+            ProducerFactory<String, NotificationRequest> producerFactory,
+            ObservationRegistry observationRegistry) {
+        KafkaTemplate<String, NotificationRequest> template = new KafkaTemplate<>(producerFactory);
+        // Включаем Micrometer Observation для автоматической пропагации trace context
+        template.setObservationEnabled(true);
+        return template;
     }
 }
-
