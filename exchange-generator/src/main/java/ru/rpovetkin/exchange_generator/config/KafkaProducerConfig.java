@@ -16,7 +16,7 @@ import java.util.Map;
 
 /**
  * Конфигурация Kafka Producer для отправки курсов валют
- * Настроена для гарантии доставки "At most once" с поддержкой ordered messages
+ * Настроена для гарантии доставки "At most once" с поддержкой ordered messages и distributed tracing
  */
 @Configuration
 public class KafkaProducerConfig {
@@ -64,8 +64,11 @@ public class KafkaProducerConfig {
     }
 
     @Bean
-    public KafkaTemplate<String, ExchangeRateUpdateDto> exchangeRateKafkaTemplate() {
-        return new KafkaTemplate<>(exchangeRateProducerFactory());
+    public KafkaTemplate<String, ExchangeRateUpdateDto> exchangeRateKafkaTemplate(
+            ProducerFactory<String, ExchangeRateUpdateDto> exchangeRateProducerFactory) {
+        KafkaTemplate<String, ExchangeRateUpdateDto> template = new KafkaTemplate<>(exchangeRateProducerFactory);
+        // Включаем Micrometer Observation для автоматической пропагации trace context
+        template.setObservationEnabled(true);
+        return template;
     }
 }
-

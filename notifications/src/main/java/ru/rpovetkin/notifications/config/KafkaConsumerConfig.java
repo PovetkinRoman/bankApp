@@ -1,6 +1,5 @@
 package ru.rpovetkin.notifications.config;
 
-import io.micrometer.observation.ObservationRegistry;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -64,8 +63,7 @@ public class KafkaConsumerConfig {
 
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, NotificationRequest> kafkaListenerContainerFactory(
-            ConsumerFactory<String, NotificationRequest> consumerFactory,
-            ObservationRegistry observationRegistry) {
+            ConsumerFactory<String, NotificationRequest> consumerFactory) {
         ConcurrentKafkaListenerContainerFactory<String, NotificationRequest> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory);

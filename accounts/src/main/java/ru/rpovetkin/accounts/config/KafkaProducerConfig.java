@@ -1,6 +1,5 @@
 package ru.rpovetkin.accounts.config;
 
-import io.micrometer.observation.ObservationRegistry;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -60,8 +59,7 @@ public class KafkaProducerConfig {
 
     @Bean
     public KafkaTemplate<String, NotificationRequest> kafkaTemplate(
-            ProducerFactory<String, NotificationRequest> producerFactory,
-            ObservationRegistry observationRegistry) {
+            ProducerFactory<String, NotificationRequest> producerFactory) {
         KafkaTemplate<String, NotificationRequest> template = new KafkaTemplate<>(producerFactory);
         // Включаем Micrometer Observation для автоматической пропагации trace context
         template.setObservationEnabled(true);
