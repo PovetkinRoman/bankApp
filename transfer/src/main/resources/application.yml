@@ -2,16 +2,6 @@ spring:
   application:
     name: transfer
   
-  # Zipkin Distributed Tracing Configuration
-  zipkin:
-    base-url: ${ZIPKIN_BASE_URL:http://bankapp-zipkin:9411}
-    enabled: ${ZIPKIN_ENABLED:true}
-  
-  # Sleuth/Micrometer Tracing Configuration
-  sleuth:
-    sampler:
-      probability: ${TRACING_SAMPLE_RATE:1.0}
-  
   security:
     oauth2:
       client:
@@ -43,7 +33,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,loggers,refresh,metrics,prometheus
+        include: health,info,loggers,refresh,metrics,prometheus,traces
   
   # Tracing configuration
   tracing:
@@ -54,6 +44,15 @@ management:
   zipkin:
     tracing:
       endpoint: ${ZIPKIN_BASE_URL:http://bankapp-zipkin:9411}/api/v2/spans
+
+logging:
+  level:
+    ru.rpovetkin.transfer: INFO
+    org.springframework.web: INFO
+    org.springframework.kafka: INFO
+    root: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] [%X{traceId}/%X{spanId}] %-5level %logger{36} - %msg%n"
 
 services:
   accounts:

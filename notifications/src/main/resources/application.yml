@@ -5,16 +5,6 @@ spring:
   application:
     name: notifications
   
-  # Zipkin Distributed Tracing Configuration
-  zipkin:
-    base-url: ${ZIPKIN_BASE_URL:http://bankapp-zipkin:9411}
-    enabled: ${ZIPKIN_ENABLED:true}
-  
-  # Sleuth/Micrometer Tracing Configuration
-  sleuth:
-    sampler:
-      probability: ${TRACING_SAMPLE_RATE:1.0}
-  
   security:
     oauth2:
       resourceserver:
@@ -35,7 +25,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,loggers,metrics,prometheus
+        include: health,info,loggers,metrics,prometheus,traces
   
   # Tracing configuration
   tracing:
@@ -49,10 +39,9 @@ management:
 
 logging:
   level:
-    ru.rpovetkin.notifications: DEBUG
-    org.springframework.kafka: DEBUG
-    org.springframework.messaging: DEBUG
-    org.springframework.web.socket: DEBUG
+    ru.rpovetkin.notifications: INFO
+    org.springframework.kafka: INFO
+    org.springframework.messaging: INFO
     root: INFO
   pattern:
-    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{HH:mm:ss.SSS} [%thread] [%X{traceId}/%X{spanId}] %-5level %logger{36} - %msg%n"

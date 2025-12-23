@@ -38,18 +38,18 @@ public class AccountsService {
     private String accountsServiceUrl;
     
     public Mono<UserRegistrationResponse> registerUser(UserRegistrationRequest request) {
-        log.info("Sending registration request to accounts service for user: {}", request.getLogin());
+        log.info("[HTTP] Sending registration request to accounts service for user: {}", request.getLogin());
+        log.info("[HTTP] Calling accounts service: POST {}/api/users/register", accountsServiceUrl);
         
-        log.info("Using accounts service URL: {}", accountsServiceUrl);
         return webClient
                 .post()
                 .uri(accountsServiceUrl + "/api/users/register")
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(UserRegistrationResponse.class)
-                .doOnSuccess(response -> log.info("Received response from accounts service: success={}", 
+                .doOnSuccess(response -> log.info("[HTTP] Received response from accounts service: success={}", 
                         response != null ? response.isSuccess() : false))
-                .doOnError(error -> log.error("Error calling accounts service: {}", error.getMessage(), error))
+                .doOnError(error -> log.error("[HTTP] Error calling accounts service: {}", error.getMessage(), error))
                 .onErrorReturn(UserRegistrationResponse.builder()
                         .success(false)
                         .message("Service unavailable")
@@ -57,9 +57,9 @@ public class AccountsService {
     }
     
     public Mono<Boolean> authenticateUser(AuthenticationRequest request) {
-        log.info("Authenticating user: {}", request.getLogin());
+        log.info("[HTTP] Authenticating user: {}", request.getLogin());
+        log.info("[HTTP] Calling accounts service: POST {}/api/users/authenticate", accountsServiceUrl);
         
-        log.debug("Using accounts service URL: {}", accountsServiceUrl);
         return webClient
                 .post()
                 .uri(accountsServiceUrl + "/api/users/authenticate")
@@ -77,9 +77,9 @@ public class AccountsService {
     }
     
     public Mono<UserDto> getUserByLogin(String login) {
-        log.info("Getting user by login: {}", login);
+        log.info("[HTTP] Getting user by login: {}", login);
+        log.info("[HTTP] Calling accounts service: GET {}/api/users/{}", accountsServiceUrl, login);
         
-        log.debug("Using accounts service URL: {}", accountsServiceUrl);
         return webClient
                 .get()
                 .uri(accountsServiceUrl + "/api/users/" + login)
@@ -178,9 +178,9 @@ public class AccountsService {
     }
     
     public Mono<List<AccountDto>> getUserAccounts(String login) {
-        log.info("Getting user accounts for: {}", login);
+        log.info("[HTTP] Getting user accounts for: {}", login);
+        log.info("[HTTP] Calling accounts service: GET {}/api/accounts/{}", accountsServiceUrl, login);
         
-        log.debug("Using accounts service URL: {}", accountsServiceUrl);
         return webClient
                 .get()
                 .uri(accountsServiceUrl + "/api/accounts/" + login)

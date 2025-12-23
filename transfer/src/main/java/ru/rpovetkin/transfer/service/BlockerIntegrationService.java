@@ -14,7 +14,7 @@ import ru.rpovetkin.transfer.dto.TransferCheckResponse;
 @Slf4j
 public class BlockerIntegrationService {
     
-    private final WebClient.Builder webClientBuilder;
+    private final WebClient webClient;
     
     @Value("${services.blocker.url:http://bankapp-blocker:8086}")
     private String blockerServiceUrl;
@@ -32,21 +32,22 @@ public class BlockerIntegrationService {
      * Проверить перевод в blocker сервисе
      */
     public Mono<TransferCheckResponse> checkTransfer(TransferCheckRequest request) {
-        log.info("Checking transfer with blocker service: {} -> {} amount: {}", 
+        log.info("[HTTP] Checking transfer with blocker service: {} -> {} amount: {}", 
                 request.getFromUser(), request.getToUser(), request.getAmount());
         
         return fetchServiceAccessToken()
                 .flatMap(accessToken -> {
-                    WebClient webClient = webClientBuilder.build();
-                    
                     return Mono.just(blockerServiceUrl)
+                            .doOnNext(url -> log.info("[HTTP] Calling blocker service: POST {}/api/blocker/check-transfer", url))
                             .flatMap(serviceUrl -> webClient
                                     .post()
                                     .uri(serviceUrl + "/api/blocker/check-transfer")
                                     .headers(h -> { if (accessToken != null) h.setBearerAuth(accessToken); })
                                     .bodyValue(request)
                                     .retrieve()
-                                    .bodyToMono(TransferCheckResponse.class))
+                                    .bodyToMono(TransferCheckResponse.class)
+                                    .doOnSuccess(resp -> log.info("[HTTP] Received response from blocker service: blocked={}", resp != null ? resp.isBlocked() : "null"))
+                                    .doOnError(err -> log.error("[HTTP] Error calling blocker service: {}", err.getMessage())))
                             .map(response -> {
                                 if (response != null) {
                                     log.info("Blocker check result: blocked={}, reason={}, checkId={}", 
@@ -64,7 +65,8 @@ public class BlockerIntegrationService {
 
     private Mono<String> fetchServiceAccessToken() {
         String form = "grant_type=client_credentials&client_id=" + clientId + "&client_secret=" + clientSecret;
-        return webClientBuilder.build().post()
+        log.debug("[HTTP] Fetching OAuth2 token from Keycloak");
+        return webClient.post()
                 .uri(tokenUri)
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .bodyValue(form)

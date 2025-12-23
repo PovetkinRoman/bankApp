@@ -30,16 +30,17 @@ public class AccountsIntegrationService {
      * Получить список существующих счетов пользователя
      */
     public Mono<List<AccountDto>> getExistingUserAccounts(String login) {
-        log.info("Getting existing accounts for user: {}", login);
-        log.debug("Using accounts service URL: {}", accountsServiceUrl);
+        log.info("[HTTP] Getting existing accounts for user: {}", login);
+        log.info("[HTTP] Calling accounts service: GET {}/api/accounts/{}", accountsServiceUrl, login);
         
         return webClient
                 .get()
                 .uri(accountsServiceUrl + "/api/accounts/" + login)
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<List<AccountApiResponse>>() {})
+                .doOnSuccess(resp -> log.info("[HTTP] Received response from accounts service"))
                 .retry(2) // Retry up to 2 times on failure
-                .doOnError(throwable -> log.warn("Error getting accounts for user {}: {}", login, throwable.getMessage()))
+                .doOnError(throwable -> log.error("[HTTP] Error getting accounts for user {}: {}", login, throwable.getMessage()))
                 .map(response -> {
                     if (response != null) {
                         List<AccountDto> accounts = response.stream()
@@ -62,7 +63,7 @@ public class AccountsIntegrationService {
      * Выполнить операцию пополнения счета
      */
     public Mono<Boolean> depositToAccount(String login, Currency currency, BigDecimal amount) {
-        log.info("Depositing {} {} to account for user: {}", amount, currency, login);
+        log.info("[HTTP] Depositing {} {} to account for user: {}", amount, currency, login);
         
         AccountOperationRequest request = AccountOperationRequest.builder()
                 .login(login)
@@ -70,7 +71,7 @@ public class AccountsIntegrationService {
                 .amount(amount)
                 .build();
         
-        log.debug("Using accounts service URL: {}", accountsServiceUrl);
+        log.info("[HTTP] Calling accounts service: POST {}/api/accounts/deposit", accountsServiceUrl);
         return webClient
                 .post()
                 .uri(accountsServiceUrl + "/api/accounts/deposit")
@@ -78,8 +79,9 @@ public class AccountsIntegrationService {
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(AccountOperationResponse.class)
+                .doOnSuccess(resp -> log.info("[HTTP] Received response from accounts service"))
                 .retry(2) // Retry up to 2 times on failure
-                .doOnError(throwable -> log.warn("Error calling accounts service: {}", throwable.getMessage()))
+                .doOnError(throwable -> log.error("[HTTP] Error calling accounts service: {}", throwable.getMessage()))
                 .map(response -> {
                     boolean success = response != null && response.isSuccess();
                     String message = response != null ? response.getMessage() : "No response";
@@ -94,7 +96,7 @@ public class AccountsIntegrationService {
      * Выполнить операцию снятия с счета
      */
     public Mono<Boolean> withdrawFromAccount(String login, Currency currency, BigDecimal amount) {
-        log.info("Withdrawing {} {} from account for user: {}", amount, currency, login);
+        log.info("[HTTP] Withdrawing {} {} from account for user: {}", amount, currency, login);
         
         AccountOperationRequest request = AccountOperationRequest.builder()
                 .login(login)
@@ -102,7 +104,7 @@ public class AccountsIntegrationService {
                 .amount(amount)
                 .build();
         
-        log.debug("Using accounts service URL: {}", accountsServiceUrl);
+        log.info("[HTTP] Calling accounts service: POST {}/api/accounts/withdraw", accountsServiceUrl);
         return webClient
                 .post()
                 .uri(accountsServiceUrl + "/api/accounts/withdraw")
@@ -110,8 +112,9 @@ public class AccountsIntegrationService {
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(AccountOperationResponse.class)
+                .doOnSuccess(resp -> log.info("[HTTP] Received response from accounts service"))
                 .retry(2) // Retry up to 2 times on failure
-                .doOnError(throwable -> log.warn("Error calling accounts service: {}", throwable.getMessage()))
+                .doOnError(throwable -> log.error("[HTTP] Error calling accounts service: {}", throwable.getMessage()))
                 .map(response -> {
                     boolean success = response != null && response.isSuccess();
                     String message = response != null ? response.getMessage() : "No response";

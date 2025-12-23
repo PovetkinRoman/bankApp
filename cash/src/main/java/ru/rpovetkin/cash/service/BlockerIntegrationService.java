@@ -34,8 +34,9 @@ public class BlockerIntegrationService {
      * Проверить операцию в blocker сервисе
      */
     public TransferCheckResponse checkOperation(TransferCheckRequest request) {
-        log.info("Checking operation with blocker service: {} {} for user {} using URL: {}", 
-                request.getTransferType(), request.getAmount(), request.getFromUser(), blockerServiceUrl);
+        log.info("[HTTP] Checking operation with blocker service: {} {} for user {}", 
+                request.getTransferType(), request.getAmount(), request.getFromUser());
+        log.info("[HTTP] Calling blocker service: POST {}/api/blocker/check-transfer", blockerServiceUrl);
         
         try {
             // Obtain service token via client_credentials for service auth
@@ -47,7 +48,9 @@ public class BlockerIntegrationService {
                     .headers(h -> { if (accessToken != null) h.setBearerAuth(accessToken); })
                     .bodyValue(request)
                     .retrieve()
-                    .bodyToMono(TransferCheckResponse.class);
+                    .bodyToMono(TransferCheckResponse.class)
+                    .doOnSuccess(resp -> log.info("[HTTP] Received response from blocker service"))
+                    .doOnError(err -> log.error("[HTTP] Error calling blocker service: {}", err.getMessage()));
                     
             TransferCheckResponse response = responseMono.block();
             
@@ -83,6 +86,7 @@ public class BlockerIntegrationService {
 
     private String fetchServiceAccessToken() {
         try {
+            log.debug("[HTTP] Fetching OAuth2 token from Keycloak");
             String form = "grant_type=client_credentials&client_id=" + clientId + "&client_secret=" + clientSecret;
             return webClient.post()
                     .uri(tokenUri)

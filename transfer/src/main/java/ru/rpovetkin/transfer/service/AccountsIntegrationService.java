@@ -15,7 +15,7 @@ import java.util.Map;
 @Slf4j
 public class AccountsIntegrationService {
 
-    private final WebClient.Builder webClientBuilder;
+    private final WebClient webClient;
 
     @Value("${services.accounts.url:http://bankapp-accounts:8081}")
     private String accountsServiceUrl;
@@ -33,12 +33,11 @@ public class AccountsIntegrationService {
      * Выполняет операцию со счетом пользователя
      */
     public Mono<Boolean> performAccountOperation(String login, String currency, BigDecimal amount, String operationType) {
-        log.info("Performing account operation: {} {} {} for user {}",
+        log.info("[HTTP] Performing account operation: {} {} {} for user {}",
                 operationType, amount, currency, login);
         
         return fetchServiceAccessToken()
                 .flatMap(accessToken -> {
-                    WebClient webClient = webClientBuilder.build();
                     
                     Map<String, Object> request = Map.of(
                         "login", login,
@@ -55,6 +54,7 @@ public class AccountsIntegrationService {
                     }
                     
                     return Mono.just(accountsServiceUrl)
+                            .doOnNext(url -> log.info("[HTTP] Calling accounts service: POST {}{}", url, endpoint))
                             .flatMap(serviceUrl -> webClient
                                     .post()
                                     .uri(serviceUrl + endpoint)
@@ -62,6 +62,8 @@ public class AccountsIntegrationService {
                                     .bodyValue(request)
                                     .retrieve()
                                     .bodyToMono(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {})
+                                    .doOnSuccess(resp -> log.info("[HTTP] Received response from accounts service"))
+                                    .doOnError(err -> log.error("[HTTP] Error calling accounts service: {}", err.getMessage()))
                                     .onErrorReturn(Map.of("success", false, "message", "Service unavailable")))
                             .map(response -> {
                                 if (response != null && Boolean.TRUE.equals(response.get("success"))) {
@@ -82,13 +84,12 @@ public class AccountsIntegrationService {
      * Проверяет баланс пользователя
      */
     public Mono<BigDecimal> getUserBalance(String login, String currency) {
-        log.info("Getting balance for user {} in currency {}", login, currency);
+        log.info("[HTTP] Getting balance for user {} in currency {}", login, currency);
         
         return fetchServiceAccessToken()
                 .flatMap(accessToken -> {
-                    WebClient webClient = webClientBuilder.build();
-                    
                     return Mono.just(accountsServiceUrl)
+                            .doOnNext(url -> log.info("[HTTP] Calling accounts service: GET {}/api/accounts/{}", url, login))
                             .flatMap(serviceUrl -> webClient
                                     .get()
                                     .uri(serviceUrl + "/api/accounts/" + login)
@@ -149,7 +150,8 @@ public class AccountsIntegrationService {
 
     private Mono<String> fetchServiceAccessToken() {
         String form = "grant_type=client_credentials&client_id=" + clientId + "&client_secret=" + clientSecret;
-        return webClientBuilder.build().post()
+        log.debug("[HTTP] Fetching OAuth2 token from Keycloak");
+        return webClient.post()
                 .uri(tokenUri)
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .bodyValue(form)
