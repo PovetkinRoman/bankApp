@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import ru.rpovetkin.blocker.config.BlockerLimitsConfig;
 import ru.rpovetkin.blocker.dto.TransferCheckRequest;
 import ru.rpovetkin.blocker.dto.TransferCheckResponse;
+import ru.rpovetkin.blocker.metrics.BlockerMetrics;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -16,6 +17,7 @@ import java.util.UUID;
 public class BlockerService {
     
     private final BlockerLimitsConfig limitsConfig;
+    private final BlockerMetrics blockerMetrics;
     
    
     public TransferCheckResponse checkTransfer(TransferCheckRequest request) {
@@ -33,6 +35,11 @@ public class BlockerService {
                     .riskLevel("HIGH")
                     .checkId(checkId)
                     .build();
+            
+            // Записываем метрику заблокированной операции
+            blockerMetrics.recordBlockedOperation(request.getFromUser(), request.getToUser(), 
+                    request.getCurrency(), "limit_exceeded", "HIGH");
+            
             log.info("Transfer check result (ID: {}): blocked={}, reason={}, riskLevel={}", 
                     checkId, true, response.getReason(), response.getRiskLevel());
             return response;
@@ -51,10 +58,31 @@ public class BlockerService {
                 .checkId(checkId)
                 .build();
         
+        // Записываем метрику в зависимости от результата проверки
+        if (shouldBlock) {
+            blockerMetrics.recordBlockedOperation(request.getFromUser(), request.getToUser(), 
+                    request.getCurrency(), getBlockingReasonTag(riskLevel), riskLevel);
+        } else {
+            blockerMetrics.recordAllowedOperation(request.getFromUser(), request.getToUser(), 
+                    request.getCurrency(), riskLevel);
+        }
+        
         log.info("Transfer check result (ID: {}): blocked={}, reason={}, riskLevel={}", 
                 checkId, shouldBlock, reason, riskLevel);
         
         return response;
+    }
+    
+    /**
+     * Возвращает тег для метрики причины блокировки
+     */
+    private String getBlockingReasonTag(String riskLevel) {
+        return switch (riskLevel) {
+            case "HIGH" -> "high_risk_amount";
+            case "MEDIUM" -> "medium_risk_amount";
+            case "LOW" -> "security_rules";
+            default -> "suspicious_activity";
+        };
     }
     
     /**

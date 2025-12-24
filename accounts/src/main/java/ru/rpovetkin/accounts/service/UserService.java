@@ -13,6 +13,7 @@ import ru.rpovetkin.accounts.dto.UserDto;
 import ru.rpovetkin.accounts.dto.UserRegistrationRequest;
 import ru.rpovetkin.accounts.dto.UserRegistrationResponse;
 import ru.rpovetkin.accounts.entity.User;
+import ru.rpovetkin.accounts.metrics.AuthMetrics;
 import ru.rpovetkin.accounts.repository.UserRepository;
 
 import java.time.LocalDate;
@@ -28,6 +29,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final NotificationService notificationService;
+    private final AuthMetrics authMetrics;
     
     @Transactional
     public UserRegistrationResponse registerUser(UserRegistrationRequest request) {
@@ -121,9 +123,18 @@ public class UserService {
     }
     
     public boolean authenticateUser(String login, String password) {
-        return userRepository.findByLogin(login)
+        boolean authenticated = userRepository.findByLogin(login)
                 .map(user -> passwordEncoder.matches(password, user.getPasswordHash()))
                 .orElse(false);
+        
+        // Записываем метрику успешного/неуспешного логина
+        if (authenticated) {
+            authMetrics.recordSuccessfulLogin(login);
+        } else {
+            authMetrics.recordFailedLogin(login);
+        }
+        
+        return authenticated;
     }
     
     @Transactional

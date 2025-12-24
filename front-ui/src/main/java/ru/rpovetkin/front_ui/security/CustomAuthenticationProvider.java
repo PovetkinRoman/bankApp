@@ -10,6 +10,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 import ru.rpovetkin.front_ui.dto.AuthenticationRequest;
+import ru.rpovetkin.front_ui.metrics.AuthMetrics;
 import ru.rpovetkin.front_ui.service.AccountsService;
 
 import java.util.Collections;
@@ -20,6 +21,7 @@ import java.util.Collections;
 public class CustomAuthenticationProvider implements AuthenticationProvider {
     
     private final AccountsService accountsService;
+    private final AuthMetrics authMetrics;
     
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
@@ -49,6 +51,7 @@ public class CustomAuthenticationProvider implements AuthenticationProvider {
             
             if (isAuthenticated) {
                 log.info("Authentication successful for user: {}", username);
+                authMetrics.recordSuccessfulLogin(username);
                 return new UsernamePasswordAuthenticationToken(
                         username, 
                         password,
@@ -56,6 +59,7 @@ public class CustomAuthenticationProvider implements AuthenticationProvider {
                 );
             } else {
                 log.warn("Authentication failed for user: {}", username);
+                authMetrics.recordFailedLogin(username);
                 throw new BadCredentialsException("Invalid credentials");
             }
             

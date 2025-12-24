@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import ru.rpovetkin.transfer.dto.TransferCheckRequest;
 import ru.rpovetkin.transfer.dto.TransferRequest;
 import ru.rpovetkin.transfer.dto.TransferResponse;
+import ru.rpovetkin.transfer.metrics.TransferMetrics;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -21,6 +22,7 @@ public class TransferService {
     private final BlockerIntegrationService blockerIntegrationService;
     private final NotificationIntegrationService notificationService;
     private final AccountsIntegrationService accountsIntegrationService;
+    private final TransferMetrics transferMetrics;
     
     /**
      * Выполнить перевод между пользователями
@@ -33,6 +35,10 @@ public class TransferService {
         // Валидация запроса
         List<String> errors = validateRequest(request);
         if (!errors.isEmpty()) {
+            String fromCurrency = request.getFromCurrency() != null ? request.getFromCurrency() : request.getCurrency();
+            String toCurrency = request.getToCurrency() != null ? request.getToCurrency() : request.getCurrency();
+            transferMetrics.recordFailedTransfer(request.getFromUser(), request.getToUser(), 
+                    fromCurrency, toCurrency, "validation_failed");
             return TransferResponse.builder()
                     .success(false)
                     .message("Перевод посчитался подозрительным и был отклонен")
@@ -53,6 +59,12 @@ public class TransferService {
         var blockerResponse = blockerIntegrationService.checkTransfer(blockerRequest);
         
         if (blockerResponse.isBlocked()) {
+            // Извлекаем параметры для метрик
+            String fromCurrency = request.getFromCurrency() != null ? request.getFromCurrency() : request.getCurrency();
+            String toCurrency = request.getToCurrency() != null ? request.getToCurrency() : request.getCurrency();
+            transferMetrics.recordFailedTransfer(request.getFromUser(), request.getToUser(), 
+                    fromCurrency, toCurrency, "blocked_by_security");
+            
             // Отправляем уведомления о блокировке обоим пользователям
             notificationService.sendBlockedNotification(
                 request.getFromUser(),
@@ -77,6 +89,8 @@ public class TransferService {
         BigDecimal fromBalance = accountsIntegrationService.getUserBalance(request.getFromUser(), fromCurrency);
         
         if (fromBalance.compareTo(amountFrom) < 0) {
+            transferMetrics.recordFailedTransfer(request.getFromUser(), request.getToUser(), 
+                    fromCurrency, toCurrency, "insufficient_funds");
             return TransferResponse.builder()
                     .success(false)
                     .message("Недостаточно средств на счете")
@@ -86,6 +100,8 @@ public class TransferService {
         
         Boolean hasAccount = accountsIntegrationService.hasAccount(request.getToUser(), toCurrency);
         if (!hasAccount) {
+            transferMetrics.recordFailedTransfer(request.getFromUser(), request.getToUser(), 
+                    fromCurrency, toCurrency, "recipient_account_not_found");
             return TransferResponse.builder()
                     .success(false)
                     .message("У получателя нет счета в указанной валюте")
@@ -102,6 +118,8 @@ public class TransferService {
         );
         
         if (!debitSuccess) {
+            transferMetrics.recordFailedTransfer(request.getFromUser(), request.getToUser(), 
+                    fromCurrency, toCurrency, "debit_failed");
             return TransferResponse.builder()
                     .success(false)
                     .message("Ошибка при списании средств со счета отправителя")
@@ -117,6 +135,9 @@ public class TransferService {
         );
         
         if (!creditSuccess) {
+            transferMetrics.recordFailedTransfer(request.getFromUser(), request.getToUser(), 
+                    fromCurrency, toCurrency, "credit_failed");
+            
             // Откатываем списание
             accountsIntegrationService.performAccountOperation(
                 request.getFromUser(),
@@ -133,6 +154,10 @@ public class TransferService {
         
         String transferId = UUID.randomUUID().toString();
         log.info("Transfer completed successfully: {} (ID: {})", request, transferId);
+        
+        // Записываем метрику успешного перевода
+        transferMetrics.recordSuccessfulTransfer(request.getFromUser(), request.getToUser(), 
+                fromCurrency, toCurrency);
         
         // Отправляем уведомления о успешном переводе
         notificationService.sendSuccessNotification(

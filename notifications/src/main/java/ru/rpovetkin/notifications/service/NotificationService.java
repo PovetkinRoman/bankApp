@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import ru.rpovetkin.notifications.dto.Alert;
 import ru.rpovetkin.notifications.dto.NotificationRequest;
 import ru.rpovetkin.notifications.dto.NotificationResponse;
+import ru.rpovetkin.notifications.metrics.NotificationMetrics;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 public class NotificationService {
     
     private final EmailNotificationService emailNotificationService;
+    private final NotificationMetrics notificationMetrics;
     
     // В реальном приложении это была бы база данных
     private final Map<String, List<Alert>> userAlerts = new ConcurrentHashMap<>();
@@ -53,6 +55,9 @@ public class NotificationService {
             NotificationResponse emailResponse = emailNotificationService.sendEmailNotification(request);
             if (!emailResponse.isSuccess()) {
                 log.warn("Failed to send email notification: {}", emailResponse.getMessage());
+                notificationMetrics.recordFailedNotification(request.getUserId(), request.getType(), "email_send_failed");
+            } else {
+                notificationMetrics.recordSuccessfulNotification(request.getUserId(), request.getType());
             }
             
             log.info("Notification processed successfully: id={}, user={}, title={}",
@@ -66,6 +71,7 @@ public class NotificationService {
                     
         } catch (Exception e) {
             log.error("Error sending notification: {}", e.getMessage(), e);
+            notificationMetrics.recordFailedNotification(request.getUserId(), request.getType(), "exception");
             return NotificationResponse.builder()
                     .success(false)
                     .message("Failed to send notification: " + e.getMessage())
