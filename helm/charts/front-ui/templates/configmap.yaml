@@ -47,6 +47,7 @@ data:
         web:
           exposure:
             include: health,info,loggers,metrics,prometheus,traces
+          base-path: /actuator
       
       
       # Metrics configuration
