@@ -44,6 +44,19 @@ data:
           exposure:
             include: health,info,loggers,refresh,metrics,prometheus,traces
       
+      
+      # Metrics configuration
+      metrics:
+        export:
+          prometheus:
+            enabled: true
+        distribution:
+          percentiles-histogram:
+            http.server.requests: true
+        tags:
+          application: ${spring.application.name}
+          service: exchange
+      
       # Tracing configuration
       tracing:
         sampling:

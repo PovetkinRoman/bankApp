@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: bankapp/cash
   pullPolicy: Never
-  tag: "0.0.1-SNAPSHOT"
+  tag: "latest"
 
 imagePullSecrets:
   - name: ghcr-secret

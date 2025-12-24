@@ -42,6 +42,13 @@
 		<artifactId>spring-boot-starter-actuator</artifactId>
 	</dependency>
 
+	<!-- Micrometer Prometheus Registry for metrics -->
+	<dependency>
+		<groupId>io.micrometer</groupId>
+		<artifactId>micrometer-registry-prometheus</artifactId>
+		<scope>runtime</scope>
+	</dependency>
+
 	<!-- Micrometer Tracing with Zipkin -->
 	<dependency>
 		<groupId>io.micrometer</groupId>
