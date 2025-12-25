@@ -45,6 +45,12 @@ echo "✅ Kafka UI: http://localhost:8088"
 kubectl port-forward -n test svc/bankapp-zipkin 9411:9411 > /tmp/pf-zipkin.log 2>&1 &
 echo "✅ Zipkin: http://localhost:9411"
 
+kubectl port-forward -n test svc/bankapp-prometheus 9091:9090 > /tmp/pf-prometheus.log 2>&1 &
+echo "✅ Prometheus: http://localhost:9091"
+
+kubectl port-forward -n test svc/bankapp-grafana 3000:3000 > /tmp/pf-grafana.log 2>&1 &
+echo "✅ Grafana: http://localhost:3000"
+
 echo ""
 echo "All port-forwards are running in the background."
 echo "Logs are available in /tmp/pf-*.log"

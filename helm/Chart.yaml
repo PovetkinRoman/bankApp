@@ -50,4 +50,8 @@ dependencies:
     version: 0.1.0
     repository: "file://charts/zipkin"
     condition: zipkin.enabled
+  - name: grafana
+    version: 0.1.0
+    repository: "file://charts/grafana"
+    condition: grafana.enabled
 
