@@ -43,6 +43,10 @@ spec:
               subPath: grafana.ini
             - name: datasources
               mountPath: /etc/grafana/provisioning/datasources
+            - name: dashboard-provider
+              mountPath: /etc/grafana/provisioning/dashboards
+            - name: dashboards
+              mountPath: /var/lib/grafana/dashboards
             - name: storage
               mountPath: /var/lib/grafana
           {{- if .Values.grafana.startupProbe }}
@@ -66,6 +70,12 @@ spec:
         - name: datasources
           configMap:
             name: {{ include "grafana.fullname" . }}-datasources
+        - name: dashboard-provider
+          configMap:
+            name: {{ include "grafana.fullname" . }}-dashboard-provider
+        - name: dashboards
+          configMap:
+            name: {{ include "grafana.fullname" . }}-dashboards
         - name: storage
           emptyDir: {}
 {{- end }}

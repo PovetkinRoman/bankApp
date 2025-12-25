@@ -1,0 +1,17 @@
+{{- if .Values.grafana.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "grafana.fullname" . }}-dashboards
+  labels:
+    {{- include "grafana.labels" . | nindent 4 }}
+    grafana_dashboard: "1"
+data:
+  security-dashboard.json: |
+{{ .Files.Get "dashboards/security-dashboard.json" | indent 4 }}
+  reliability-dashboard.json: |
+{{ .Files.Get "dashboards/reliability-dashboard.json" | indent 4 }}
+  operations-dashboard.json: |
+{{ .Files.Get "dashboards/operations-dashboard.json" | indent 4 }}
+{{- end }}
+
