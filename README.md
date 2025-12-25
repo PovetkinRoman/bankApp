@@ -378,7 +378,9 @@ docker compose down
 
 ### CI/CD с Jenkins
 
-Автоматическая сборка и развёртывание настроены через Jenkins с поддержкой Kafka:
+Полная автоматизация сборки и развёртывания через Jenkins с поддержкой всех инфраструктурных компонентов.
+
+#### Быстрый старт Jenkins
 
 ```bash
 cd jenkins
@@ -388,33 +390,75 @@ docker-compose up -d
 open http://localhost:8080
 ```
 
-**Jenkins автоматически:**
-- ✅ Создаёт credentials для GitHub и Docker Registry
-- ✅ Создаёт Multibranch Pipeline jobs для всех модулей
-- ✅ Настраивает Kubernetes деплой с Kafka зависимостями
-- ✅ Запускает тесты с embedded Kafka
+#### Доступные Pipeline Jobs
 
-**Доступные Jenkins Jobs:**
+**Микросервисы приложения:**
 - `accounts` - сервис аккаунтов (с Kafka)
-- `cash` - сервис операций с наличными (с Kafka)
-- `transfer` - сервис переводов (с Kafka)
-- `exchange` - сервис обмена валют (с Kafka)
+- `cash` - операции с наличными (с Kafka)
+- `transfer` - переводы (с Kafka)
+- `exchange` - обмен валют (с Kafka)
 - `exchange-generator` - генератор курсов (с Kafka)
-- `notifications` - сервис уведомлений (Kafka consumer)
-- `blocker` - сервис блокировок
+- `notifications` - уведомления (Kafka consumer)
+- `blocker` - блокировки
 - `front-ui` - веб-интерфейс
+- `keycloak` - управление Keycloak
 
-**Kafka Job:**
-Для развёртывания Kafka в Kubernetes добавлен специальный Job:
-- Pipeline: `jenkins/jenkinsfiles/kafka.Jenkinsfile`
-- Развёртывает Kafka через Helm
-- Создаёт необходимые topics
-- Настраивает consumer groups
+**Инфраструктурные компоненты:**
+- `kafka` - Apache Kafka message broker
+- `zipkin` - Distributed Tracing
+- `prometheus` - Metrics Collection
+- `grafana` - Metrics Visualization
+- `elk` - ELK Stack (Elasticsearch, Logstash, Kibana)
 
-Подробнее см.:
-- [jenkins/README.md](jenkins/README.md) - Полная документация Jenkins
-- [jenkins/KAFKA_SETUP.md](jenkins/KAFKA_SETUP.md) - Настройка Kafka в Jenkins
-- [jenkins/KAFKA_JOB_SETUP.md](jenkins/KAFKA_JOB_SETUP.md) - Kafka Job
+**Главный Pipeline:**
+- `Jenkinsfile` - Umbrella pipeline для развёртывания всей инфраструктуры и приложений
+
+#### Применение Jenkinsfile в CI/CD
+
+**1. Создание Pipeline Jobs в Jenkins:**
+
+```groovy
+// Для каждого компонента создайте Pipeline job:
+// New Item → Pipeline → Pipeline script from SCM
+
+// Пример для Zipkin:
+- Name: zipkin-pipeline
+- SCM: Git
+- Repository URL: <your-repo-url>
+- Script Path: jenkins/jenkinsfiles/zipkin.Jenkinsfile
+```
+
+**2. Параметры Pipeline Jobs:**
+
+Каждый infrastructure pipeline поддерживает параметры:
+- `ACTION`: deploy, upgrade, update-config, rollback, status
+- Специфичные параметры (версии, ресурсы, конфигурация)
+
+**3. Запуск через Jenkins UI:**
+
+```bash
+# 1. Выберите нужный pipeline
+# 2. Нажмите "Build with Parameters"
+# 3. Выберите ACTION и настройте параметры
+# 4. Нажмите "Build"
+```
+
+**4. Автоматическое развёртывание через главный Pipeline:**
+
+```bash
+# Главный pipeline автоматически развёртывает:
+# - Kafka
+# - Zipkin
+# - Prometheus
+# - Grafana
+# - ELK Stack
+# - Все микросервисы
+
+# Параметры:
+# - DEPLOY_INFRASTRUCTURE: true/false
+# - DEPLOY_APPLICATIONS: true/false
+# - RUN_TESTS: true/false
+```
 
 ## 🏠 Локальное развёртывание для разработчиков
 
@@ -666,62 +710,217 @@ kubectl exec -it -n test deployment/cash -- \
 
 ### Сборка проекта
 
+#### Полная сборка всех модулей
+
 ```bash
-# Полная сборка всех модулей
-./mvnw clean install -DskipTests
+# Сборка без тестов (быстро)
+./mvnw clean package -DskipTests
+
+# Сборка с тестами
+./mvnw clean install
 
 # Сборка конкретного модуля
 ./mvnw -pl accounts clean package -DskipTests
 
-# Сборка с тестами
-./mvnw clean install
+# Параллельная сборка (быстрее)
+./mvnw -T 4 clean package -DskipTests
 ```
 
-### Локальный запуск модуля
+#### Сборка Docker образов
 
 ```bash
-# Запуск PostgreSQL
-docker run -d -p 5432:5432 \
-  -e POSTGRES_USER=root \
-  -e POSTGRES_PASSWORD=root \
-  -e POSTGRES_DB=bankapp \
-  postgres:13
+# Для локальной разработки с Minikube
+eval $(minikube docker-env)
 
-# Запуск Keycloak
-docker run -d -p 8090:8080 \
-  -e KEYCLOAK_ADMIN=admin \
-  -e KEYCLOAK_ADMIN_PASSWORD=admin \
-  quay.io/keycloak/keycloak:24.0.2 start-dev
+# Сборка всех образов
+docker build -f accounts/dockerfile -t bankapp/accounts:0.0.1-SNAPSHOT .
+docker build -f cash/dockerfile -t bankapp/cash:0.0.1-SNAPSHOT .
+docker build -f transfer/dockerfile -t bankapp/transfer:0.0.1-SNAPSHOT .
+docker build -f exchange/dockerfile -t bankapp/exchange:0.0.1-SNAPSHOT .
+docker build -f exchange-generator/dockerfile -t bankapp/exchange-generator:0.0.1-SNAPSHOT .
+docker build -f blocker/dockerfile -t bankapp/blocker:0.0.1-SNAPSHOT .
+docker build -f notifications/dockerfile -t bankapp/notifications:0.0.1-SNAPSHOT .
+docker build -f front-ui/dockerfile -t bankapp/front-ui:0.0.1-SNAPSHOT .
 
-# Запуск модуля
+# Или используйте скрипт для пересборки
+./rebuild-and-deploy-all.sh
+```
+
+### Локальный запуск в среде разработки
+
+#### Вариант 1: Запуск отдельного микросервиса локально
+
+```bash
+# 1. Запустите зависимости через Docker Compose
+docker-compose up -d postgresql keycloak
+
+# 2. Запустите микросервис
 cd accounts
 ./mvnw spring-boot:run
+
+# Или с профилем
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-### Пересборка и обновление в Kubernetes
+#### Вариант 2: Полное локальное развёртывание через Docker Compose
 
 ```bash
-# Пересобрать модуль
-./mvnw -pl accounts clean package -DskipTests
+# Сборка всех модулей
+./mvnw clean package -DskipTests
 
-# Собрать Docker образ
-docker build -t bankapp/accounts:latest -f accounts/dockerfile .
+# Запуск всей системы
+docker-compose up -d
 
-# Обновить в Kubernetes
-helm upgrade accounts helm/charts/accounts -n test
+# Просмотр логов
+docker-compose logs -f
+
+# Остановка
+docker-compose down
 ```
+
+#### Вариант 3: Развёртывание в локальном Kubernetes (Minikube)
+
+```bash
+# 1. Запустите Minikube
+minikube start --cpus=4 --memory=8192
+
+# 2. Соберите образы для Minikube
+eval $(minikube docker-env)
+./mvnw clean package -DskipTests
+# ... сборка Docker образов (см. выше)
+
+# 3. Разверните через Helm
+cd helm
+helm dependency update
+helm install bankapp . -n test --create-namespace --wait
+
+# 4. Настройте port-forward
+./start-port-forward.sh
+
+# 5. Откройте приложение
+open http://localhost:8080
+```
+
+### Пересборка и обновление после изменений
+
+#### Обновление микросервиса в Kubernetes
+
+```bash
+# 1. Пересоберите JAR
+cd accounts
+./mvnw clean package -DskipTests
+
+# 2. Пересоберите Docker образ БЕЗ КЭША
+cd ..
+eval $(minikube docker-env)
+docker build --no-cache -f accounts/dockerfile -t bankapp/accounts:0.0.1-SNAPSHOT .
+
+# 3. Загрузите образ в Minikube (если нужно)
+minikube image load bankapp/accounts:0.0.1-SNAPSHOT
+
+# 4. Удалите старый pod (Kubernetes создаст новый)
+kubectl delete pod -l app.kubernetes.io/name=accounts -n test
+
+# 5. Проверьте статус
+kubectl get pods -n test -l app.kubernetes.io/name=accounts
+kubectl logs -n test -l app.kubernetes.io/name=accounts -f
+```
+
+#### Обновление конфигурации через Helm
+
+```bash
+# 1. Обновите helm/values.yaml или helm/charts/<service>/values.yaml
+
+# 2. Примените изменения
+helm upgrade bankapp helm/ -n test --wait
+
+# Или для конкретного сервиса
+helm upgrade accounts helm/charts/accounts -n test --wait
+```
+
+**ВАЖНО:** ConfigMap всегда перекрывает application.yml!
+- Обновляйте конфигурацию в Helm values, а не в application.yml
+- После обновления ConfigMap перезапустите pod
 
 ### Проверка здоровья сервисов
 
-```bash
-# Actuator endpoints
-curl http://localhost:8081/actuator/health
-curl http://localhost:8081/actuator/info
+#### Локально (Docker Compose или Spring Boot)
 
-# В Kubernetes
+```bash
+# Health checks
+curl http://localhost:8081/actuator/health  # Accounts
+curl http://localhost:8082/actuator/health  # Cash
+curl http://localhost:8083/actuator/health  # Transfer
+
+# Metrics
+curl http://localhost:8081/actuator/prometheus
+
+# Info
+curl http://localhost:8081/actuator/info
+```
+
+#### В Kubernetes
+
+```bash
+# Статус всех pods
 kubectl get pods -n test
-kubectl logs -n test <pod-name>
+
+# Логи конкретного сервиса
+kubectl logs -n test -l app.kubernetes.io/name=accounts -f
+
+# Описание pod (события, ошибки)
 kubectl describe pod -n test <pod-name>
+
+# Health check внутри pod
+kubectl exec -n test <pod-name> -- curl localhost:8081/actuator/health
+
+# Port-forward для доступа
+kubectl port-forward -n test svc/accounts 8081:8081
+curl http://localhost:8081/actuator/health
+```
+
+### Отладка
+
+#### Просмотр логов
+
+```bash
+# Все логи сервиса
+kubectl logs -n test deployment/accounts
+
+# Последние 100 строк
+kubectl logs -n test deployment/accounts --tail=100
+
+# Следить за логами в реальном времени
+kubectl logs -n test deployment/accounts -f
+
+# Логи предыдущего контейнера (если pod перезапустился)
+kubectl logs -n test <pod-name> --previous
+```
+
+#### Проверка переменных окружения
+
+```bash
+# Все переменные окружения
+kubectl exec -n test deployment/accounts -- env
+
+# Конкретная переменная
+kubectl exec -n test deployment/accounts -- env | grep KAFKA
+
+# Проверка application.yml внутри контейнера
+kubectl exec -n test deployment/accounts -- cat /app/application.yml
+```
+
+#### Интерактивный shell в контейнере
+
+```bash
+# Войти в контейнер
+kubectl exec -it -n test deployment/accounts -- /bin/sh
+
+# Внутри контейнера можно:
+# - Проверить файлы: ls -la /app
+# - Проверить процессы: ps aux
+# - Проверить сеть: wget http://kafka:9092
+# - Проверить JAR: jar -tf /app/app.jar | grep KafkaConfig
 ```
 
 ## 🔧 Конфигурация
@@ -810,75 +1009,260 @@ kubectl describe pod -n test <pod-name>
 kubectl exec -n test <pod-name> -- curl localhost:8081/actuator/health
 ```
 
-## 📊 Мониторинг
+## 📊 Мониторинг и Observability
+
+### Полный стек мониторинга
+
+BankApp включает полный стек для observability:
+
+| Компонент | Назначение | URL | Credentials |
+|-----------|-----------|-----|-------------|
+| **Zipkin** | Distributed Tracing | http://localhost:9411 | - |
+| **Prometheus** | Metrics Collection | http://localhost:9090 | - |
+| **Grafana** | Metrics Visualization | http://localhost:3000 | admin/admin |
+| **Kibana** | Logs Visualization | http://localhost:5601 | - |
+| **Kafka UI** | Kafka Monitoring | http://localhost:8085 | - |
+
+### Развёртывание мониторинга
+
+#### Через главный Pipeline (рекомендуется)
+
+```bash
+# В Jenkins запустите главный pipeline с параметрами:
+# - DEPLOY_INFRASTRUCTURE: true
+# - DEPLOY_APPLICATIONS: false
+
+# Или через Helm:
+helm upgrade --install bankapp helm/ -n test \
+  --set zipkin.enabled=true \
+  --set prometheus.enabled=true \
+  --set grafana.enabled=true \
+  --set elasticsearch.enabled=true \
+  --set logstash.enabled=true \
+  --set kibana.enabled=true \
+  --wait
+```
+
+#### Через отдельные Pipeline Jobs
+
+```bash
+# В Jenkins создайте и запустите:
+# - zipkin-pipeline (ACTION: deploy)
+# - prometheus-pipeline (ACTION: deploy)
+# - grafana-pipeline (ACTION: deploy)
+# - elk-pipeline (ACTION: deploy, COMPONENT: all)
+```
+
+### Distributed Tracing (Zipkin)
+
+**Что трассируется:**
+- HTTP запросы между микросервисами
+- Database queries
+- Kafka messages
+- External API calls
+
+**Использование:**
+```bash
+# 1. Откройте Zipkin UI
+open http://localhost:9411
+
+# 2. Выполните операции в приложении
+# 3. В Zipkin UI нажмите "Run Query"
+# 4. Просмотрите трейсы и span'ы
+
+# Проверка интеграции
+curl http://localhost:9411/api/v2/services  # Список сервисов
+curl http://localhost:9411/api/v2/traces    # Трейсы
+```
+
+**Конфигурация в приложениях:**
+```yaml
+spring:
+  zipkin:
+    base-url: http://bankapp-zipkin:9411
+    enabled: true
+  sleuth:
+    sampler:
+      probability: 1.0  # 100% трейсов
+```
+
+### Metrics Collection (Prometheus)
+
+**Что собирается:**
+- JVM метрики (heap, threads, GC)
+- HTTP метрики (requests, latency, errors)
+- Database метрики (connections, queries)
+- Kafka метрики (producer/consumer)
+- Custom business метрики
+
+**Использование:**
+```bash
+# Откройте Prometheus UI
+open http://localhost:9090
+
+# Примеры PromQL запросов:
+# - http_server_requests_seconds_count
+# - jvm_memory_used_bytes
+# - kafka_producer_record_send_total
+# - process_cpu_usage
+```
+
+**Endpoints метрик:**
+```bash
+# Prometheus собирает метрики с:
+curl http://localhost:8081/actuator/prometheus  # Accounts
+curl http://localhost:8082/actuator/prometheus  # Cash
+curl http://localhost:8083/actuator/prometheus  # Transfer
+```
+
+### Metrics Visualization (Grafana)
+
+**Предустановленные дашборды:**
+- JVM Metrics Dashboard
+- HTTP Requests Dashboard
+- Kafka Metrics Dashboard
+- Business Metrics Dashboard
+
+**Использование:**
+```bash
+# 1. Откройте Grafana
+open http://localhost:3000
+# Логин: admin / admin
+
+# 2. Datasource (автоматически настроен):
+# - Prometheus: http://bankapp-prometheus:9090
+
+# 3. Импортируйте дашборды или создайте свои
+```
+
+### Centralized Logging (ELK Stack)
+
+**Архитектура логирования:**
+```
+Приложения → Logback → Kafka (logs-topic) → Logstash → Elasticsearch → Kibana
+```
+
+**Что логируется:**
+- Application logs (INFO, WARN, ERROR)
+- Access logs
+- Audit logs
+- Kafka events
+
+**Использование:**
+```bash
+# 1. Откройте Kibana
+open http://localhost:5601
+
+# 2. Создайте Index Pattern:
+# - Pattern: logstash-*
+# - Time field: @timestamp
+
+# 3. Перейдите в Discover для просмотра логов
+
+# 4. Создайте визуализации и дашборды
+```
+
+**Конфигурация в приложениях:**
+```xml
+<!-- logback-spring.xml -->
+<appender name="KAFKA" class="com.github.danielwegener.logback.kafka.KafkaAppender">
+    <topic>logs-topic</topic>
+    <keyingStrategy class="com.github.danielwegener.logback.kafka.keying.NoKeyKeyingStrategy"/>
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
+</appender>
+```
 
 ### Health Checks
 
-Все сервисы имеют следующие проверки:
-- **Startup Probe** - проверка успешного запуска
-- **Liveness Probe** - проверка работоспособности
-- **Readiness Probe** - готовность принимать трафик
+Все сервисы имеют Kubernetes probes:
+- **Startup Probe** - проверка успешного запуска (до 30 попыток)
+- **Liveness Probe** - проверка работоспособности (каждые 10 сек)
+- **Readiness Probe** - готовность принимать трафик (каждые 5 сек)
+
+```bash
+# Проверка health всех компонентов
+kubectl get pods -n test
+
+# Health check конкретного сервиса
+kubectl exec -n test <pod-name> -- curl localhost:8081/actuator/health
+
+# Или через port-forward
+curl http://localhost:8081/actuator/health
+```
 
 ### Actuator Endpoints
 
 ```bash
-# Health
+# Health (общее состояние)
 curl http://localhost:8081/actuator/health
 
-# Info
+# Metrics (Prometheus формат)
+curl http://localhost:8081/actuator/prometheus
+
+# Info (информация о приложении)
 curl http://localhost:8081/actuator/info
 
-# Loggers (изменение уровня логирования)
+# Loggers (текущие уровни логирования)
 curl http://localhost:8081/actuator/loggers
+
+# Изменение уровня логирования
+curl -X POST http://localhost:8081/actuator/loggers/ru.rpovetkin \
+  -H "Content-Type: application/json" \
+  -d '{"configuredLevel":"DEBUG"}'
 ```
 
-## 📚 Документация проекта
+### Мониторинг Kafka
 
-### Основная документация
-- [README.md](README.md) - Главная документация (этот файл)
-- [DEPLOYMENT.md](DEPLOYMENT.md) - Полное руководство по развёртыванию
-- [helm/README.md](helm/README.md) - Документация по Helm charts
-
-### Jenkins CI/CD
-- [jenkins/README.md](jenkins/README.md) - Настройка Jenkins с поддержкой Kafka
-- [jenkins/KAFKA_SETUP.md](jenkins/KAFKA_SETUP.md) - Kafka в Jenkins
-- [jenkins/KAFKA_JOB_SETUP.md](jenkins/KAFKA_JOB_SETUP.md) - Kafka Job конфигурация
-- [JENKINS_SETUP.md](JENKINS_SETUP.md) - Общая настройка Jenkins
-
-### Kafka интеграция
-- [KAFKA_MIGRATION_AUDIT_REPORT.md](KAFKA_MIGRATION_AUDIT_REPORT.md) - Полный аудит Kafka миграции
-- [KAFKA_CASH_TRANSFER_MIGRATION.md](KAFKA_CASH_TRANSFER_MIGRATION.md) - Миграция cash и transfer
-- [KAFKA_ACCOUNTS_NOTIFICATIONS_MIGRATION.md](KAFKA_ACCOUNTS_NOTIFICATIONS_MIGRATION.md) - Миграция accounts
-- [KAFKA_EXCHANGE_MIGRATION.md](KAFKA_EXCHANGE_MIGRATION.md) - Миграция exchange
-- [FINAL_KAFKA_AT_LEAST_ONCE_REPORT.md](FINAL_KAFKA_AT_LEAST_ONCE_REPORT.md) - At least once delivery
-- [KAFKA_SUCCESS_FINAL_REPORT.md](KAFKA_SUCCESS_FINAL_REPORT.md) - Итоговый отчёт
-
-### Тестирование
-- [MANUAL_TESTING_GUIDE.md](MANUAL_TESTING_GUIDE.md) - Руководство по ручному тестированию
-- [UI_TEST_KAFKA_CASH_TRANSFER.md](UI_TEST_KAFKA_CASH_TRANSFER.md) - UI тесты Kafka
-- [KAFKA_VERIFICATION_JANE_TEST.md](KAFKA_VERIFICATION_JANE_TEST.md) - Верификация Kafka
-- [KAFKA_AT_LEAST_ONCE_TESTING.md](KAFKA_AT_LEAST_ONCE_TESTING.md) - Тесты гарантии доставки
-
-### Распределённая трассировка (Zipkin)
-- [ZIPKIN_INTEGRATION.md](ZIPKIN_INTEGRATION.md) - Полное руководство по Zipkin интеграции
-- [ZIPKIN_QUICK_START.md](ZIPKIN_QUICK_START.md) - Быстрый старт с Zipkin
-
-### Быстрые гайды
-- [QUICK_TEST_GUIDE_RU.md](QUICK_TEST_GUIDE_RU.md) - Быстрое тестирование
-- [KAFKA_MODULES_COMPARISON.md](KAFKA_MODULES_COMPARISON.md) - Сравнение модулей
-- [PORT_FORWARD_GUIDE.md](PORT_FORWARD_GUIDE.md) - Настройка port-forward
-- [PORTS_SUMMARY.md](PORTS_SUMMARY.md) - Список портов
-
-### Скрипты для тестирования
 ```bash
-# Тестирование Kafka интеграции
-./test-kafka-notifications.sh  # Уведомления
-./test-kafka-exchange.sh       # Обмен валют
+# Через Kafka UI
+open http://localhost:8085
 
-# Port forwarding
-./start-port-forward.sh        # Запуск
-./stop-port-forward.sh         # Остановка
+# Или через kubectl
+kubectl exec -n test deploy/kafka -- \
+  /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
+
+kubectl exec -n test deploy/kafka -- \
+  /opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --list
+
+# Проверка lag в consumer group
+kubectl exec -n test deploy/kafka -- \
+  /opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 \
+  --group notifications-group --describe
 ```
+
+### Troubleshooting через мониторинг
+
+**Проблема: Высокая latency**
+```bash
+# 1. Проверьте трейсы в Zipkin
+# 2. Найдите медленные span'ы
+# 3. Проверьте метрики в Prometheus:
+#    - http_server_requests_seconds{quantile="0.95"}
+#    - jdbc_connections_active
+```
+
+**Проблема: Ошибки в приложении**
+```bash
+# 1. Проверьте логи в Kibana
+# 2. Фильтр: level:ERROR
+# 3. Проверьте метрики ошибок в Prometheus:
+#    - http_server_requests_seconds_count{status="5xx"}
+```
+
+**Проблема: Memory leak**
+```bash
+# 1. Проверьте JVM метрики в Grafana
+# 2. Prometheus запрос:
+#    - jvm_memory_used_bytes{area="heap"}
+# 3. Heap dump:
+kubectl exec -n test <pod-name> -- jmap -dump:live,format=b,file=/tmp/heap.bin 1
+```
+
+**Управление приложением:**
+```bash
+# Port forwarding
+./start-port-forward.sh          # Запуск всех port-forward
+./stop-port-forward.sh           # Остановка port-forward
 
 ## 🎯 Ключевые особенности проекта
 
@@ -887,37 +1271,68 @@ curl http://localhost:8081/actuator/loggers
 - Kubernetes native приложение
 - Service discovery через Kubernetes DNS
 - Gateway API для маршрутизации трафика
+- Event-driven architecture с Apache Kafka
 
 ### ✅ Безопасность
 - OAuth2/OIDC через Keycloak
 - JWT токены для аутентификации
 - Client Credentials Flow для backend-to-backend
 - Role-based access control
+- Блокировка подозрительных операций
 
 ### ✅ Асинхронная коммуникация
 - Apache Kafka для межсервисной коммуникации
 - Гарантия доставки "At least once"
 - Idempotent producers
 - Consumer groups для масштабирования
+- Kafka UI для мониторинга
 
-### ✅ Observability
+### ✅ Полный стек Observability
+**Distributed Tracing (Zipkin):**
+- Трассировка всех HTTP запросов между сервисами
+- Трассировка Kafka messages
+- Трассировка database queries
+- Sample rate: 100%
+
+**Metrics (Prometheus + Grafana):**
+- Сбор метрик со всех микросервисов
+- JVM, HTTP, Database, Kafka метрики
+- Предустановленные Grafana дашборды
+- Retention: 15d (TEST), 30d (PROD)
+
+**Centralized Logging (ELK Stack):**
+- Elasticsearch для хранения логов
+- Logstash для обработки (читает из Kafka)
+- Kibana для визуализации
+- Структурированное логирование (JSON)
+
+**Health Checks:**
+- Kubernetes probes (startup, liveness, readiness)
 - Spring Boot Actuator endpoints
-- Kubernetes health checks (liveness, readiness, startup)
-- Структурированное логирование
-- Kafka metrics и monitoring
-- Zipkin distributed tracing (Micrometer Tracing)
+- Автоматический мониторинг всех компонентов
 
-### ✅ CI/CD
-- Jenkins автоматизация с Docker
-- Multibranch pipeline для каждого модуля
-- Автоматические тесты с embedded Kafka
-- Развёртывание в Kubernetes через Helm
+### ✅ CI/CD Automation
+**Jenkins Pipelines для всех компонентов:**
+- Микросервисы (accounts, cash, transfer, exchange, и др.)
+- Apache Kafka (message broker)
+- Zipkin (distributed tracing)
+- Prometheus (metrics collection)
+- Grafana (metrics visualization)
+- ELK Stack (centralized logging)
 
-### ✅ Production Ready
-- Liquibase для миграций БД
-- Graceful shutdown
-- Resource limits и requests
-- Horizontal pod autoscaling готово
+**Возможности:**
+- Автоматическое развёртывание через главный umbrella pipeline
+- Параллельное развёртывание инфраструктуры
+- Параметризованные pipelines (deploy, upgrade, rollback, status)
+- Автоматические health checks
+- Поддержка TEST и PROD окружений
+- Ручное подтверждение для PROD
+
+**Тестирование:**
+- Unit тесты с embedded Kafka
+- Интеграционные тесты
+- Тестовые скрипты для локального развёртывания
+- Автоматическая валидация Helm charts
 
 ## 📝 Лицензия
 
@@ -926,5 +1341,14 @@ curl http://localhost:8081/actuator/loggers
 ---
 
 **Последнее обновление:** Декабрь 2025  
-**Версия:** 2.0 (с Kafka интеграцией)  
+**Версия:** 3.0 (с полным CI/CD и Observability стеком)
+
+**Что нового в версии 3.0:**
+- ✅ Полная CI/CD автоматизация для всех компонентов
+- ✅ Zipkin distributed tracing интеграция
+- ✅ Prometheus + Grafana для метрик
+- ✅ ELK Stack для централизованного логирования
+- ✅ Jenkins pipelines для инфраструктуры
+- ✅ Тестовые скрипты для всех компонентов
+- ✅ Обширная документация по CI/CD  
 
