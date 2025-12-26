@@ -1,0 +1,66 @@
+# Default values for grafana chart
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+nameOverride: ""
+fullnameOverride: ""
+
+# These values are inherited from parent chart
+# Included here for reference
+grafana:
+  enabled: true
+  image:
+    repository: grafana/grafana
+    tag: "10.2.3"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 3000
+    targetPort: 3000
+  
+  # Admin credentials
+  adminUser: admin
+  adminPassword: admin
+  
+  # Prometheus datasource configuration
+  datasources:
+    prometheus:
+      name: Prometheus
+      type: prometheus
+      url: http://bankapp-prometheus:9090
+      access: proxy
+      isDefault: true
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  
+  startupProbe:
+    httpGet:
+      path: /api/health
+      port: 3000
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 30
+  
+  livenessProbe:
+    httpGet:
+      path: /api/health
+      port: 3000
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    failureThreshold: 3
+  
+  readinessProbe:
+    httpGet:
+      path: /api/health
+      port: 3000
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    failureThreshold: 3
+

@@ -4,9 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
+import org.springframework.web.client.RestClient;
 import ru.rpovetkin.front_ui.dto.AccountApiResponse;
 import ru.rpovetkin.front_ui.dto.AuthenticationRequest;
 import ru.rpovetkin.front_ui.dto.AuthenticationResponse;
@@ -32,175 +32,188 @@ import java.util.List;
 @Slf4j
 public class AccountsService {
     
-    private final WebClient webClient;
+    private final RestClient restClient;
     
     @Value("${accounts.service.url}")
     private String accountsServiceUrl;
     
-    public Mono<UserRegistrationResponse> registerUser(UserRegistrationRequest request) {
-        log.info("Sending registration request to accounts service for user: {}", request.getLogin());
+    public UserRegistrationResponse registerUser(UserRegistrationRequest request) {
+        log.info("[HTTP] Sending registration request to accounts service for user: {}", request.getLogin());
+        log.info("[HTTP] Calling accounts service: POST {}/api/users/register", accountsServiceUrl);
         
-        log.info("Using accounts service URL: {}", accountsServiceUrl);
-        return webClient
-                .post()
-                .uri(accountsServiceUrl + "/api/users/register")
-                .bodyValue(request)
-                .retrieve()
-                .bodyToMono(UserRegistrationResponse.class)
-                .doOnSuccess(response -> log.info("Received response from accounts service: success={}", 
-                        response != null ? response.isSuccess() : false))
-                .doOnError(error -> log.error("Error calling accounts service: {}", error.getMessage(), error))
-                .onErrorReturn(UserRegistrationResponse.builder()
-                        .success(false)
-                        .message("Service unavailable")
-                        .build());
+        try {
+            UserRegistrationResponse response = restClient
+                    .post()
+                    .uri(accountsServiceUrl + "/api/users/register")
+                    .body(request)
+                    .retrieve()
+                    .body(UserRegistrationResponse.class);
+            
+            log.info("[HTTP] Received response from accounts service: success={}", 
+                    response != null ? response.isSuccess() : false);
+            return response;
+        } catch (Exception error) {
+            log.error("[HTTP] Error calling accounts service [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
+            return UserRegistrationResponse.builder()
+                    .success(false)
+                    .message("Service unavailable")
+                    .build();
+        }
     }
     
-    public Mono<Boolean> authenticateUser(AuthenticationRequest request) {
-        log.info("Authenticating user: {}", request.getLogin());
+    public Boolean authenticateUser(AuthenticationRequest request) {
+        log.info("[HTTP] Authenticating user: {}", request.getLogin());
+        log.info("[HTTP] Calling accounts service: POST {}/api/users/authenticate", accountsServiceUrl);
         
-        log.debug("Using accounts service URL: {}", accountsServiceUrl);
-        return webClient
-                .post()
-                .uri(accountsServiceUrl + "/api/users/authenticate")
-                .bodyValue(request)
-                .retrieve()
-                .bodyToMono(AuthenticationResponse.class)
-                .onErrorReturn(new AuthenticationResponse(false, "Error", null))
-                .map(result -> {
-                    boolean success = result != null && result.isSuccess();
-                    log.info("Authentication result for user {}: {}", request.getLogin(), success);
-                    return success;
-                })
-                .doOnError(error -> log.error("Error authenticating user: {}", error.getMessage(), error))
-                .onErrorReturn(false);
+        try {
+            AuthenticationResponse result = restClient
+                    .post()
+                    .uri(accountsServiceUrl + "/api/users/authenticate")
+                    .body(request)
+                    .retrieve()
+                    .body(AuthenticationResponse.class);
+            
+            boolean success = result != null && result.isSuccess();
+            log.info("Authentication result for user {}: {}", request.getLogin(), success);
+            return success;
+        } catch (Exception error) {
+            log.error("Error authenticating user [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
+            return false;
+        }
     }
     
-    public Mono<UserDto> getUserByLogin(String login) {
-        log.info("Getting user by login: {}", login);
+    public UserDto getUserByLogin(String login) {
+        log.info("[HTTP] Getting user by login: {}", login);
+        log.info("[HTTP] Calling accounts service: GET {}/api/users/{}", accountsServiceUrl, login);
         
-        log.debug("Using accounts service URL: {}", accountsServiceUrl);
-        return webClient
-                .get()
-                .uri(accountsServiceUrl + "/api/users/" + login)
-                .exchangeToMono(clientResponse -> {
-                    if (clientResponse.statusCode().is2xxSuccessful()) {
-                        return clientResponse.bodyToMono(java.util.Map.class)
-                                .map(this::convertToUserDto);
-                    } else if (clientResponse.statusCode().value() == 404) {
-                        log.warn("User {} not found in accounts service (404)", login);
-                        return Mono.empty();
-                    } else {
-                        return clientResponse.bodyToMono(String.class)
-                                .defaultIfEmpty("")
-                                .flatMap(body -> {
-                                    log.error("Unexpected response getting user {}: status={} body={}", login, clientResponse.statusCode(), body);
-                                    return Mono.empty();
-                                });
-                    }
-                })
-                .doOnSuccess(user -> log.info("Retrieved user: {}", user != null ? user.getLogin() : "null"))
-                .onErrorResume(error -> {
-                    log.error("Error getting user by login: {}", error.getMessage(), error);
-                    return Mono.empty();
-                });
+        try {
+            java.util.Map<String, Object> response = restClient
+                    .get()
+                    .uri(accountsServiceUrl + "/api/users/" + login)
+                    .retrieve()
+                    .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
+                        if (res.getStatusCode().value() == 404) {
+                            log.warn("User {} not found in accounts service (404)", login);
+                        }
+                    })
+                    .body(new ParameterizedTypeReference<java.util.Map<String, Object>>() {});
+            
+            UserDto user = convertToUserDto(response);
+            log.info("Retrieved user: {}", user != null ? user.getLogin() : "null");
+            return user;
+        } catch (Exception error) {
+            log.error("Error getting user by login [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
+            return null;
+        }
     }
     
-    public Mono<List<UserDto>> getAllUsers() {
+    public List<UserDto> getAllUsers() {
         log.info("Getting all users for transfer recipients");
-        
         log.debug("Using accounts service URL: {}", accountsServiceUrl);
-        return webClient
-                .get()
-                .uri(accountsServiceUrl + "/api/users")
-                .retrieve()
-                .bodyToMono(List.class)
-                .map(response -> {
-                    if (response != null) {
-                        @SuppressWarnings("unchecked")
-                        List<Object> responseList = (List<Object>) response;
-                        List<UserDto> users = responseList.stream()
-                                .map(this::convertToUserDto)
-                                .filter(user -> user != null)
-                                .toList();
-                        
-                        log.info("Retrieved {} users for transfer recipients", users.size());
-                        return users;
-                    }
-                    return new ArrayList<UserDto>();
-                })
-                .doOnError(error -> log.error("Error getting all users: {}", error.getMessage(), error))
-                .onErrorReturn(new ArrayList<UserDto>());
+        
+        try {
+            List<Object> response = restClient
+                    .get()
+                    .uri(accountsServiceUrl + "/api/users")
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<List<Object>>() {});
+            
+            if (response != null) {
+                List<UserDto> users = response.stream()
+                        .map(this::convertToUserDto)
+                        .filter(user -> user != null)
+                        .toList();
+                
+                log.info("Retrieved {} users for transfer recipients", users.size());
+                return users;
+            }
+            return new ArrayList<>();
+        } catch (Exception error) {
+            log.error("Error getting all users [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
+            return new ArrayList<>();
+        }
     }
     
-    public Mono<ChangePasswordResponse> changePassword(ChangePasswordRequest request) {
+    public ChangePasswordResponse changePassword(ChangePasswordRequest request) {
         log.info("Sending change password request for user: {}", request.getLogin());
-        
         log.debug("Using accounts service URL: {}", accountsServiceUrl);
-        return webClient
-                .post()
-                .uri(accountsServiceUrl + "/api/users/change-password")
-                .bodyValue(request)
-                .retrieve()
-                .bodyToMono(ChangePasswordResponse.class)
-                .onErrorReturn(ChangePasswordResponse.builder()
-                        .success(false)
-                        .message("Service unavailable")
-                        .build())
-                .doOnSuccess(response -> log.info("Received change password response for user {}: {}", request.getLogin(), response.isSuccess()))
-                .doOnError(error -> log.error("Error changing password: {}", error.getMessage(), error))
-                .onErrorReturn(ChangePasswordResponse.builder()
-                        .success(false)
-                        .message("Service unavailable")
-                        .build());
+        
+        try {
+            ChangePasswordResponse response = restClient
+                    .post()
+                    .uri(accountsServiceUrl + "/api/users/change-password")
+                    .body(request)
+                    .retrieve()
+                    .body(ChangePasswordResponse.class);
+            
+            log.info("Received change password response for user {}: {}", 
+                    request.getLogin(), response != null && response.isSuccess());
+            return response != null ? response : ChangePasswordResponse.builder()
+                    .success(false)
+                    .message("Service unavailable")
+                    .build();
+        } catch (Exception error) {
+            log.error("Error changing password [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
+            return ChangePasswordResponse.builder()
+                    .success(false)
+                    .message("Service unavailable")
+                    .build();
+        }
     }
     
-    public Mono<UpdateUserDataResponse> updateUserData(UpdateUserDataRequest request) {
+    public UpdateUserDataResponse updateUserData(UpdateUserDataRequest request) {
         log.info("Sending update user data request for user: {}", request.getLogin());
-        
         log.debug("Using accounts service URL: {}", accountsServiceUrl);
-        return webClient
-                .post()
-                .uri(accountsServiceUrl + "/api/users/update-data")
-                .bodyValue(request)
-                .retrieve()
-                .bodyToMono(UpdateUserDataResponse.class)
-                .onErrorReturn(UpdateUserDataResponse.builder()
-                        .success(false)
-                        .message("Service unavailable")
-                        .build())
-                .doOnSuccess(response -> log.info("Received update user data response for user {}: {}", request.getLogin(), response.isSuccess()))
-                .doOnError(error -> log.error("Error updating user data: {}", error.getMessage(), error))
-                .onErrorReturn(UpdateUserDataResponse.builder()
-                        .success(false)
-                        .message("Service unavailable")
-                        .build());
+        
+        try {
+            UpdateUserDataResponse response = restClient
+                    .post()
+                    .uri(accountsServiceUrl + "/api/users/update-data")
+                    .body(request)
+                    .retrieve()
+                    .body(UpdateUserDataResponse.class);
+            
+            log.info("Received update user data response for user {}: {}", 
+                    request.getLogin(), response != null && response.isSuccess());
+            return response != null ? response : UpdateUserDataResponse.builder()
+                    .success(false)
+                    .message("Service unavailable")
+                    .build();
+        } catch (Exception error) {
+            log.error("Error updating user data [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
+            return UpdateUserDataResponse.builder()
+                    .success(false)
+                    .message("Service unavailable")
+                    .build();
+        }
     }
     
-    public Mono<List<AccountDto>> getUserAccounts(String login) {
-        log.info("Getting user accounts for: {}", login);
+    public List<AccountDto> getUserAccounts(String login) {
+        log.info("[HTTP] Getting user accounts for: {}", login);
+        log.info("[HTTP] Calling accounts service: GET {}/api/accounts/{}", accountsServiceUrl, login);
         
-        log.debug("Using accounts service URL: {}", accountsServiceUrl);
-        return webClient
-                .get()
-                .uri(accountsServiceUrl + "/api/accounts/" + login)
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<List<AccountApiResponse>>() {})
-                .map(response -> {
-                    if (response != null) {
-                        List<AccountDto> accounts = response.stream()
-                                .map(this::convertToAccountDto)
-                                .toList();
-                        
-                        log.info("Retrieved {} accounts for user: {}", accounts.size(), login);
-                        return accounts;
-                    }
-                    
-                    log.warn("No accounts found for user: {}", login);
-                    return createEmptyAccountsList();
-                })
-                .doOnError(error -> log.error("Error getting user accounts: {}", error.getMessage(), error))
-                .onErrorReturn(createEmptyAccountsList());
+        try {
+            List<AccountApiResponse> response = restClient
+                    .get()
+                    .uri(accountsServiceUrl + "/api/accounts/" + login)
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<List<AccountApiResponse>>() {});
+            
+            if (response != null) {
+                List<AccountDto> accounts = response.stream()
+                        .map(this::convertToAccountDto)
+                        .toList();
+                
+                log.info("Retrieved {} accounts for user: {}", accounts.size(), login);
+                return accounts;
+            }
+            
+            log.warn("No accounts found for user: {}", login);
+            return createEmptyAccountsList();
+        } catch (Exception error) {
+            log.error("Error getting user accounts [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
+            return createEmptyAccountsList();
+        }
     }
     
     private AccountDto convertToAccountDto(AccountApiResponse accountData) {
@@ -218,7 +231,7 @@ public class AccountsService {
                         .build();
             }
         } catch (Exception e) {
-            log.error("Error converting account data: {}", e.getMessage(), e);
+            log.error("Error converting account data [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
         }
         
         return null;
@@ -258,7 +271,7 @@ public class AccountsService {
                         .build();
             }
         } catch (Exception e) {
-            log.error("Error converting user data: {}", e.getMessage(), e);
+            log.error("Error converting user data [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
         }
         
         return null;
@@ -272,7 +285,7 @@ public class AccountsService {
         );
     }
     
-    public Mono<Boolean> createAccount(String login, String currencyStr) {
+    public Boolean createAccount(String login, String currencyStr) {
         log.info("Creating account for user {} in currency {}", login, currencyStr);
         
         try {
@@ -284,35 +297,32 @@ public class AccountsService {
                     .build();
             
             log.debug("Using accounts service URL: {}", accountsServiceUrl);
-            return webClient
+            AccountOperationResponse response = restClient
                     .post()
                     .uri(accountsServiceUrl + "/api/accounts/create")
-                    .bodyValue(request)
+                    .body(request)
                     .retrieve()
-                    .bodyToMono(AccountOperationResponse.class)
-                    .map(response -> {
-                        if (response != null && response.isSuccess()) {
-                            log.info("Successfully created {} account for user: {}", currency, login);
-                            return true;
-                        } else {
-                            log.warn("Failed to create {} account for user {}: {}", currency, login, 
-                                    response != null ? response.getMessage() : "No response");
-                            return false;
-                        }
-                    })
-                    .doOnError(error -> log.error("Error creating account for user {}: {}", login, error.getMessage(), error))
-                    .onErrorReturn(false);
+                    .body(AccountOperationResponse.class);
             
-        } catch (Exception e) {
-            log.error("Error creating account for user {}: {}", login, e.getMessage(), e);
-            return Mono.just(false);
+            if (response != null && response.isSuccess()) {
+                log.info("Successfully created {} account for user: {}", currency, login);
+                return true;
+            } else {
+                log.warn("Failed to create {} account for user {}: {}", currency, login, 
+                        response != null ? response.getMessage() : "No response");
+                return false;
+            }
+        } catch (Exception error) {
+            log.error("Error creating account for user {} [{}]: {}", login, error.getClass().getSimpleName(), error.getMessage(), error);
+            return false;
         }
     }
     
     /**
      * Выполнить операцию со счетом (пополнение или снятие)
      */
-    public Mono<AccountOperationResponse> performAccountOperation(String login, Currency currency, BigDecimal amount, String operation) {
+    public AccountOperationResponse performAccountOperation(String login, Currency currency, 
+                                                           BigDecimal amount, String operation) {
         log.info("Performing account operation: {} {} {} for user {}", operation, amount, currency, login);
         
         try {
@@ -330,56 +340,36 @@ public class AccountsService {
             }
             
             log.debug("Using accounts service URL: {}", accountsServiceUrl);
-            return webClient
+            AccountOperationResponse response = restClient
                     .post()
                     .uri(accountsServiceUrl + endpoint)
-                    .bodyValue(request)
-                    .exchangeToMono(clientResponse -> {
-                        if (clientResponse.statusCode().is2xxSuccessful()) {
-                            return clientResponse.bodyToMono(AccountOperationResponse.class);
-                        } else if (clientResponse.statusCode().is4xxClientError()) {
-                            // Для 4xx ошибок пытаемся получить детальный ответ
-                            return clientResponse.bodyToMono(AccountOperationResponse.class)
-                                    .onErrorReturn(AccountOperationResponse.builder()
-                                            .success(false)
-                                            .message("Операция заблокирована")
-                                            .build());
-                        } else {
-                            return Mono.just(AccountOperationResponse.builder()
-                                    .success(false)
-                                    .message("Сервис счетов временно недоступен")
-                                    .build());
-                        }
+                    .body(request)
+                    .retrieve()
+                    .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
+                        log.warn("4xx error from accounts service");
                     })
-                    .onErrorReturn(AccountOperationResponse.builder()
-                            .success(false)
-                            .message("Ошибка соединения с сервисом счетов")
-                            .build())
-                    .map(response -> {
-                        log.info("Account operation {} result for user {}: {}", 
-                                operation, login, response != null ? response.isSuccess() : false);
-                        
-                        if (response != null && !response.isSuccess()) {
-                            log.warn("Account operation failed: {}", response.getMessage());
-                        }
-                        
-                        return response != null ? response : AccountOperationResponse.builder()
-                                .success(false)
-                                .message("Нет ответа от сервиса")
-                                .build();
+                    .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
+                        log.error("5xx error from accounts service");
                     })
-                    .doOnError(error -> log.error("Error performing account operation: {}", error.getMessage(), error))
-                    .onErrorReturn(AccountOperationResponse.builder()
-                            .success(false)
-                            .message("Service unavailable")
-                            .build());
+                    .body(AccountOperationResponse.class);
             
-        } catch (Exception e) {
-            log.error("Error performing account operation {} for user {}: {}", operation, login, e.getMessage(), e);
-            return Mono.just(AccountOperationResponse.builder()
+            log.info("Account operation {} result for user {}: {}", 
+                    operation, login, response != null ? response.isSuccess() : false);
+            
+            if (response != null && !response.isSuccess()) {
+                log.warn("Account operation failed: {}", response.getMessage());
+            }
+            
+            return response != null ? response : AccountOperationResponse.builder()
                     .success(false)
-                    .message("Error: " + e.getMessage())
-                    .build());
+                    .message("Нет ответа от сервиса")
+                    .build();
+        } catch (Exception error) {
+            log.error("Error performing account operation {} for user {} [{}]: {}", operation, login, error.getClass().getSimpleName(), error.getMessage(), error);
+            return AccountOperationResponse.builder()
+                    .success(false)
+                    .message("Service unavailable")
+                    .build();
         }
     }
 

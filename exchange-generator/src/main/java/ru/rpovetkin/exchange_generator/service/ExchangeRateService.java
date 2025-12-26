@@ -60,7 +60,7 @@ public class ExchangeRateService {
             
             log.debug("Successfully generated and sent new exchange rates");
         } catch (Exception e) {
-            log.error("Error generating exchange rates: {}", e.getMessage(), e);
+            log.error("Error generating exchange rates [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
         }
     }
 

@@ -63,7 +63,7 @@ public class EmailNotificationService {
                     .build();
                     
         } catch (Exception e) {
-            log.error("Error sending email notification: {}", e.getMessage(), e);
+            log.error("Error sending email notification [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
             return NotificationResponse.builder()
                     .success(false)
                     .message("Failed to send email notification: " + e.getMessage())

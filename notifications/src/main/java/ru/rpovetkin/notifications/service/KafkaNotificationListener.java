@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import ru.rpovetkin.notifications.dto.NotificationRequest;
+import ru.rpovetkin.notifications.metrics.NotificationMetrics;
 
 @Service
 @RequiredArgsConstructor
@@ -12,6 +13,7 @@ import ru.rpovetkin.notifications.dto.NotificationRequest;
 public class KafkaNotificationListener {
 
     private final NotificationService notificationService;
+    private final NotificationMetrics notificationMetrics;
 
     @KafkaListener(topics = "${spring.kafka.topics.notifications:account-notifications}", 
                    groupId = "${spring.kafka.consumer.group-id:notifications-group}")
@@ -23,7 +25,9 @@ public class KafkaNotificationListener {
             notificationService.sendNotification(request);
             log.info("Notification processed successfully");
         } catch (Exception e) {
-            log.error("Error processing notification: {}", e.getMessage(), e);
+            log.error("Error processing notification [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
+            notificationMetrics.recordFailedNotification(request.getUserId(), 
+                    request.getType(), "kafka_processing_error");
         }
     }
 }

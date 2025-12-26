@@ -14,14 +14,15 @@ data:
         username: ${DB_USER:root}
         password: ${DB_PASSWORD:root}
         driver-class-name: org.postgresql.Driver
+      
       jpa:
         hibernate:
           ddl-auto: none
-        show-sql: true
+        show-sql: false
         properties:
           hibernate:
             dialect: org.hibernate.dialect.PostgreSQLDialect
-            format_sql: true
+            format_sql: false
       liquibase:
         change-log: classpath:db/changelog/db.changelog-master.xml
       security:
@@ -40,6 +41,15 @@ data:
           resourceserver:
             jwt:
               jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs}
+      kafka:
+        bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+        producer:
+          key-serializer: org.apache.kafka.common.serialization.StringSerializer
+          value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+        template:
+          observation-enabled: true
+        topics:
+          notifications: account-notifications
     
     keycloak:
       auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://keycloak:8080}
@@ -60,5 +70,37 @@ data:
       endpoints:
         web:
           exposure:
-            include: health,info,loggers,refresh
-
+            include: health,info,loggers,refresh,metrics,prometheus,traces
+      
+      # Metrics configuration
+      metrics:
+        export:
+          prometheus:
+            enabled: true
+        distribution:
+          percentiles-histogram:
+            http.server.requests: true
+        tags:
+          application: ${spring.application.name}
+          service: accounts
+      
+      # Tracing configuration
+      tracing:
+        sampling:
+          probability: ${TRACING_SAMPLE_RATE:1.0}
+        propagation:
+          type: b3
+      
+      # Zipkin exporter configuration
+      zipkin:
+        tracing:
+          endpoint: ${ZIPKIN_BASE_URL:http://bankapp-zipkin:9411}/api/v2/spans
+    
+    logging:
+      level:
+        ru.rpovetkin.accounts: INFO
+        org.springframework.web: INFO
+        org.springframework.kafka: INFO
+        root: INFO
+      pattern:
+        console: "%d{HH:mm:ss.SSS} [%thread] [%X{traceId}/%X{spanId}] %-5level %logger{36} - %msg%n"

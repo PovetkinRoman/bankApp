@@ -48,7 +48,7 @@ public class SignupController {
                 .birthdate(birthdate)
                 .build();
                 
-        UserRegistrationResponse response = accountsService.registerUser(registrationRequest).block();
+        UserRegistrationResponse response = accountsService.registerUser(registrationRequest);
         
         if (response.isSuccess()) {
             log.info("User {} registered successfully", login);

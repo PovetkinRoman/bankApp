@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: bankapp/exchange
   pullPolicy: Never
-  tag: "0.0.1-SNAPSHOT"
+  tag: "latest"
 
 imagePullSecrets:
   - name: ghcr-secret
@@ -20,6 +20,10 @@ env:
   KEYCLOAK_AUTH_SERVER_URL: "http://keycloak:8080"
   KEYCLOAK_JWK_SET_URI: "http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
   OAUTH2_CLIENT_ID: "exchange-service"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  ZIPKIN_BASE_URL: "http://bankapp-zipkin:9411"
+  ZIPKIN_ENABLED: "true"
+  TRACING_SAMPLE_RATE: "1.0"
 
 resources:
   limits:

@@ -58,9 +58,9 @@ public class CashController {
 
             CashOperationResponse response;
             if ("deposit".equals(operation)) {
-                response = cashService.deposit(login, curr, amt).block();
+                response = cashService.deposit(login, curr, amt);
             } else if ("withdraw".equals(operation)) {
-                response = cashService.withdraw(login, curr, amt).block();
+                response = cashService.withdraw(login, curr, amt);
             } else {
                 redirectAttributes.addFlashAttribute("cashErrors", List.of("Неизвестная операция"));
                 return "redirect:/main";
@@ -83,7 +83,7 @@ public class CashController {
             log.error("Invalid currency: {}", currency);
             redirectAttributes.addFlashAttribute("cashErrors", List.of("Неизвестная валюта"));
         } catch (Exception e) {
-            log.error("Error during cash operation: {}", e.getMessage(), e);
+            log.error("Error during cash operation [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
             redirectAttributes.addFlashAttribute("cashErrors", List.of("Произошла ошибка при выполнении операции"));
         }
 

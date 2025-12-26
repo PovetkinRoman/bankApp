@@ -2,8 +2,8 @@ replicaCount: 1
 
 image:
   repository: bankapp/blocker
-  pullPolicy: IfNotPresent
-  tag: "0.0.1-SNAPSHOT"
+  pullPolicy: Always
+  tag: "latest"
 
 service:
   type: ClusterIP
@@ -12,6 +12,9 @@ service:
 
 env:
   KEYCLOAK_JWK_SET_URI: "http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
+  ZIPKIN_BASE_URL: "http://bankapp-zipkin:9411"
+  ZIPKIN_ENABLED: "true"
+  TRACING_SAMPLE_RATE: "1.0"
 
 resources:
   limits:

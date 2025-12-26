@@ -9,7 +9,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import reactor.core.publisher.Mono;
 import ru.rpovetkin.transfer.dto.TransferRequest;
 import ru.rpovetkin.transfer.dto.TransferResponse;
 import ru.rpovetkin.transfer.service.TransferService;
@@ -52,7 +51,7 @@ class TransferControllerTest {
                 .message("Перевод выполнен успешно")
                 .transferId("test-id")
                 .build();
-        given(transferService.processTransfer(any(TransferRequest.class))).willReturn(Mono.just(success));
+        given(transferService.processTransfer(any(TransferRequest.class))).willReturn(success);
 
         TransferRequest req = TransferRequest.builder()
                 .fromUser("alice")
@@ -75,7 +74,7 @@ class TransferControllerTest {
                 .success(false)
                 .message("Validation failed")
                 .build();
-        given(transferService.processTransfer(any(TransferRequest.class))).willReturn(Mono.just(failure));
+        given(transferService.processTransfer(any(TransferRequest.class))).willReturn(failure);
 
         TransferRequest req = TransferRequest.builder()
                 .fromUser("alice")

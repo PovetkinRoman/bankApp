@@ -116,6 +116,9 @@ front-ui:
     CASH_SERVICE_URL: "http://bankapp-cash:8082"
     TRANSFER_SERVICE_URL: "http://bankapp-transfer:8083"
     EXCHANGE_SERVICE_URL: "http://bankapp-exchange:8084"
+    ZIPKIN_BASE_URL: "http://bankapp-zipkin:9411"
+    ZIPKIN_ENABLED: "true"
+    TRACING_SAMPLE_RATE: "1.0"
   
   resources:
     limits:
@@ -192,6 +195,8 @@ accounts:
     DB_NAME: "bankapp"
     DB_USER: "root"
     DB_PASSWORD: "root"
+    ZIPKIN_BASE_URL: "http://bankapp-zipkin:9411"
+    TRACING_SAMPLE_RATE: "1.0"
 
   resources:
     limits:
@@ -244,7 +249,8 @@ cash:
     KEYCLOAK_TOKEN_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/token"
     KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
     OAUTH2_CLIENT_ID: "cash-service"
-    OAUTH2_CLIENT_SECRET: "cash-secret-key-12345"
+    ACCOUNTS_SERVICE_URL: "http://bankapp-accounts:8081"
+    BLOCKER_SERVICE_URL: "http://bankapp-blocker:8086"
 
   resources:
     limits:
@@ -297,7 +303,9 @@ transfer:
     KEYCLOAK_TOKEN_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/token"
     KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
     OAUTH2_CLIENT_ID: "transfer-service"
-    OAUTH2_CLIENT_SECRET: "transfer-secret-key-12345"
+    ACCOUNTS_SERVICE_URL: "http://bankapp-accounts:8081"
+    BLOCKER_SERVICE_URL: "http://bankapp-blocker:8086"
+    EXCHANGE_SERVICE_URL: "http://bankapp-exchange:8084"
 
   resources:
     limits:
@@ -352,7 +360,7 @@ exchange:
     KEYCLOAK_AUTH_SERVER_URL: "http://bankapp-keycloak:8080"
     KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
     OAUTH2_CLIENT_ID: "exchange-service"
-    KAFKA_BOOTSTRAP_SERVERS: "bankapp-kafka:9092"
+    KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
 
   resources:
     limits:
@@ -408,7 +416,7 @@ exchange-generator:
     KEYCLOAK_TOKEN_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/token"
     KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
     OAUTH2_CLIENT_ID: "exchange-generator-service"
-    KAFKA_BOOTSTRAP_SERVERS: "bankapp-kafka:9092"
+    KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
 
   resources:
     limits:
@@ -460,6 +468,8 @@ notifications:
   env:
     KEYCLOAK_JWK_SET_URI: "http://bankapp-keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
     KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+    ZIPKIN_BASE_URL: "http://bankapp-zipkin:9411"
+    TRACING_SAMPLE_RATE: "1.0"
 
   resources:
     limits:
@@ -542,4 +552,264 @@ blocker:
     initialDelaySeconds: 0
     periodSeconds: 5
     failureThreshold: 3
+
+# Zipkin Distributed Tracing
+zipkin:
+  enabled: true
+  image:
+    repository: openzipkin/zipkin
+    tag: "3.4.2"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 9411
+    targetPort: 9411
+  
+  storage:
+    type: mem
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  
+  startupProbe:
+    httpGet:
+      path: /health
+      port: 9411
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 30
+  
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 9411
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    failureThreshold: 3
+  
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 9411
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    failureThreshold: 3
+
+# Prometheus Metrics Collection
+prometheus:
+  enabled: true
+  image:
+    repository: prom/prometheus
+    tag: "v2.48.0"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 9090
+    targetPort: 9090
+  
+  storage:
+    enabled: true
+    size: 10Gi
+    storageClassName: "standard"
+  
+  retention: "15d"
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  
+  startupProbe:
+    httpGet:
+      path: /-/healthy
+      port: 9090
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    failureThreshold: 30
+  
+  livenessProbe:
+    httpGet:
+      path: /-/healthy
+      port: 9090
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    failureThreshold: 3
+  
+  readinessProbe:
+    httpGet:
+      path: /-/ready
+      port: 9090
+    initialDelaySeconds: 30
+    periodSeconds: 5
+    failureThreshold: 3
+
+# Grafana Visualization Platform
+grafana:
+  enabled: true
+  image:
+    repository: grafana/grafana
+    tag: "10.2.3"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 3000
+    targetPort: 3000
+  
+  adminUser: admin
+  adminPassword: admin
+  
+  datasources:
+    prometheus:
+      name: Prometheus
+      type: prometheus
+      url: http://bankapp-prometheus:9090
+      access: proxy
+      isDefault: true
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  
+  startupProbe:
+    httpGet:
+      path: /api/health
+      port: 3000
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 30
+  
+  livenessProbe:
+    httpGet:
+      path: /api/health
+      port: 3000
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    failureThreshold: 3
+  
+  readinessProbe:
+    httpGet:
+      path: /api/health
+      port: 3000
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    failureThreshold: 3
+
+# Elasticsearch for ELK Stack
+elasticsearch:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: docker.elastic.co/elasticsearch/elasticsearch
+    tag: "8.11.0"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 9200
+    nodePort: 9300
+  
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+  
+  persistence:
+    enabled: true
+    storageClass: "standard"
+    size: 5Gi
+  
+  env:
+    - name: discovery.type
+      value: "single-node"
+    - name: ES_JAVA_OPTS
+      value: "-Xms512m -Xmx512m"
+    - name: xpack.security.enabled
+      value: "false"
+    - name: xpack.security.enrollment.enabled
+      value: "false"
+
+# Logstash for ELK Stack
+logstash:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: docker.elastic.co/logstash/logstash
+    tag: "8.11.0"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 5000
+    tcpPort: 5044
+  
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  
+  elasticsearch:
+    host: "bankapp-elasticsearch"
+    port: 9200
+  
+  kafka:
+    bootstrapServers: "kafka:9092"
+
+# Kibana for ELK Stack
+kibana:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: docker.elastic.co/kibana/kibana
+    tag: "8.11.0"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 5601
+  
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  
+  elasticsearch:
+    host: "bankapp-elasticsearch"
+    port: 9200
+  
+  env:
+    - name: ELASTICSEARCH_HOSTS
+      value: "http://bankapp-elasticsearch:9200"
+    - name: SERVER_NAME
+      value: "kibana"
+    - name: SERVER_HOST
+      value: "0.0.0.0"
+    - name: XPACK_SECURITY_ENABLED
+      value: "false"
+    - name: XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY
+      value: "min-32-byte-long-strong-encryption-key-value"
+
 

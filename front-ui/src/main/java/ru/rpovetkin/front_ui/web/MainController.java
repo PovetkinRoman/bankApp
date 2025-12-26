@@ -33,7 +33,7 @@ public class MainController {
         log.info("Current authenticated user: {}", username);
         
         try {
-            UserDto user = accountsService.getUserByLogin(username).block();
+            UserDto user = accountsService.getUserByLogin(username);
             if (user != null) {
                 model.addAttribute("login", user.getLogin());
                 model.addAttribute("name", user.getName());
@@ -45,7 +45,7 @@ public class MainController {
                 model.addAttribute("birthdate", "");
             }
         } catch (Exception e) {
-            log.error("Error getting user data: {}", e.getMessage());
+            log.error("Error getting user data [{}]: {}", e.getClass().getSimpleName(), e.getMessage());
             model.addAttribute("login", username);
             model.addAttribute("name", "Пользователь");
             model.addAttribute("birthdate", "");
@@ -68,7 +68,7 @@ public class MainController {
      */
     private void addAccountsToModel(Model model, String username) {
         try {
-            List<AccountDto> accounts = accountsService.getUserAccounts(username).block();
+            List<AccountDto> accounts = accountsService.getUserAccounts(username);
             model.addAttribute("accounts", accounts);
             
             // Добавляем валюты для переводов (только те, для которых есть счета)
@@ -88,9 +88,9 @@ public class MainController {
             log.debug("Added {} accounts and {} available currencies to model for user: {}", 
                     accounts.size(), availableCurrencies.size(), username);
         } catch (Exception e) {
-            log.error("Error getting accounts for user {}: {}", username, e.getMessage(), e);
+            log.error("Error getting accounts for user {} [{}]: {}", username, e.getClass().getSimpleName(), e.getMessage(), e);
             // Добавляем пустой список счетов в случае ошибки
-            List<AccountDto> fallbackAccounts = accountsService.getUserAccounts(username).block();
+            List<AccountDto> fallbackAccounts = accountsService.getUserAccounts(username);
             model.addAttribute("accounts", fallbackAccounts);
             model.addAttribute("currency", List.of()); // Пустой список валют при ошибке
             model.addAttribute("transferAccounts", List.of()); // Пустой список счетов для переводов при ошибке
@@ -102,11 +102,11 @@ public class MainController {
      */
     private void addCashDataToModel(Model model, String username) {
         try {
-            List<AccountDto> availableCurrencies = cashService.getAvailableCurrencies(username).block();
+            List<AccountDto> availableCurrencies = cashService.getAvailableCurrencies(username);
             model.addAttribute("cashCurrencies", availableCurrencies);
             log.debug("Added {} available currencies for cash operations for user: {}", availableCurrencies.size(), username);
         } catch (Exception e) {
-            log.error("Error getting cash currencies for user {}: {}", username, e.getMessage(), e);
+            log.error("Error getting cash currencies for user {} [{}]: {}", username, e.getClass().getSimpleName(), e.getMessage(), e);
             model.addAttribute("cashCurrencies", List.of());
         }
     }
@@ -116,11 +116,11 @@ public class MainController {
      */
     private void addUsersToModel(Model model) {
         try {
-            List<UserDto> users = accountsService.getAllUsers().block();
+            List<UserDto> users = accountsService.getAllUsers();
             model.addAttribute("users", users);
             log.debug("Added {} users to model for transfers", users.size());
         } catch (Exception e) {
-            log.error("Error getting users list: {}", e.getMessage(), e);
+            log.error("Error getting users list [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
             model.addAttribute("users", List.of());
         }
     }
