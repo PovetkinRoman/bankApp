@@ -9,6 +9,9 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class NotificationMetrics {
     
+    private static final String METRIC_NOTIFICATION_FAILED = "bankapp.notification.failed";
+    private static final String METRIC_NOTIFICATION_SUCCESS = "bankapp.notification.success";
+    
     private final MeterRegistry meterRegistry;
     
     public NotificationMetrics(MeterRegistry meterRegistry) {
@@ -19,7 +22,7 @@ public class NotificationMetrics {
      * Регистрация неуспешной попытки отправки уведомления
      */
     public void recordFailedNotification(String userId, String type, String reason) {
-        Counter.builder("bankapp.notification.failed")
+        Counter.builder(METRIC_NOTIFICATION_FAILED)
                 .tag("user_id", userId)
                 .tag("type", type)
                 .tag("reason", reason)
@@ -35,7 +38,7 @@ public class NotificationMetrics {
      * Регистрация успешной отправки уведомления
      */
     public void recordSuccessfulNotification(String userId, String type) {
-        Counter.builder("bankapp.notification.success")
+        Counter.builder(METRIC_NOTIFICATION_SUCCESS)
                 .tag("user_id", userId)
                 .tag("type", type)
                 .tag("service", "notifications")

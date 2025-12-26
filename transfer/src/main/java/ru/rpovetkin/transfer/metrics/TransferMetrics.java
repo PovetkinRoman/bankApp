@@ -9,6 +9,9 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class TransferMetrics {
     
+    private static final String METRIC_TRANSFER_FAILED = "bankapp.transfer.failed";
+    private static final String METRIC_TRANSFER_SUCCESS = "bankapp.transfer.success";
+    
     private final MeterRegistry meterRegistry;
     
     public TransferMetrics(MeterRegistry meterRegistry) {
@@ -21,7 +24,7 @@ public class TransferMetrics {
     public void recordFailedTransfer(String fromUser, String toUser, String fromCurrency, String toCurrency, String reason) {
         boolean isSelfTransfer = fromUser.equals(toUser);
         
-        Counter.builder("bankapp.transfer.failed")
+        Counter.builder(METRIC_TRANSFER_FAILED)
                 .tag("from_user", fromUser)
                 .tag("to_user", toUser)
                 .tag("from_currency", fromCurrency)
@@ -43,7 +46,7 @@ public class TransferMetrics {
     public void recordSuccessfulTransfer(String fromUser, String toUser, String fromCurrency, String toCurrency) {
         boolean isSelfTransfer = fromUser.equals(toUser);
         
-        Counter.builder("bankapp.transfer.success")
+        Counter.builder(METRIC_TRANSFER_SUCCESS)
                 .tag("from_user", fromUser)
                 .tag("to_user", toUser)
                 .tag("from_currency", fromCurrency)

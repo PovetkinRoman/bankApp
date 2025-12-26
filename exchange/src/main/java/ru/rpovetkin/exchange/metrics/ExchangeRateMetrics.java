@@ -9,6 +9,9 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class ExchangeRateMetrics {
     
+    private static final String METRIC_RATE_UPDATE_FAILED = "bankapp.exchange.rate_update_failed";
+    private static final String METRIC_RATE_UPDATE_SUCCESS = "bankapp.exchange.rate_update_success";
+    
     private final MeterRegistry meterRegistry;
     
     public ExchangeRateMetrics(MeterRegistry meterRegistry) {
@@ -19,7 +22,7 @@ public class ExchangeRateMetrics {
      * Регистрация неуспешного обновления курсов валют
      */
     public void recordFailedExchangeRateUpdate(String reason) {
-        Counter.builder("bankapp.exchange.rate_update_failed")
+        Counter.builder(METRIC_RATE_UPDATE_FAILED)
                 .tag("reason", reason)
                 .tag("service", "exchange")
                 .description("Failed exchange rate update attempts")
@@ -33,7 +36,7 @@ public class ExchangeRateMetrics {
      * Регистрация успешного обновления курсов валют
      */
     public void recordSuccessfulExchangeRateUpdate(int ratesCount) {
-        Counter.builder("bankapp.exchange.rate_update_success")
+        Counter.builder(METRIC_RATE_UPDATE_SUCCESS)
                 .tag("service", "exchange")
                 .description("Successful exchange rate updates")
                 .register(meterRegistry)

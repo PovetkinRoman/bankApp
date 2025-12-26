@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class AuthMetrics {
     
+    private static final String METRIC_AUTH_LOGIN = "bankapp.auth.login";
+    
     private final MeterRegistry meterRegistry;
     
     public AuthMetrics(MeterRegistry meterRegistry) {
@@ -19,7 +21,7 @@ public class AuthMetrics {
      * Регистрация успешной попытки входа
      */
     public void recordSuccessfulLogin(String login) {
-        Counter.builder("bankapp.auth.login")
+        Counter.builder(METRIC_AUTH_LOGIN)
                 .tag("status", "success")
                 .tag("login", login)
                 .tag("service", "accounts")
@@ -34,7 +36,7 @@ public class AuthMetrics {
      * Регистрация неуспешной попытки входа
      */
     public void recordFailedLogin(String login) {
-        Counter.builder("bankapp.auth.login")
+        Counter.builder(METRIC_AUTH_LOGIN)
                 .tag("status", "failure")
                 .tag("login", login)
                 .tag("service", "accounts")
