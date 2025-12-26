@@ -32,7 +32,6 @@ public class TransferService {
                 request.getFromUser(), request.getToUser(), 
                 request.getAmount(), request.getCurrency());
         
-        // Валидация запроса
         List<String> errors = validateRequest(request);
         if (!errors.isEmpty()) {
             String fromCurrency = request.getFromCurrency() != null ? request.getFromCurrency() : request.getCurrency();
@@ -46,7 +45,6 @@ public class TransferService {
                     .build();
         }
         
-        // Проверяем перевод через blocker сервис
         TransferCheckRequest blockerRequest = TransferCheckRequest.builder()
                 .fromUser(request.getFromUser())
                 .toUser(request.getToUser())
@@ -59,13 +57,11 @@ public class TransferService {
         var blockerResponse = blockerIntegrationService.checkTransfer(blockerRequest);
         
         if (blockerResponse.isBlocked()) {
-            // Извлекаем параметры для метрик
             String fromCurrency = request.getFromCurrency() != null ? request.getFromCurrency() : request.getCurrency();
             String toCurrency = request.getToCurrency() != null ? request.getToCurrency() : request.getCurrency();
             transferMetrics.recordFailedTransfer(request.getFromUser(), request.getToUser(), 
                     fromCurrency, toCurrency, "blocked_by_security");
             
-            // Отправляем уведомления о блокировке обоим пользователям
             notificationService.sendBlockedNotification(
                 request.getFromUser(),
                 "Перевод заблокирован",
@@ -79,13 +75,11 @@ public class TransferService {
                     .build();
         }
         
-        // Извлекаем параметры с учетом обратной совместимости
         String fromCurrency = request.getFromCurrency() != null ? request.getFromCurrency() : request.getCurrency();
         String toCurrency = request.getToCurrency() != null ? request.getToCurrency() : request.getCurrency();
         BigDecimal amountFrom = request.getAmountFrom() != null ? request.getAmountFrom() : request.getAmount();
         BigDecimal amountTo = request.getAmountTo() != null ? request.getAmountTo() : request.getAmount();
 
-        // Проверяем балансы и счета
         BigDecimal fromBalance = accountsIntegrationService.getUserBalance(request.getFromUser(), fromCurrency);
         
         if (fromBalance.compareTo(amountFrom) < 0) {
@@ -109,7 +103,6 @@ public class TransferService {
                     .build();
         }
         
-        // Выполняем перевод: списываем с отправителя
         Boolean debitSuccess = accountsIntegrationService.performAccountOperation(
             request.getFromUser(),
             fromCurrency,
@@ -126,7 +119,6 @@ public class TransferService {
                     .build();
         }
         
-        // Зачисляем получателю
         Boolean creditSuccess = accountsIntegrationService.performAccountOperation(
             request.getToUser(),
             toCurrency,
@@ -138,7 +130,6 @@ public class TransferService {
             transferMetrics.recordFailedTransfer(request.getFromUser(), request.getToUser(), 
                     fromCurrency, toCurrency, "credit_failed");
             
-            // Откатываем списание
             accountsIntegrationService.performAccountOperation(
                 request.getFromUser(),
                 fromCurrency,
@@ -155,11 +146,9 @@ public class TransferService {
         String transferId = UUID.randomUUID().toString();
         log.info("Transfer completed successfully: {} (ID: {})", request, transferId);
         
-        // Записываем метрику успешного перевода
         transferMetrics.recordSuccessfulTransfer(request.getFromUser(), request.getToUser(), 
                 fromCurrency, toCurrency);
         
-        // Отправляем уведомления о успешном переводе
         notificationService.sendSuccessNotification(
             request.getFromUser(),
             "Перевод отправлен",
@@ -191,8 +180,6 @@ public class TransferService {
         if (request.getToUser() == null || request.getToUser().trim().isEmpty()) {
             errors.add("Получатель обязателен");
         }
-        
-        // Разрешаем переводы между своими счетами (from == to)
         
         if (request.getCurrency() == null || request.getCurrency().trim().isEmpty()) {
             errors.add("Валюта обязательна");

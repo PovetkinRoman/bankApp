@@ -46,7 +46,6 @@ public class CashService {
                     .build();
         }
 
-        // Проверяем операцию через blocker сервис
         TransferCheckRequest blockerRequest = TransferCheckRequest.builder()
                 .fromUser("CASH_SYSTEM")
                 .toUser(request.getLogin())
@@ -83,10 +82,8 @@ public class CashService {
                 request.getLogin(), request.getCurrency(), request.getAmount());
         
         if (success) {
-            // Получаем обновленную информацию о счете
             AccountDto updatedAccount = getUpdatedAccountInfo(request.getLogin(), request.getCurrency());
             
-            // Отправляем уведомление об успешном пополнении
             notificationService.sendSuccessNotification(
                     request.getLogin(),
                     "Пополнение наличными",
@@ -124,7 +121,6 @@ public class CashService {
                     .build();
         }
 
-        // Проверяем операцию через blocker сервис
         TransferCheckRequest blockerRequest = TransferCheckRequest.builder()
                 .fromUser(request.getLogin())
                 .toUser("CASH_SYSTEM")
@@ -143,7 +139,6 @@ public class CashService {
                     .build();
         }
 
-        // Проверяем, что у пользователя есть счет в данной валюте
         List<AccountDto> existingAccounts = accountsIntegrationService.getExistingUserAccounts(request.getLogin());
         boolean hasAccount = existingAccounts.stream()
                 .anyMatch(account -> account.getCurrency() == request.getCurrency());
@@ -156,15 +151,12 @@ public class CashService {
                     .build();
         }
 
-        // Выполняем операцию снятия
         Boolean success = accountsIntegrationService.withdrawFromAccount(
                 request.getLogin(), request.getCurrency(), request.getAmount());
         
         if (success) {
-            // Получаем обновленную информацию о счете
             AccountDto updatedAccount = getUpdatedAccountInfo(request.getLogin(), request.getCurrency());
             
-            // Отправляем уведомление об успешном снятии
             notificationService.sendSuccessNotification(
                     request.getLogin(),
                     "Снятие наличных",

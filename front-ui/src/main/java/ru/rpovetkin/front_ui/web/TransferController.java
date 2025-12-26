@@ -115,7 +115,6 @@ public class TransferController {
                 log.info("Converted {} {} to {} {}", amount, fromCurrency, convertedAmount, toCurrency);
             }
             
-            // Проверяем баланс отправителя
             List<AccountDto> fromUserAccounts = accountsService.getUserAccounts(fromUser);
             AccountDto fromAccount = fromUserAccounts.stream()
                     .filter(acc -> acc.getCurrency().equals(fromCurrency) && acc.isExists())

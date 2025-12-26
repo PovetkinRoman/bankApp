@@ -57,7 +57,6 @@ public class UserService {
             
             log.debug("Successfully registered user with ID: {}", savedUser.getId());
             
-            // Отправляем уведомление о успешной регистрации
             notificationService.sendSuccessNotification(
                 savedUser.getLogin(),
                 "Добро пожаловать!",
@@ -127,7 +126,6 @@ public class UserService {
                 .map(user -> passwordEncoder.matches(password, user.getPasswordHash()))
                 .orElse(false);
         
-        // Записываем метрику успешного/неуспешного логина
         if (authenticated) {
             authMetrics.recordSuccessfulLogin(login);
         } else {
@@ -167,7 +165,6 @@ public class UserService {
             
             log.debug("Successfully changed password for user: {}", request.getLogin());
             
-            // Отправляем уведомление о смене пароля
             notificationService.sendInfoNotification(
                 user.getLogin(),
                 "Пароль изменен",
