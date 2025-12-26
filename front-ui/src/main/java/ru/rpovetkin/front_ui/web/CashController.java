@@ -83,7 +83,7 @@ public class CashController {
             log.error("Invalid currency: {}", currency);
             redirectAttributes.addFlashAttribute("cashErrors", List.of("Неизвестная валюта"));
         } catch (Exception e) {
-            log.error("Error during cash operation: {}", e.getMessage(), e);
+            log.error("Error during cash operation [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
             redirectAttributes.addFlashAttribute("cashErrors", List.of("Произошла ошибка при выполнении операции"));
         }
 

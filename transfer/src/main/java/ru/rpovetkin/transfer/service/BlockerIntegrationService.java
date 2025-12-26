@@ -60,7 +60,7 @@ public class BlockerIntegrationService {
                 return createAllowResponse("No response from blocker service");
             }
         } catch (Exception error) {
-            log.error("Error calling blocker service: {}", error.getMessage(), error);
+            log.error("Error calling blocker service [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
             return createAllowResponse("Blocker service unavailable");
         }
     }
@@ -83,7 +83,7 @@ public class BlockerIntegrationService {
             }
             return "";
         } catch (Exception error) {
-            log.warn("Failed to fetch service access token for blocker: {}", error.getMessage());
+            log.warn("Failed to fetch service access token for blocker [{}]: {}", error.getClass().getSimpleName(), error.getMessage());
             return "";
         }
     }

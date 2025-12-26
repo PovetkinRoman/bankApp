@@ -45,7 +45,7 @@ public class MainController {
                 model.addAttribute("birthdate", "");
             }
         } catch (Exception e) {
-            log.error("Error getting user data: {}", e.getMessage());
+            log.error("Error getting user data [{}]: {}", e.getClass().getSimpleName(), e.getMessage());
             model.addAttribute("login", username);
             model.addAttribute("name", "Пользователь");
             model.addAttribute("birthdate", "");
@@ -88,7 +88,7 @@ public class MainController {
             log.debug("Added {} accounts and {} available currencies to model for user: {}", 
                     accounts.size(), availableCurrencies.size(), username);
         } catch (Exception e) {
-            log.error("Error getting accounts for user {}: {}", username, e.getMessage(), e);
+            log.error("Error getting accounts for user {} [{}]: {}", username, e.getClass().getSimpleName(), e.getMessage(), e);
             // Добавляем пустой список счетов в случае ошибки
             List<AccountDto> fallbackAccounts = accountsService.getUserAccounts(username);
             model.addAttribute("accounts", fallbackAccounts);
@@ -106,7 +106,7 @@ public class MainController {
             model.addAttribute("cashCurrencies", availableCurrencies);
             log.debug("Added {} available currencies for cash operations for user: {}", availableCurrencies.size(), username);
         } catch (Exception e) {
-            log.error("Error getting cash currencies for user {}: {}", username, e.getMessage(), e);
+            log.error("Error getting cash currencies for user {} [{}]: {}", username, e.getClass().getSimpleName(), e.getMessage(), e);
             model.addAttribute("cashCurrencies", List.of());
         }
     }
@@ -120,7 +120,7 @@ public class MainController {
             model.addAttribute("users", users);
             log.debug("Added {} users to model for transfers", users.size());
         } catch (Exception e) {
-            log.error("Error getting users list: {}", e.getMessage(), e);
+            log.error("Error getting users list [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
             model.addAttribute("users", List.of());
         }
     }

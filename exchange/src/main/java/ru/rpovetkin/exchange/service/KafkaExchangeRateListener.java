@@ -42,7 +42,7 @@ public class KafkaExchangeRateListener {
         } catch (Exception e) {
             // При ошибке логируем, но не перезапрашиваем сообщение (at most once)
             // Это допустимо, так как новые курсы придут через 1 секунду
-            log.error("Error processing exchange rates update: {}", e.getMessage(), e);
+            log.error("Error processing exchange rates update [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
             exchangeRateMetrics.recordFailedExchangeRateUpdate("kafka_processing_error");
             // Не пробрасываем исключение выше, чтобы не останавливать consumer
         }

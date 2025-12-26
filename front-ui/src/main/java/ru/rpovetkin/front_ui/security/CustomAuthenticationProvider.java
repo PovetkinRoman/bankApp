@@ -64,7 +64,7 @@ public class CustomAuthenticationProvider implements AuthenticationProvider {
             }
             
         } catch (Exception e) {
-            log.error("Authentication error for user {}: {}", username, e.getMessage());
+            log.error("Authentication error for user {} [{}]: {}", username, e.getClass().getSimpleName(), e.getMessage());
             throw new BadCredentialsException("Authentication failed");
         }
     }

@@ -74,7 +74,7 @@ public class AccountsIntegrationService {
                 return false;
             }
         } catch (Exception error) {
-            log.error("Error performing account operation: {}", error.getMessage(), error);
+            log.error("Error performing account operation [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
             return false;
         }
     }
@@ -132,7 +132,7 @@ public class AccountsIntegrationService {
             log.warn("No account found for user {} in currency {}", login, currency);
             return BigDecimal.valueOf(-1);
         } catch (Exception error) {
-            log.error("Error getting user balance: {}", error.getMessage(), error);
+            log.error("Error getting user balance [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
             return BigDecimal.valueOf(-1);
         }
     }
@@ -163,7 +163,7 @@ public class AccountsIntegrationService {
             }
             return "";
         } catch (Exception error) {
-            log.warn("Failed to fetch service access token for accounts: {}", error.getMessage());
+            log.warn("Failed to fetch service access token for accounts [{}]: {}", error.getClass().getSimpleName(), error.getMessage());
             return "";
         }
     }

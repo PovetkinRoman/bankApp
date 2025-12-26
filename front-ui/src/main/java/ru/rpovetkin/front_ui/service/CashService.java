@@ -52,7 +52,7 @@ public class CashService {
             }
             return new ArrayList<>();
         } catch (Exception error) {
-            log.error("Error getting available currencies: {}", error.getMessage(), error);
+            log.error("Error getting available currencies [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
             return new ArrayList<>();
         }
     }
@@ -118,7 +118,7 @@ public class CashService {
                     .message("Нет ответа от сервиса")
                     .build();
         } catch (Exception error) {
-            log.error("Error performing cash operation: {}", error.getMessage(), error);
+            log.error("Error performing cash operation [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
             return CashOperationResponse.builder()
                     .success(false)
                     .message("Cash service unavailable")
@@ -141,7 +141,7 @@ public class CashService {
                         .build();
             }
         } catch (Exception e) {
-            log.error("Error converting account data: {}", e.getMessage(), e);
+            log.error("Error converting account data [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
         }
         
         return null;

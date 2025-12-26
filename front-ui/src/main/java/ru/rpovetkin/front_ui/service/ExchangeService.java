@@ -43,7 +43,7 @@ public class ExchangeService {
             }
             return getDefaultRates();
         } catch (Exception error) {
-            log.error("Error getting exchange rates from exchange service: {}", error.getMessage(), error);
+            log.error("Error getting exchange rates from exchange service [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
             return getDefaultRates();
         }
     }
@@ -88,7 +88,7 @@ public class ExchangeService {
                 }
             }
         } catch (Exception e) {
-            log.error("Error converting exchange rates to display format: {}", e.getMessage(), e);
+            log.error("Error converting exchange rates to display format [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
         }
 
         return displayRates;

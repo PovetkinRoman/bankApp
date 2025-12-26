@@ -71,7 +71,7 @@ public class UserService {
                     .build();
                     
         } catch (Exception e) {
-            log.error("Error registering user: {}", e.getMessage(), e);
+            log.error("Error registering user [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
             return UserRegistrationResponse.builder()
                     .success(false)
                     .message("Registration failed")
@@ -180,7 +180,7 @@ public class UserService {
                     .build();
                     
         } catch (Exception e) {
-            log.error("Error changing password for user {}: {}", request.getLogin(), e.getMessage(), e);
+            log.error("Error changing password for user {} [{}]: {}", request.getLogin(), e.getClass().getSimpleName(), e.getMessage(), e);
             return ChangePasswordResponse.builder()
                     .success(false)
                     .message("Password change failed")
@@ -252,7 +252,7 @@ public class UserService {
                     .build();
                     
         } catch (Exception e) {
-            log.error("Error updating user data for {}: {}", request.getLogin(), e.getMessage(), e);
+            log.error("Error updating user data for {} [{}]: {}", request.getLogin(), e.getClass().getSimpleName(), e.getMessage(), e);
             return UpdateUserDataResponse.builder()
                     .success(false)
                     .message("User data update failed")

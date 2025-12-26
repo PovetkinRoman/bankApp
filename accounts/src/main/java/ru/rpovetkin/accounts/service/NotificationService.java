@@ -36,7 +36,7 @@ public class NotificationService {
             kafkaTemplate.send(notificationsTopic, userId, request);
             log.debug("Notification sent successfully to Kafka: user={}, type={}", userId, type);
         } catch (Exception e) {
-            log.error("Failed to send notification to Kafka: {}", e.getMessage(), e);
+            log.error("Failed to send notification to Kafka [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
         }
     }
     

@@ -144,7 +144,7 @@ public class UserController {
             }
             
         } catch (Exception e) {
-            log.error("Error updating user data: {}", e.getMessage(), e);
+            log.error("Error updating user data [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
             redirectAttributes.addFlashAttribute("userAccountsErrors", List.of("Произошла ошибка при обновлении данных"));
             return "redirect:/main";
         }
@@ -164,7 +164,7 @@ public class UserController {
                     errors.add("Не удалось создать счет в валюте " + currencyStr);
                 }
             } catch (Exception e) {
-                log.error("Error creating account {} for user {}: {}", currencyStr, login, e.getMessage(), e);
+                log.error("Error creating account {} for user {} [{}]: {}", currencyStr, login, e.getClass().getSimpleName(), e.getMessage(), e);
                 errors.add("Ошибка при создании счета в валюте " + currencyStr);
             }
         }

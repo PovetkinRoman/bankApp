@@ -37,7 +37,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                     .build();
                     
         } catch (Exception e) {
-            log.error("Error loading user: {}", e.getMessage());
+            log.error("Error loading user [{}]: {}", e.getClass().getSimpleName(), e.getMessage());
             throw new UsernameNotFoundException("User not found: " + username);
         }
     }

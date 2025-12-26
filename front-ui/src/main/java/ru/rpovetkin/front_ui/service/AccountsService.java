@@ -53,7 +53,7 @@ public class AccountsService {
                     response != null ? response.isSuccess() : false);
             return response;
         } catch (Exception error) {
-            log.error("[HTTP] Error calling accounts service: {}", error.getMessage(), error);
+            log.error("[HTTP] Error calling accounts service [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
             return UserRegistrationResponse.builder()
                     .success(false)
                     .message("Service unavailable")
@@ -77,7 +77,7 @@ public class AccountsService {
             log.info("Authentication result for user {}: {}", request.getLogin(), success);
             return success;
         } catch (Exception error) {
-            log.error("Error authenticating user: {}", error.getMessage(), error);
+            log.error("Error authenticating user [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
             return false;
         }
     }
@@ -102,7 +102,7 @@ public class AccountsService {
             log.info("Retrieved user: {}", user != null ? user.getLogin() : "null");
             return user;
         } catch (Exception error) {
-            log.error("Error getting user by login: {}", error.getMessage(), error);
+            log.error("Error getting user by login [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
             return null;
         }
     }
@@ -129,7 +129,7 @@ public class AccountsService {
             }
             return new ArrayList<>();
         } catch (Exception error) {
-            log.error("Error getting all users: {}", error.getMessage(), error);
+            log.error("Error getting all users [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
             return new ArrayList<>();
         }
     }
@@ -153,7 +153,7 @@ public class AccountsService {
                     .message("Service unavailable")
                     .build();
         } catch (Exception error) {
-            log.error("Error changing password: {}", error.getMessage(), error);
+            log.error("Error changing password [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
             return ChangePasswordResponse.builder()
                     .success(false)
                     .message("Service unavailable")
@@ -180,7 +180,7 @@ public class AccountsService {
                     .message("Service unavailable")
                     .build();
         } catch (Exception error) {
-            log.error("Error updating user data: {}", error.getMessage(), error);
+            log.error("Error updating user data [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
             return UpdateUserDataResponse.builder()
                     .success(false)
                     .message("Service unavailable")
@@ -211,7 +211,7 @@ public class AccountsService {
             log.warn("No accounts found for user: {}", login);
             return createEmptyAccountsList();
         } catch (Exception error) {
-            log.error("Error getting user accounts: {}", error.getMessage(), error);
+            log.error("Error getting user accounts [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
             return createEmptyAccountsList();
         }
     }
@@ -231,7 +231,7 @@ public class AccountsService {
                         .build();
             }
         } catch (Exception e) {
-            log.error("Error converting account data: {}", e.getMessage(), e);
+            log.error("Error converting account data [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
         }
         
         return null;
@@ -271,7 +271,7 @@ public class AccountsService {
                         .build();
             }
         } catch (Exception e) {
-            log.error("Error converting user data: {}", e.getMessage(), e);
+            log.error("Error converting user data [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
         }
         
         return null;
@@ -313,7 +313,7 @@ public class AccountsService {
                 return false;
             }
         } catch (Exception error) {
-            log.error("Error creating account for user {}: {}", login, error.getMessage(), error);
+            log.error("Error creating account for user {} [{}]: {}", login, error.getClass().getSimpleName(), error.getMessage(), error);
             return false;
         }
     }
@@ -365,7 +365,7 @@ public class AccountsService {
                     .message("Нет ответа от сервиса")
                     .build();
         } catch (Exception error) {
-            log.error("Error performing account operation {} for user {}: {}", operation, login, error.getMessage(), error);
+            log.error("Error performing account operation {} for user {} [{}]: {}", operation, login, error.getClass().getSimpleName(), error.getMessage(), error);
             return AccountOperationResponse.builder()
                     .success(false)
                     .message("Service unavailable")

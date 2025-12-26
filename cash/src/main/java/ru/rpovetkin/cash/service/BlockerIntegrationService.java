@@ -63,7 +63,7 @@ public class BlockerIntegrationService {
             }
             
         } catch (Exception e) {
-            log.error("Error calling blocker service: {}", e.getMessage(), e);
+            log.error("Error calling blocker service [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
             // Stricter fallback: block high-risk amounts when blocker is unavailable
             try {
                 boolean highRisk = request != null && request.getAmount() != null
@@ -101,7 +101,7 @@ public class BlockerIntegrationService {
             }
             return null;
         } catch (Exception e) {
-            log.warn("Failed to fetch service access token: {}", e.getMessage());
+            log.warn("Failed to fetch service access token [{}]: {}", e.getClass().getSimpleName(), e.getMessage());
             return null;
         }
     }

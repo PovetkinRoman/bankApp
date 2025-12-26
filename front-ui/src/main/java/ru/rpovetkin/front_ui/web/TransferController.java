@@ -89,7 +89,7 @@ public class TransferController {
             log.error("Invalid currency: {} or {}", from_currency, to_currency);
             redirectAttributes.addFlashAttribute("transferErrors", List.of("Неизвестная валюта"));
         } catch (Exception e) {
-            log.error("Error during transfer: {}", e.getMessage(), e);
+            log.error("Error during transfer [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
             redirectAttributes.addFlashAttribute("transferErrors", List.of("Произошла ошибка при выполнении перевода"));
         }
 
@@ -161,7 +161,7 @@ public class TransferController {
             return "SUCCESS";
             
         } catch (Exception e) {
-            log.error("Error performing transfer with conversion: {}", e.getMessage(), e);
+            log.error("Error performing transfer with conversion [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
             return "Произошла ошибка при выполнении перевода: " + e.getMessage();
         }
     }
@@ -221,7 +221,7 @@ public class TransferController {
             return result;
             
         } catch (Exception e) {
-            log.error("Error converting currency from {} to {}: {}", fromCurrency, toCurrency, e.getMessage(), e);
+            log.error("Error converting currency from {} to {} [{}]: {}", fromCurrency, toCurrency, e.getClass().getSimpleName(), e.getMessage(), e);
             return null;
         }
     }

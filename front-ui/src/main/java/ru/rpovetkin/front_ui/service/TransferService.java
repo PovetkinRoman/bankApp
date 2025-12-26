@@ -80,7 +80,7 @@ public class TransferService {
                     .message("Нет ответа от сервиса")
                     .build();
         } catch (Exception error) {
-            log.error("Error calling transfer service: {}", error.getMessage(), error);
+            log.error("Error calling transfer service [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
             return TransferResponse.builder()
                     .success(false)
                     .message("Transfer service unavailable")

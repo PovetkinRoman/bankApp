@@ -54,7 +54,7 @@ public class AccountsIntegrationService {
             log.warn("No accounts found for user: {}", login);
             return List.of();
         } catch (Exception error) {
-            log.error("[HTTP] Error getting accounts for user {}: {}", login, error.getMessage(), error);
+            log.error("[HTTP] Error getting accounts for user {} [{}]: {}", login, error.getClass().getSimpleName(), error.getMessage(), error);
             return List.of();
         }
     }
@@ -89,7 +89,7 @@ public class AccountsIntegrationService {
             log.info("Deposit operation for user {} result: {} - {}", login, success, message);
             return success;
         } catch (Exception error) {
-            log.error("[HTTP] Error calling accounts service: {}", error.getMessage(), error);
+            log.error("[HTTP] Error calling accounts service [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
             return false;
         }
     }
@@ -124,7 +124,7 @@ public class AccountsIntegrationService {
             log.info("Withdrawal operation for user {} result: {} - {}", login, success, message);
             return success;
         } catch (Exception error) {
-            log.error("[HTTP] Error calling accounts service: {}", error.getMessage(), error);
+            log.error("[HTTP] Error calling accounts service [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
             return false;
         }
     }
@@ -144,7 +144,7 @@ public class AccountsIntegrationService {
                         .build();
             }
         } catch (Exception e) {
-            log.error("Error converting account data: {}", e.getMessage(), e);
+            log.error("Error converting account data [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
         }
         
         return null;

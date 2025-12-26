@@ -70,7 +70,7 @@ public class NotificationService {
                     .build();
                     
         } catch (Exception e) {
-            log.error("Error sending notification: {}", e.getMessage(), e);
+            log.error("Error sending notification [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
             notificationMetrics.recordFailedNotification(request.getUserId(), request.getType(), "exception");
             return NotificationResponse.builder()
                     .success(false)

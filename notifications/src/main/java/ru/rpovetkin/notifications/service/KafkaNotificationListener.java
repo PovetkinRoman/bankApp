@@ -25,7 +25,7 @@ public class KafkaNotificationListener {
             notificationService.sendNotification(request);
             log.info("Notification processed successfully");
         } catch (Exception e) {
-            log.error("Error processing notification: {}", e.getMessage(), e);
+            log.error("Error processing notification [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
             notificationMetrics.recordFailedNotification(request.getUserId(), 
                     request.getType(), "kafka_processing_error");
         }
