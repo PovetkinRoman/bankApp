@@ -40,13 +40,16 @@ public class BlockerIntegrationService {
         log.info("[HTTP] Calling blocker service: POST {}/api/blocker/check-transfer", blockerServiceUrl);
         
         try {
-            // Obtain service token via client_credentials for service auth
             String accessToken = fetchServiceAccessToken();
+            if (accessToken == null) {
+                log.error("Cannot check operation: failed to obtain access token, allowing operation as fallback");
+                return createAllowResponse("Failed to obtain access token");
+            }
 
             TransferCheckResponse response = restClient
                     .post()
                     .uri(blockerServiceUrl + "/api/blocker/check-transfer")
-                    .headers(h -> { if (accessToken != null) h.setBearerAuth(accessToken); })
+                    .headers(h -> h.setBearerAuth(accessToken))
                     .body(request)
                     .retrieve()
                     .body(TransferCheckResponse.class);
@@ -99,9 +102,10 @@ public class BlockerIntegrationService {
             if (tokenResponse != null && tokenResponse.containsKey("access_token")) {
                 return (String) tokenResponse.get("access_token");
             }
+            log.error("Failed to fetch service access token for blocker: empty response from Keycloak");
             return null;
         } catch (Exception e) {
-            log.warn("Failed to fetch service access token [{}]: {}", e.getClass().getSimpleName(), e.getMessage());
+            log.error("Failed to fetch service access token for blocker [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
             return null;
         }
     }

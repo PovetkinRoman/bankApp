@@ -37,6 +37,10 @@ public class AccountsIntegrationService {
         
         try {
             String accessToken = fetchServiceAccessToken();
+            if (accessToken == null) {
+                log.error("Cannot perform account operation: failed to obtain access token");
+                return false;
+            }
             
             Map<String, Object> request = Map.of(
                 "login", login,
@@ -58,7 +62,7 @@ public class AccountsIntegrationService {
             Map<String, Object> response = restClient
                     .post()
                     .uri(accountsServiceUrl + endpoint)
-                    .headers(h -> { if (accessToken != null) h.setBearerAuth(accessToken); })
+                    .headers(h -> h.setBearerAuth(accessToken))
                     .body(request)
                     .retrieve()
                     .body(Map.class);
@@ -87,13 +91,17 @@ public class AccountsIntegrationService {
         
         try {
             String accessToken = fetchServiceAccessToken();
+            if (accessToken == null) {
+                log.error("Cannot get user balance: failed to obtain access token");
+                return BigDecimal.valueOf(-1);
+            }
             
             log.info("[HTTP] Calling accounts service: GET {}/api/accounts/{}", accountsServiceUrl, login);
             
             Object[] accounts = restClient
                     .get()
                     .uri(accountsServiceUrl + "/api/accounts/" + login)
-                    .headers(h -> { if (accessToken != null) h.setBearerAuth(accessToken); })
+                    .headers(h -> h.setBearerAuth(accessToken))
                     .retrieve()
                     .body(Object[].class);
             
@@ -161,10 +169,11 @@ public class AccountsIntegrationService {
             if (tokenResponse != null && tokenResponse.containsKey("access_token")) {
                 return (String) tokenResponse.get("access_token");
             }
-            return "";
+            log.error("Failed to fetch service access token for accounts: empty response from Keycloak");
+            return null;
         } catch (Exception error) {
-            log.warn("Failed to fetch service access token for accounts [{}]: {}", error.getClass().getSimpleName(), error.getMessage());
-            return "";
+            log.error("Failed to fetch service access token for accounts [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
+            return null;
         }
     }
 }
