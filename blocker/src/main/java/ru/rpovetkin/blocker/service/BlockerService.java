@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import ru.rpovetkin.blocker.config.BlockerLimitsConfig;
 import ru.rpovetkin.blocker.dto.TransferCheckRequest;
 import ru.rpovetkin.blocker.dto.TransferCheckResponse;
+import ru.rpovetkin.blocker.metrics.BlockerMetrics;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -16,6 +17,7 @@ import java.util.UUID;
 public class BlockerService {
     
     private final BlockerLimitsConfig limitsConfig;
+    private final BlockerMetrics blockerMetrics;
     
    
     public TransferCheckResponse checkTransfer(TransferCheckRequest request) {
@@ -25,7 +27,6 @@ public class BlockerService {
                 request.getFromUser(), request.getToUser(), 
                 request.getAmount(), request.getCurrency(), checkId);
         
-        // Жёсткое правило: блокировать суммы свыше установленного лимита
         if (request.getAmount() != null && request.getAmount().compareTo(limitsConfig.getMaxTransferAmount()) > 0) {
             TransferCheckResponse response = TransferCheckResponse.builder()
                     .blocked(true)
@@ -33,12 +34,15 @@ public class BlockerService {
                     .riskLevel("HIGH")
                     .checkId(checkId)
                     .build();
+            
+            blockerMetrics.recordBlockedOperation(request.getFromUser(), request.getToUser(), 
+                    request.getCurrency(), "limit_exceeded", "HIGH");
+            
             log.info("Transfer check result (ID: {}): blocked={}, reason={}, riskLevel={}", 
                     checkId, true, response.getReason(), response.getRiskLevel());
             return response;
         }
         
-        // Блокировка по конкретным правилам
         boolean shouldBlock = shouldBlockTransfer(request);
         
         String riskLevel = determineRiskLevel(request);
@@ -51,10 +55,30 @@ public class BlockerService {
                 .checkId(checkId)
                 .build();
         
+        if (shouldBlock) {
+            blockerMetrics.recordBlockedOperation(request.getFromUser(), request.getToUser(), 
+                    request.getCurrency(), getBlockingReasonTag(riskLevel), riskLevel);
+        } else {
+            blockerMetrics.recordAllowedOperation(request.getFromUser(), request.getToUser(), 
+                    request.getCurrency(), riskLevel);
+        }
+        
         log.info("Transfer check result (ID: {}): blocked={}, reason={}, riskLevel={}", 
                 checkId, shouldBlock, reason, riskLevel);
         
         return response;
+    }
+    
+    /**
+     * Возвращает тег для метрики причины блокировки
+     */
+    private String getBlockingReasonTag(String riskLevel) {
+        return switch (riskLevel) {
+            case "HIGH" -> "high_risk_amount";
+            case "MEDIUM" -> "medium_risk_amount";
+            case "LOW" -> "security_rules";
+            default -> "suspicious_activity";
+        };
     }
     
     /**
@@ -63,7 +87,6 @@ public class BlockerService {
     private String determineRiskLevel(TransferCheckRequest request) {
         BigDecimal amount = request.getAmount();
         
-        // Логика определения уровня риска
         if (amount.compareTo(new BigDecimal("100000")) > 0) {
             return "HIGH";
         } else if (amount.compareTo(new BigDecimal("10000")) > 0) {
@@ -79,18 +102,15 @@ public class BlockerService {
     private boolean shouldBlockTransfer(TransferCheckRequest request) {
         BigDecimal amount = request.getAmount();
         
-        // Блокируем очень крупные суммы (свыше установленного лимита)
         if (amount.compareTo(limitsConfig.getMaxTransferAmount()) > 0) {
             return true;
         }
         
-        // Блокируем подозрительные паттерны
         if ("SUSPICIOUS_USER".equals(request.getFromUser()) || 
             "SUSPICIOUS_USER".equals(request.getToUser())) {
             return true;
         }
         
-        // Блокируем переводы с подозрительными описаниями
         String description = request.getDescription();
         if (description != null && (
             description.toLowerCase().contains("подозрительно") ||
@@ -99,7 +119,6 @@ public class BlockerService {
             return true;
         }
         
-        // Разрешаем все остальные переводы
         return false;
     }
     

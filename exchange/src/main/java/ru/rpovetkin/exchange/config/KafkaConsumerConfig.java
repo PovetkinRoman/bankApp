@@ -83,6 +83,9 @@ public class KafkaConsumerConfig {
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(exchangeRateConsumerFactory());
         
+        // Включаем Micrometer Observation для получения trace context из Kafka headers
+        factory.getContainerProperties().setObservationEnabled(true);
+        
         // Ack Mode: AUTO - автоматическое подтверждение для at most once
         // При ошибке обработки сообщение будет потеряно, но это допустимо для курсов валют
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.BATCH);
@@ -94,4 +97,3 @@ public class KafkaConsumerConfig {
         return factory;
     }
 }
-

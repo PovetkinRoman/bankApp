@@ -6,6 +6,9 @@ metadata:
     {{- include "notifications.labels" . | nindent 4 }}
 data:
   application.yml: |
+    server:
+      port: 8087
+    
     spring:
       application:
         name: notifications
@@ -14,19 +17,55 @@ data:
           resourceserver:
             jwt:
               jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs}
+      kafka:
+        bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+        consumer:
+          group-id: notifications-group
+          key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+          value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+          properties:
+            spring.json.trusted.packages: "*"
+        listener:
+          observation-enabled: true
+        topics:
+          notifications: account-notifications
     
     management:
       endpoints:
         web:
           exposure:
-            include: health,info,loggers
+            include: health,info,loggers,metrics,prometheus,traces
+      
+      
+      # Metrics configuration
+      metrics:
+        export:
+          prometheus:
+            enabled: true
+        distribution:
+          percentiles-histogram:
+            http.server.requests: true
+        tags:
+          application: ${spring.application.name}
+          service: notifications
+      
+      # Tracing configuration
+      tracing:
+        sampling:
+          probability: ${TRACING_SAMPLE_RATE:1.0}
+        propagation:
+          type: b3
+      
+      # Zipkin exporter configuration
+      zipkin:
+        tracing:
+          endpoint: ${ZIPKIN_BASE_URL:http://bankapp-zipkin:9411}/api/v2/spans
     
     logging:
       level:
-        ru.rpovetkin.notifications: DEBUG
-        org.springframework.messaging: DEBUG
-        org.springframework.web.socket: DEBUG
+        ru.rpovetkin.notifications: INFO
+        org.springframework.kafka: INFO
+        org.springframework.messaging: INFO
         root: INFO
       pattern:
-        console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
-
+        console: "%d{HH:mm:ss.SSS} [%thread] [%X{traceId}/%X{spanId}] %-5level %logger{36} - %msg%n"

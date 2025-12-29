@@ -4,9 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
+import org.springframework.web.client.RestClient;
 import ru.rpovetkin.front_ui.dto.AccountApiResponse;
 import ru.rpovetkin.front_ui.dto.AccountDto;
 import ru.rpovetkin.front_ui.dto.CashOperationRequest;
@@ -22,7 +22,7 @@ import java.util.List;
 @Slf4j
 public class CashService {
 
-    private final WebClient webClient;
+    private final RestClient restClient;
 
     @Value("${cash.service.url}")
     private String cashServiceUrl;
@@ -30,35 +30,37 @@ public class CashService {
     /**
      * Получить валюты, для которых у пользователя есть счета
      */
-    public Mono<List<AccountDto>> getAvailableCurrencies(String login) {
+    public List<AccountDto> getAvailableCurrencies(String login) {
         log.info("Getting available currencies for cash operations for user: {}", login);
-        
         log.debug("Using cash service URL: {}", cashServiceUrl);
-        return webClient
-                .get()
-                .uri(cashServiceUrl + "/api/cash/currencies/" + login)
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<List<AccountApiResponse>>() {})
-                .map(response -> {
-                    if (response != null) {
-                        List<AccountDto> accounts = response.stream()
-                                .map(this::convertToAccountDto)
-                                .filter(account -> account != null)
-                                .toList();
-                        
-                        log.info("Retrieved {} available currencies for user: {}", accounts.size(), login);
-                        return accounts;
-                    }
-                    return new ArrayList<AccountDto>();
-                })
-                .doOnError(error -> log.error("Error getting available currencies: {}", error.getMessage(), error))
-                .onErrorReturn(new ArrayList<AccountDto>());
+        
+        try {
+            List<AccountApiResponse> response = restClient
+                    .get()
+                    .uri(cashServiceUrl + "/api/cash/currencies/" + login)
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<List<AccountApiResponse>>() {});
+            
+            if (response != null) {
+                List<AccountDto> accounts = response.stream()
+                        .map(this::convertToAccountDto)
+                        .filter(account -> account != null)
+                        .toList();
+                
+                log.info("Retrieved {} available currencies for user: {}", accounts.size(), login);
+                return accounts;
+            }
+            return new ArrayList<>();
+        } catch (Exception error) {
+            log.error("Error getting available currencies [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
+            return new ArrayList<>();
+        }
     }
 
     /**
      * Выполнить операцию пополнения наличными
      */
-    public Mono<CashOperationResponse> deposit(String login, Currency currency, BigDecimal amount) {
+    public CashOperationResponse deposit(String login, Currency currency, BigDecimal amount) {
         log.info("Cash deposit request for user {} in currency {} amount {}", login, currency, amount);
         
         CashOperationRequest request = CashOperationRequest.builder()
@@ -74,7 +76,7 @@ public class CashService {
     /**
      * Выполнить операцию снятия наличными
      */
-    public Mono<CashOperationResponse> withdraw(String login, Currency currency, BigDecimal amount) {
+    public CashOperationResponse withdraw(String login, Currency currency, BigDecimal amount) {
         log.info("Cash withdrawal request for user {} in currency {} amount {}", login, currency, amount);
         
         CashOperationRequest request = CashOperationRequest.builder()
@@ -87,45 +89,41 @@ public class CashService {
         return performCashOperation(request, "/api/cash/withdraw");
     }
 
-    private Mono<CashOperationResponse> performCashOperation(CashOperationRequest request, String endpoint) {
+    private CashOperationResponse performCashOperation(CashOperationRequest request, String endpoint) {
         log.debug("Using cash service URL: {}", cashServiceUrl);
-        return webClient
-                .post()
-                .uri(cashServiceUrl + endpoint)
-                .bodyValue(request)
-                .exchangeToMono(clientResponse -> {
-                    if (clientResponse.statusCode().is2xxSuccessful()) {
-                        return clientResponse.bodyToMono(CashOperationResponse.class);
-                    } else if (clientResponse.statusCode().is4xxClientError()) {
-                        // Для 4xx ошибок пытаемся получить детальный ответ от сервиса
-                        return clientResponse.bodyToMono(CashOperationResponse.class)
-                                .onErrorReturn(CashOperationResponse.builder()
-                                        .success(false)
-                                        .message("Операция заблокирована системой безопасности")
-                                        .build());
-                    } else {
-                        return Mono.just(CashOperationResponse.builder()
-                                .success(false)
-                                .message("Сервис наличных временно недоступен")
-                                .build());
-                    }
-                })
-                .onErrorReturn(CashOperationResponse.builder()
-                        .success(false)
-                        .message("Ошибка соединения с сервисом наличных")
-                        .build())
-                .doOnSuccess(response -> {
-                    log.info("Cash operation {} result for user {}: {}", 
-                        request.getOperation(), request.getLogin(), response.isSuccess());
-                    if (!response.isSuccess()) {
-                        log.warn("Cash operation failed: {}", response.getMessage());
-                    }
-                })
-                .doOnError(error -> log.error("Error performing cash operation: {}", error.getMessage(), error))
-                .onErrorReturn(CashOperationResponse.builder()
-                        .success(false)
-                        .message("Cash service unavailable")
-                        .build());
+        
+        try {
+            CashOperationResponse response = restClient
+                    .post()
+                    .uri(cashServiceUrl + endpoint)
+                    .body(request)
+                    .retrieve()
+                    .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
+                        log.warn("4xx error from cash service");
+                    })
+                    .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
+                        log.error("5xx error from cash service");
+                    })
+                    .body(CashOperationResponse.class);
+            
+            log.info("Cash operation {} result for user {}: {}", 
+                request.getOperation(), request.getLogin(), response != null && response.isSuccess());
+            
+            if (response != null && !response.isSuccess()) {
+                log.warn("Cash operation failed: {}", response.getMessage());
+            }
+            
+            return response != null ? response : CashOperationResponse.builder()
+                    .success(false)
+                    .message("Нет ответа от сервиса")
+                    .build();
+        } catch (Exception error) {
+            log.error("Error performing cash operation [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
+            return CashOperationResponse.builder()
+                    .success(false)
+                    .message("Cash service unavailable")
+                    .build();
+        }
     }
 
     private AccountDto convertToAccountDto(AccountApiResponse accountData) {
@@ -143,7 +141,7 @@ public class CashService {
                         .build();
             }
         } catch (Exception e) {
-            log.error("Error converting account data: {}", e.getMessage(), e);
+            log.error("Error converting account data [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
         }
         
         return null;

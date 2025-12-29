@@ -11,6 +11,10 @@ spec:
       {{- include "accounts.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port: "{{ .Values.service.targetPort }}"
       labels:
         {{- include "accounts.selectorLabels" . | nindent 8 }}
     spec:

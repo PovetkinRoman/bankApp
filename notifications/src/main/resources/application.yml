@@ -4,6 +4,7 @@ server:
 spring:
   application:
     name: notifications
+  
   security:
     oauth2:
       resourceserver:
@@ -17,6 +18,8 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "*"
+    listener:
+      observation-enabled: true
     topics:
       notifications: account-notifications
 
@@ -24,14 +27,38 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,loggers
+        include: health,info,loggers,metrics,prometheus,traces
+  
+  # Metrics configuration
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+    tags:
+      application: ${spring.application.name}
+      service: notifications
+  
+  # Tracing configuration
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLE_RATE:1.0}
+    # Включаем пропагацию для Kafka
+    propagation:
+      type: b3
+  
+  # Zipkin exporter configuration
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_BASE_URL:http://bankapp-zipkin:9411}/api/v2/spans
 
 logging:
   level:
-    ru.rpovetkin.notifications: DEBUG
-    org.springframework.kafka: DEBUG
-    org.springframework.messaging: DEBUG
-    org.springframework.web.socket: DEBUG
+    ru.rpovetkin.notifications: INFO
+    org.springframework.kafka: INFO
+    org.springframework.messaging: INFO
     root: INFO
   pattern:
-    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{HH:mm:ss.SSS} [%thread] [%X{traceId}/%X{spanId}] %-5level %logger{36} - %msg%n"

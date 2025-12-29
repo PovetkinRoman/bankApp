@@ -46,4 +46,24 @@ dependencies:
     version: 0.1.0
     repository: "file://charts/blocker"
     condition: blocker.enabled
+  - name: zipkin
+    version: 0.1.0
+    repository: "file://charts/zipkin"
+    condition: zipkin.enabled
+  - name: grafana
+    version: 0.1.0
+    repository: "file://charts/grafana"
+    condition: grafana.enabled
+  - name: elasticsearch
+    version: 0.1.0
+    repository: "file://charts/elasticsearch"
+    condition: elasticsearch.enabled
+  - name: logstash
+    version: 0.1.0
+    repository: "file://charts/logstash"
+    condition: logstash.enabled
+  - name: kibana
+    version: 0.1.0
+    repository: "file://charts/kibana"
+    condition: kibana.enabled
 

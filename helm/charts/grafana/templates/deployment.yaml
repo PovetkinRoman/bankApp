@@ -1,0 +1,82 @@
+{{- if .Values.grafana.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "grafana.fullname" . }}
+  labels:
+    {{- include "grafana.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "grafana.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "grafana.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/datasources: {{ include (print $.Template.BasePath "/configmap-datasources.yaml") . | sha256sum }}
+    spec:
+      securityContext:
+        fsGroup: 472
+        runAsUser: 472
+        runAsNonRoot: true
+      containers:
+        - name: grafana
+          image: "{{ .Values.grafana.image.repository }}:{{ .Values.grafana.image.tag }}"
+          imagePullPolicy: {{ .Values.grafana.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.grafana.service.targetPort }}
+              protocol: TCP
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              value: {{ .Values.grafana.adminUser | quote }}
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: {{ .Values.grafana.adminPassword | quote }}
+            - name: GF_PATHS_PROVISIONING
+              value: /etc/grafana/provisioning
+          volumeMounts:
+            - name: config
+              mountPath: /etc/grafana/grafana.ini
+              subPath: grafana.ini
+            - name: datasources
+              mountPath: /etc/grafana/provisioning/datasources
+            - name: dashboard-provider
+              mountPath: /etc/grafana/provisioning/dashboards
+            - name: dashboards
+              mountPath: /var/lib/grafana/dashboards
+            - name: storage
+              mountPath: /var/lib/grafana
+          {{- if .Values.grafana.startupProbe }}
+          startupProbe:
+            {{- toYaml .Values.grafana.startupProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.grafana.livenessProbe }}
+          livenessProbe:
+            {{- toYaml .Values.grafana.livenessProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.grafana.readinessProbe }}
+          readinessProbe:
+            {{- toYaml .Values.grafana.readinessProbe | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.grafana.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "grafana.fullname" . }}-config
+        - name: datasources
+          configMap:
+            name: {{ include "grafana.fullname" . }}-datasources
+        - name: dashboard-provider
+          configMap:
+            name: {{ include "grafana.fullname" . }}-dashboard-provider
+        - name: dashboards
+          configMap:
+            name: {{ include "grafana.fullname" . }}-dashboards
+        - name: storage
+          emptyDir: {}
+{{- end }}
+

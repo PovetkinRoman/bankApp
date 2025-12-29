@@ -25,6 +25,15 @@ data:
           resourceserver:
             jwt:
               jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs}
+      kafka:
+        bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+        producer:
+          key-serializer: org.apache.kafka.common.serialization.StringSerializer
+          value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+        template:
+          observation-enabled: true
+        topics:
+          exchange-rates: exchange-rates
     
     keycloak:
       auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:http://keycloak:8080}
@@ -41,7 +50,32 @@ data:
       endpoints:
         web:
           exposure:
-            include: health,info,loggers,refresh
+            include: health,info,loggers,refresh,metrics,prometheus,traces
+      
+      
+      # Metrics configuration
+      metrics:
+        export:
+          prometheus:
+            enabled: true
+        distribution:
+          percentiles-histogram:
+            http.server.requests: true
+        tags:
+          application: ${spring.application.name}
+          service: exchange-generator
+      
+      # Tracing configuration
+      tracing:
+        sampling:
+          probability: ${TRACING_SAMPLE_RATE:1.0}
+        propagation:
+          type: b3
+      
+      # Zipkin exporter configuration
+      zipkin:
+        tracing:
+          endpoint: ${ZIPKIN_BASE_URL:http://bankapp-zipkin:9411}/api/v2/spans
     
     exchange:
       service:
@@ -49,6 +83,8 @@ data:
     
     logging:
       level:
-        ru.rpovetkin.exchange_generator: DEBUG
-        org.springframework.security: DEBUG
-
+        ru.rpovetkin.exchange_generator: INFO
+        org.springframework.kafka: INFO
+        root: INFO
+      pattern:
+        console: "%d{HH:mm:ss.SSS} [%thread] [%X{traceId}/%X{spanId}] %-5level %logger{36} - %msg%n"

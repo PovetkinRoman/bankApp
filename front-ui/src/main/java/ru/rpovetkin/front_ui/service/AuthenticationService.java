@@ -50,7 +50,7 @@ public class AuthenticationService {
             log.info("Auto-login successful for user: {}", username);
             
         } catch (Exception e) {
-            log.error("Error during auto-login for user {}: {}", username, e.getMessage(), e);
+            log.error("Error during auto-login for user {} [{}]: {}", username, e.getClass().getSimpleName(), e.getMessage(), e);
             
             // Fallback: устанавливаем аутентификацию напрямую
             try {
@@ -68,7 +68,7 @@ public class AuthenticationService {
                 
                 log.info("Fallback auto-login successful for user: {}", username);
             } catch (Exception fallbackException) {
-                log.error("Fallback auto-login also failed for user {}: {}", username, fallbackException.getMessage());
+                log.error("Fallback auto-login also failed for user {} [{}]: {}", username, fallbackException.getClass().getSimpleName(), fallbackException.getMessage());
             }
         }
     }

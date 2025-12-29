@@ -16,7 +16,7 @@ import java.util.Map;
 
 /**
  * Конфигурация Kafka Producer для отправки уведомлений
- * Настроена для гарантии доставки "At least once"
+ * Настроена для гарантии доставки "At least once" с поддержкой distributed tracing
  */
 @Configuration
 public class KafkaProducerConfig {
@@ -58,8 +58,11 @@ public class KafkaProducerConfig {
     }
 
     @Bean
-    public KafkaTemplate<String, NotificationRequest> kafkaTemplate() {
-        return new KafkaTemplate<>(producerFactory());
+    public KafkaTemplate<String, NotificationRequest> kafkaTemplate(
+            ProducerFactory<String, NotificationRequest> producerFactory) {
+        KafkaTemplate<String, NotificationRequest> template = new KafkaTemplate<>(producerFactory);
+        // Включаем Micrometer Observation для автоматической пропагации trace context
+        template.setObservationEnabled(true);
+        return template;
     }
 }
-

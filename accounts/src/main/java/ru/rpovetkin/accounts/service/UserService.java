@@ -13,6 +13,7 @@ import ru.rpovetkin.accounts.dto.UserDto;
 import ru.rpovetkin.accounts.dto.UserRegistrationRequest;
 import ru.rpovetkin.accounts.dto.UserRegistrationResponse;
 import ru.rpovetkin.accounts.entity.User;
+import ru.rpovetkin.accounts.metrics.AuthMetrics;
 import ru.rpovetkin.accounts.repository.UserRepository;
 
 import java.time.LocalDate;
@@ -28,6 +29,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final NotificationService notificationService;
+    private final AuthMetrics authMetrics;
     
     @Transactional
     public UserRegistrationResponse registerUser(UserRegistrationRequest request) {
@@ -55,7 +57,6 @@ public class UserService {
             
             log.debug("Successfully registered user with ID: {}", savedUser.getId());
             
-            // Отправляем уведомление о успешной регистрации
             notificationService.sendSuccessNotification(
                 savedUser.getLogin(),
                 "Добро пожаловать!",
@@ -69,7 +70,7 @@ public class UserService {
                     .build();
                     
         } catch (Exception e) {
-            log.error("Error registering user: {}", e.getMessage(), e);
+            log.error("Error registering user [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
             return UserRegistrationResponse.builder()
                     .success(false)
                     .message("Registration failed")
@@ -121,9 +122,17 @@ public class UserService {
     }
     
     public boolean authenticateUser(String login, String password) {
-        return userRepository.findByLogin(login)
+        boolean authenticated = userRepository.findByLogin(login)
                 .map(user -> passwordEncoder.matches(password, user.getPasswordHash()))
                 .orElse(false);
+        
+        if (authenticated) {
+            authMetrics.recordSuccessfulLogin(login);
+        } else {
+            authMetrics.recordFailedLogin(login);
+        }
+        
+        return authenticated;
     }
     
     @Transactional
@@ -156,7 +165,6 @@ public class UserService {
             
             log.debug("Successfully changed password for user: {}", request.getLogin());
             
-            // Отправляем уведомление о смене пароля
             notificationService.sendInfoNotification(
                 user.getLogin(),
                 "Пароль изменен",
@@ -169,7 +177,7 @@ public class UserService {
                     .build();
                     
         } catch (Exception e) {
-            log.error("Error changing password for user {}: {}", request.getLogin(), e.getMessage(), e);
+            log.error("Error changing password for user {} [{}]: {}", request.getLogin(), e.getClass().getSimpleName(), e.getMessage(), e);
             return ChangePasswordResponse.builder()
                     .success(false)
                     .message("Password change failed")
@@ -241,7 +249,7 @@ public class UserService {
                     .build();
                     
         } catch (Exception e) {
-            log.error("Error updating user data for {}: {}", request.getLogin(), e.getMessage(), e);
+            log.error("Error updating user data for {} [{}]: {}", request.getLogin(), e.getClass().getSimpleName(), e.getMessage(), e);
             return UpdateUserDataResponse.builder()
                     .success(false)
                     .message("User data update failed")

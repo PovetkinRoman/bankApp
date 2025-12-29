@@ -1,0 +1,90 @@
+replicaCount: 1
+
+image:
+  repository: docker.elastic.co/logstash/logstash
+  tag: "8.11.0"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 5000
+  tcpPort: 5044
+
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1Gi"
+    cpu: "500m"
+
+elasticsearch:
+  host: "elasticsearch"
+  port: 9200
+
+kafka:
+  bootstrapServers: "bankapp-kafka:9092"
+
+config:
+  logstash.yml: |
+    http.host: "0.0.0.0"
+    xpack.monitoring.enabled: false
+
+  logstash.conf: |
+    input {
+      kafka {
+        bootstrap_servers => "${KAFKA_BOOTSTRAP_SERVERS}"
+        topics => ["bankapp-logs"]
+        group_id => "logstash-consumer-group"
+        consumer_threads => 3
+        codec => json
+        auto_offset_reset => "earliest"
+        enable_auto_commit => true
+      }
+    }
+
+    filter {
+      # Логи уже в JSON формате от Logstash encoder
+      # Добавляем дополнительные поля если нужно
+      
+      if [service] {
+        mutate {
+          add_field => { "[@metadata][index_prefix]" => "bankapp-logs" }
+        }
+      }
+
+      # Обработка timestamp
+      if [@timestamp] {
+        date {
+          match => [ "@timestamp", "ISO8601" ]
+          target => "@timestamp"
+        }
+      }
+
+      # Добавляем теги для удобства фильтрации
+      if [level] == "ERROR" {
+        mutate {
+          add_tag => ["error"]
+        }
+      }
+      
+      if [level] == "WARN" {
+        mutate {
+          add_tag => ["warning"]
+        }
+      }
+    }
+
+    output {
+      elasticsearch {
+        hosts => ["${ELASTICSEARCH_HOST}:${ELASTICSEARCH_PORT}"]
+        index => "bankapp-logs-%{+YYYY.MM.dd}"
+        document_type => "_doc"
+      }
+      stdout {
+        codec => rubydebug {
+          metadata => false
+        }
+      }
+    }
+

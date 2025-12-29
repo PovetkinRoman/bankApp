@@ -18,7 +18,7 @@ import java.util.Map;
 
 /**
  * Конфигурация Kafka Consumer для получения уведомлений
- * Настроена для гарантии обработки "At least once" с сохранением offset'ов
+ * Настроена для гарантии обработки "At least once" с поддержкой distributed tracing
  */
 @Configuration
 @EnableKafka
@@ -62,13 +62,16 @@ public class KafkaConsumerConfig {
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, NotificationRequest> kafkaListenerContainerFactory() {
+    public ConcurrentKafkaListenerContainerFactory<String, NotificationRequest> kafkaListenerContainerFactory(
+            ConsumerFactory<String, NotificationRequest> consumerFactory) {
         ConcurrentKafkaListenerContainerFactory<String, NotificationRequest> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(consumerFactory());
+        factory.setConsumerFactory(consumerFactory);
         
-        // Ack Mode: MANUAL_IMMEDIATE - commit сразу после успешной обработки сообщения
-        // Это гарантирует "at least once": если обработка упала, offset не будет зафиксирован
+        // Включаем Micrometer Observation для получения trace context из Kafka headers
+        factory.getContainerProperties().setObservationEnabled(true);
+        
+        // Ack Mode: RECORD - commit сразу после успешной обработки сообщения
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.RECORD);
         
         // Concurrency: количество параллельных consumer'ов
@@ -77,4 +80,3 @@ public class KafkaConsumerConfig {
         return factory;
     }
 }
-

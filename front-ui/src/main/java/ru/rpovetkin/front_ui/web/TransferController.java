@@ -89,7 +89,7 @@ public class TransferController {
             log.error("Invalid currency: {} or {}", from_currency, to_currency);
             redirectAttributes.addFlashAttribute("transferErrors", List.of("Неизвестная валюта"));
         } catch (Exception e) {
-            log.error("Error during transfer: {}", e.getMessage(), e);
+            log.error("Error during transfer [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
             redirectAttributes.addFlashAttribute("transferErrors", List.of("Произошла ошибка при выполнении перевода"));
         }
 
@@ -115,8 +115,7 @@ public class TransferController {
                 log.info("Converted {} {} to {} {}", amount, fromCurrency, convertedAmount, toCurrency);
             }
             
-            // Проверяем баланс отправителя
-            List<AccountDto> fromUserAccounts = accountsService.getUserAccounts(fromUser).block();
+            List<AccountDto> fromUserAccounts = accountsService.getUserAccounts(fromUser);
             AccountDto fromAccount = fromUserAccounts.stream()
                     .filter(acc -> acc.getCurrency().equals(fromCurrency) && acc.isExists())
                     .findFirst()
@@ -132,7 +131,7 @@ public class TransferController {
             
             // Всегда используем transfer сервис (включая переводы между своими счетами),
             // чтобы единообразно проходить через проверки blocker и общую бизнес-логику
-            List<AccountDto> toUserAccounts = accountsService.getUserAccounts(toUser).block();
+            List<AccountDto> toUserAccounts = accountsService.getUserAccounts(toUser);
             boolean hasTargetAccount = toUserAccounts.stream()
                     .anyMatch(acc -> acc.getCurrency().equals(toCurrency) && acc.isExists());
 
@@ -150,7 +149,7 @@ public class TransferController {
                     convertedAmount,
                     String.format("Transfer %s %s to %s (credit %s %s)",
                             amount, fromCurrency.name(), toUser, convertedAmount, toCurrency.name())
-            ).block();
+            );
 
             if (!transferResponse.isSuccess()) {
                 log.warn("Transfer service failed: {}", transferResponse.getMessage());
@@ -161,7 +160,7 @@ public class TransferController {
             return "SUCCESS";
             
         } catch (Exception e) {
-            log.error("Error performing transfer with conversion: {}", e.getMessage(), e);
+            log.error("Error performing transfer with conversion [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
             return "Произошла ошибка при выполнении перевода: " + e.getMessage();
         }
     }
@@ -179,7 +178,7 @@ public class TransferController {
             }
             
             // Получаем актуальные курсы валют
-            List<CurrencyRateDisplayDto> rates = exchangeService.getExchangeRatesForDisplay().block();
+            List<CurrencyRateDisplayDto> rates = exchangeService.getExchangeRatesForDisplay();
             
             java.math.BigDecimal fromToRub = java.math.BigDecimal.ONE; // RUB = 1
             java.math.BigDecimal toToRub = java.math.BigDecimal.ONE;   // RUB = 1
@@ -221,7 +220,7 @@ public class TransferController {
             return result;
             
         } catch (Exception e) {
-            log.error("Error converting currency from {} to {}: {}", fromCurrency, toCurrency, e.getMessage(), e);
+            log.error("Error converting currency from {} to {} [{}]: {}", fromCurrency, toCurrency, e.getClass().getSimpleName(), e.getMessage(), e);
             return null;
         }
     }

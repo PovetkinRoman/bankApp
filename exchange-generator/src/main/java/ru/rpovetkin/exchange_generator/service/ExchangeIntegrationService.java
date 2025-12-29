@@ -46,7 +46,7 @@ public class ExchangeIntegrationService {
             log.debug("Exchange rates sent to Kafka successfully (fire-and-forget mode)");
         } catch (Exception e) {
             // Логируем ошибку, но не пытаемся повторить отправку (at most once)
-            log.error("Failed to send exchange rates to Kafka: {}", e.getMessage(), e);
+            log.error("Failed to send exchange rates to Kafka [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
         }
     }
 }

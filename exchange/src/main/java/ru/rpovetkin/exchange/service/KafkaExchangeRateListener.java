@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import ru.rpovetkin.exchange.dto.ExchangeRateUpdateDto;
+import ru.rpovetkin.exchange.metrics.ExchangeRateMetrics;
 
 /**
  * Kafka Consumer для получения курсов валют от exchange-generator
@@ -18,6 +19,7 @@ import ru.rpovetkin.exchange.dto.ExchangeRateUpdateDto;
 public class KafkaExchangeRateListener {
 
     private final ExchangeRateService exchangeRateService;
+    private final ExchangeRateMetrics exchangeRateMetrics;
 
     /**
      * Обработка сообщений с курсами валют из Kafka
@@ -35,11 +37,13 @@ public class KafkaExchangeRateListener {
         try {
             // Обрабатываем полученные курсы валют
             exchangeRateService.updateExchangeRates(updateDto);
+            exchangeRateMetrics.recordSuccessfulExchangeRateUpdate(updateDto.getRatesToRub().size());
             log.info("Exchange rates processed successfully");
         } catch (Exception e) {
             // При ошибке логируем, но не перезапрашиваем сообщение (at most once)
             // Это допустимо, так как новые курсы придут через 1 секунду
-            log.error("Error processing exchange rates update: {}", e.getMessage(), e);
+            log.error("Error processing exchange rates update [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
+            exchangeRateMetrics.recordFailedExchangeRateUpdate("kafka_processing_error");
             // Не пробрасываем исключение выше, чтобы не останавливать consumer
         }
     }

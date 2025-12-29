@@ -4,17 +4,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
+import org.springframework.web.client.RestClient;
 import ru.rpovetkin.transfer.dto.TransferCheckRequest;
 import ru.rpovetkin.transfer.dto.TransferCheckResponse;
+
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class BlockerIntegrationService {
     
-    private final WebClient.Builder webClientBuilder;
+    private final RestClient restClient;
     
     @Value("${services.blocker.url:http://bankapp-blocker:8086}")
     private String blockerServiceUrl;
@@ -31,48 +32,65 @@ public class BlockerIntegrationService {
     /**
      * Проверить перевод в blocker сервисе
      */
-    public Mono<TransferCheckResponse> checkTransfer(TransferCheckRequest request) {
-        log.info("Checking transfer with blocker service: {} -> {} amount: {}", 
+    public TransferCheckResponse checkTransfer(TransferCheckRequest request) {
+        log.info("[HTTP] Checking transfer with blocker service: {} -> {} amount: {}", 
                 request.getFromUser(), request.getToUser(), request.getAmount());
         
-        return fetchServiceAccessToken()
-                .flatMap(accessToken -> {
-                    WebClient webClient = webClientBuilder.build();
-                    
-                    return Mono.just(blockerServiceUrl)
-                            .flatMap(serviceUrl -> webClient
-                                    .post()
-                                    .uri(serviceUrl + "/api/blocker/check-transfer")
-                                    .headers(h -> { if (accessToken != null) h.setBearerAuth(accessToken); })
-                                    .bodyValue(request)
-                                    .retrieve()
-                                    .bodyToMono(TransferCheckResponse.class))
-                            .map(response -> {
-                                if (response != null) {
-                                    log.info("Blocker check result: blocked={}, reason={}, checkId={}", 
-                                            response.isBlocked(), response.getReason(), response.getCheckId());
-                                    return response;
-                                } else {
-                                    log.warn("No response from blocker service, allowing transfer");
-                                    return createAllowResponse("No response from blocker service");
-                                }
-                            });
-                })
-                .doOnError(error -> log.error("Error calling blocker service: {}", error.getMessage(), error))
-                .onErrorReturn(createAllowResponse("Blocker service unavailable"));
+        try {
+            String accessToken = fetchServiceAccessToken();
+            if (accessToken == null) {
+                log.error("Cannot check transfer: failed to obtain access token, allowing transfer as fallback");
+                return createAllowResponse("Failed to obtain access token");
+            }
+            
+            log.info("[HTTP] Calling blocker service: POST {}/api/blocker/check-transfer", blockerServiceUrl);
+            
+            TransferCheckResponse response = restClient
+                    .post()
+                    .uri(blockerServiceUrl + "/api/blocker/check-transfer")
+                    .headers(h -> h.setBearerAuth(accessToken))
+                    .body(request)
+                    .retrieve()
+                    .body(TransferCheckResponse.class);
+            
+            log.info("[HTTP] Received response from blocker service: blocked={}", response != null ? response.isBlocked() : "null");
+            
+            if (response != null) {
+                log.info("Blocker check result: blocked={}, reason={}, checkId={}", 
+                        response.isBlocked(), response.getReason(), response.getCheckId());
+                return response;
+            } else {
+                log.warn("No response from blocker service, allowing transfer");
+                return createAllowResponse("No response from blocker service");
+            }
+        } catch (Exception error) {
+            log.error("Error calling blocker service [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
+            return createAllowResponse("Blocker service unavailable");
+        }
     }
 
-    private Mono<String> fetchServiceAccessToken() {
-        String form = "grant_type=client_credentials&client_id=" + clientId + "&client_secret=" + clientSecret;
-        return webClientBuilder.build().post()
-                .uri(tokenUri)
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .bodyValue(form)
-                .retrieve()
-                .bodyToMono(java.util.Map.class)
-                .map(m -> (String) m.get("access_token"))
-                .doOnError(error -> log.warn("Failed to fetch service access token for blocker: {}", error.getMessage()))
-                .onErrorResume(error -> Mono.just(""));
+    private String fetchServiceAccessToken() {
+        try {
+            String form = "grant_type=client_credentials&client_id=" + clientId + "&client_secret=" + clientSecret;
+            log.debug("[HTTP] Fetching OAuth2 token from Keycloak");
+            
+            @SuppressWarnings("unchecked")
+            Map<String, Object> tokenResponse = restClient.post()
+                    .uri(tokenUri)
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .body(form)
+                    .retrieve()
+                    .body(Map.class);
+            
+            if (tokenResponse != null && tokenResponse.containsKey("access_token")) {
+                return (String) tokenResponse.get("access_token");
+            }
+            log.error("Failed to fetch service access token for blocker: empty response from Keycloak");
+            return null;
+        } catch (Exception error) {
+            log.error("Failed to fetch service access token for blocker [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
+            return null;
+        }
     }
     
     private TransferCheckResponse createAllowResponse(String reason) {

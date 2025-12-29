@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: bankapp/transfer
   pullPolicy: Never
-  tag: "0.0.1-SNAPSHOT"
+  tag: "latest"
 
 imagePullSecrets:
   - name: ghcr-secret
@@ -25,6 +25,9 @@ env:
   NOTIFICATIONS_SERVICE_URL: "http://notifications:8087"
   EXCHANGE_SERVICE_URL: "http://exchange:8084"
   BLOCKER_SERVICE_URL: "http://blocker:8086"
+  ZIPKIN_BASE_URL: "http://bankapp-zipkin:9411"
+  ZIPKIN_ENABLED: "true"
+  TRACING_SAMPLE_RATE: "1.0"
 
 resources:
   limits:

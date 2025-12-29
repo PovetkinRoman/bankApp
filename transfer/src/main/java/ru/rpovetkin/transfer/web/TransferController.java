@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Mono;
 import ru.rpovetkin.transfer.dto.TransferRequest;
 import ru.rpovetkin.transfer.dto.TransferResponse;
 import ru.rpovetkin.transfer.service.TransferService;
@@ -22,19 +21,18 @@ public class TransferController {
      * Выполнить перевод между пользователями
      */
     @PostMapping("/execute")
-    public Mono<ResponseEntity<TransferResponse>> executeTransfer(@RequestBody TransferRequest request) {
+    public ResponseEntity<TransferResponse> executeTransfer(@RequestBody TransferRequest request) {
         log.info("Received transfer request: {} -> {} for {} {}", 
                 request.getFromUser(), request.getToUser(), 
                 request.getAmount(), request.getCurrency());
         
-        return transferService.processTransfer(request)
-                .map(response -> {
-                    if (response.isSuccess()) {
-                        return ResponseEntity.ok(response);
-                    } else {
-                        return ResponseEntity.badRequest().body(response);
-                    }
-                });
+        TransferResponse response = transferService.processTransfer(request);
+        
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.badRequest().body(response);
+        }
     }
     
     /**

@@ -1,0 +1,7 @@
+apiVersion: v2
+name: elasticsearch
+description: Elasticsearch for centralized logging
+type: application
+version: 0.1.0
+appVersion: "8.11.0"
+

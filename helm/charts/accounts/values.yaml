@@ -2,8 +2,8 @@ replicaCount: 1
 
 image:
   repository: bankapp/accounts
-  pullPolicy: IfNotPresent
-  tag: "0.0.1-SNAPSHOT"
+  pullPolicy: Always
+  tag: "latest"
 
 imagePullSecrets:
   - name: ghcr-secret
@@ -22,11 +22,15 @@ env:
   KEYCLOAK_JWK_SET_URI: "http://keycloak:8080/realms/bankapp/protocol/openid-connect/certs"
   OAUTH2_CLIENT_ID: "accounts-service"
   NOTIFICATIONS_SERVICE_URL: "http://notifications:8087"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
   DB_HOST: "bankapp-postgresql"
   DB_PORT: "5432"
   DB_NAME: "bankapp"
   DB_USER: "root"
   DB_PASSWORD: "root"
+  ZIPKIN_BASE_URL: "http://bankapp-zipkin:9411"
+  ZIPKIN_ENABLED: "true"
+  TRACING_SAMPLE_RATE: "1.0"
 
 resources:
   limits:

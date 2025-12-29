@@ -31,7 +31,7 @@ public class ExchangeController {
             exchangeRateService.updateExchangeRates(updateDto);
             return ResponseEntity.ok("Exchange rates updated successfully");
         } catch (Exception e) {
-            log.error("Error updating exchange rates: {}", e.getMessage(), e);
+            log.error("Error updating exchange rates [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
             return ResponseEntity.badRequest().body("Error updating exchange rates: " + e.getMessage());
         }
     }

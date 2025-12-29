@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "elasticsearch.fullname" . }}
+  labels:
+    {{- include "elasticsearch.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "elasticsearch.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "elasticsearch.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - name: elasticsearch
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: 9200
+          protocol: TCP
+        - name: transport
+          containerPort: 9300
+          protocol: TCP
+        env:
+        {{- range .Values.env }}
+        - name: {{ .name }}
+          value: {{ .value | quote }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        volumeMounts:
+        - name: data
+          mountPath: /usr/share/elasticsearch/data
+      volumes:
+      - name: data
+        {{- if .Values.persistence.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ include "elasticsearch.fullname" . }}-pvc
+        {{- else }}
+        emptyDir: {}
+        {{- end }}
+

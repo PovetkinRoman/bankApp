@@ -30,7 +30,7 @@ public class BlockerController {
             TransferCheckResponse response = blockerService.checkTransfer(request);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("Error checking transfer: {}", e.getMessage(), e);
+            log.error("Error checking transfer [{}]: {}", e.getClass().getSimpleName(), e.getMessage(), e);
             
             // В случае ошибки - разрешаем перевод
             TransferCheckResponse errorResponse = TransferCheckResponse.builder()

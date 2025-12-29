@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "logstash.fullname" . }}-config
+  labels:
+    {{- include "logstash.labels" . | nindent 4 }}
+data:
+  logstash.yml: |
+{{ index .Values.config "logstash.yml" | indent 4 }}
+  logstash.conf: |
+{{ index .Values.config "logstash.conf" | indent 4 }}
+

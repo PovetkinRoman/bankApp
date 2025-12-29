@@ -1,0 +1,7 @@
+apiVersion: v2
+name: kibana
+description: Kibana for log visualization and analysis
+type: application
+version: 0.1.0
+appVersion: "8.11.0"
+

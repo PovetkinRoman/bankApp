@@ -6,14 +6,15 @@ spring:
     username: ${DB_USER:root}
     password: ${DB_PASSWORD:root}
     driver-class-name: org.postgresql.Driver
+  
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
+        format_sql: false
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.xml
   security:
@@ -26,6 +27,9 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      observation-enabled: true
+    template:
+      observation-enabled: true
     topics:
       notifications: account-notifications
 
@@ -44,4 +48,38 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,loggers,refresh
+        include: health,info,loggers,refresh,metrics,prometheus,traces
+  
+  # Metrics configuration
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+    tags:
+      application: ${spring.application.name}
+      service: accounts
+  
+  # Tracing configuration
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLE_RATE:1.0}
+    # Включаем пропагацию для Kafka
+    propagation:
+      type: b3
+  
+  # Zipkin exporter configuration
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_BASE_URL:http://bankapp-zipkin:9411}/api/v2/spans
+
+logging:
+  level:
+    ru.rpovetkin.accounts: INFO
+    org.springframework.web: INFO
+    org.springframework.kafka: INFO
+    root: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] [%X{traceId}/%X{spanId}] %-5level %logger{36} - %msg%n"

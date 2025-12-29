@@ -4,8 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
+import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -15,7 +14,7 @@ import java.util.Map;
 @Slf4j
 public class AccountsIntegrationService {
 
-    private final WebClient.Builder webClientBuilder;
+    private final RestClient restClient;
 
     @Value("${services.accounts.url:http://bankapp-accounts:8081}")
     private String accountsServiceUrl;
@@ -32,131 +31,149 @@ public class AccountsIntegrationService {
     /**
      * Выполняет операцию со счетом пользователя
      */
-    public Mono<Boolean> performAccountOperation(String login, String currency, BigDecimal amount, String operationType) {
-        log.info("Performing account operation: {} {} {} for user {}",
+    public Boolean performAccountOperation(String login, String currency, BigDecimal amount, String operationType) {
+        log.info("[HTTP] Performing account operation: {} {} {} for user {}",
                 operationType, amount, currency, login);
         
-        return fetchServiceAccessToken()
-                .flatMap(accessToken -> {
-                    WebClient webClient = webClientBuilder.build();
-                    
-                    Map<String, Object> request = Map.of(
-                        "login", login,
-                        "currency", currency,
-                        "amount", amount.abs() // Используем абсолютное значение
-                    );
-                    
-                    // Определяем endpoint на основе типа операции
-                    String endpoint;
-                    if (operationType.contains("DEBIT") || amount.compareTo(BigDecimal.ZERO) < 0) {
-                        endpoint = "/api/accounts/withdraw";
-                    } else {
-                        endpoint = "/api/accounts/deposit";
-                    }
-                    
-                    return Mono.just(accountsServiceUrl)
-                            .flatMap(serviceUrl -> webClient
-                                    .post()
-                                    .uri(serviceUrl + endpoint)
-                                    .headers(h -> { if (accessToken != null) h.setBearerAuth(accessToken); })
-                                    .bodyValue(request)
-                                    .retrieve()
-                                    .bodyToMono(new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {})
-                                    .onErrorReturn(Map.of("success", false, "message", "Service unavailable")))
-                            .map(response -> {
-                                if (response != null && Boolean.TRUE.equals(response.get("success"))) {
-                                    log.info("Account operation successful: {} for user {}", operationType, login);
-                                    return true;
-                                } else {
-                                    log.warn("Account operation failed: {} for user {} - {}", 
-                                            operationType, login, response != null ? response.get("message") : "Unknown error");
-                                    return false;
-                                }
-                            });
-                })
-                .doOnError(error -> log.error("Error performing account operation: {}", error.getMessage(), error))
-                .onErrorReturn(false);
+        try {
+            String accessToken = fetchServiceAccessToken();
+            if (accessToken == null) {
+                log.error("Cannot perform account operation: failed to obtain access token");
+                return false;
+            }
+            
+            Map<String, Object> request = Map.of(
+                "login", login,
+                "currency", currency,
+                "amount", amount.abs() // Используем абсолютное значение
+            );
+            
+            // Определяем endpoint на основе типа операции
+            String endpoint;
+            if (operationType.contains("DEBIT") || amount.compareTo(BigDecimal.ZERO) < 0) {
+                endpoint = "/api/accounts/withdraw";
+            } else {
+                endpoint = "/api/accounts/deposit";
+            }
+            
+            log.info("[HTTP] Calling accounts service: POST {}{}", accountsServiceUrl, endpoint);
+            
+            @SuppressWarnings("unchecked")
+            Map<String, Object> response = restClient
+                    .post()
+                    .uri(accountsServiceUrl + endpoint)
+                    .headers(h -> h.setBearerAuth(accessToken))
+                    .body(request)
+                    .retrieve()
+                    .body(Map.class);
+            
+            log.info("[HTTP] Received response from accounts service");
+            
+            if (response != null && Boolean.TRUE.equals(response.get("success"))) {
+                log.info("Account operation successful: {} for user {}", operationType, login);
+                return true;
+            } else {
+                log.warn("Account operation failed: {} for user {} - {}", 
+                        operationType, login, response != null ? response.get("message") : "Unknown error");
+                return false;
+            }
+        } catch (Exception error) {
+            log.error("Error performing account operation [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
+            return false;
+        }
     }
 
     /**
      * Проверяет баланс пользователя
      */
-    public Mono<BigDecimal> getUserBalance(String login, String currency) {
-        log.info("Getting balance for user {} in currency {}", login, currency);
+    public BigDecimal getUserBalance(String login, String currency) {
+        log.info("[HTTP] Getting balance for user {} in currency {}", login, currency);
         
-        return fetchServiceAccessToken()
-                .flatMap(accessToken -> {
-                    WebClient webClient = webClientBuilder.build();
-                    
-                    return Mono.just(accountsServiceUrl)
-                            .flatMap(serviceUrl -> webClient
-                                    .get()
-                                    .uri(serviceUrl + "/api/accounts/" + login)
-                                    .headers(h -> { if (accessToken != null) h.setBearerAuth(accessToken); })
-                                    .retrieve()
-                                    .bodyToMono(Object[].class)
-                                    .onErrorReturn(new Object[0]))
-                            .map(accounts -> {
-                                if (accounts != null) {
-                                    for (Object accountObj : accounts) {
-                                        if (accountObj instanceof Map<?, ?>) {
-                                            @SuppressWarnings("unchecked")
-                                            Map<String, Object> account = (Map<String, Object>) accountObj;
+        try {
+            String accessToken = fetchServiceAccessToken();
+            if (accessToken == null) {
+                log.error("Cannot get user balance: failed to obtain access token");
+                return BigDecimal.valueOf(-1);
+            }
+            
+            log.info("[HTTP] Calling accounts service: GET {}/api/accounts/{}", accountsServiceUrl, login);
+            
+            Object[] accounts = restClient
+                    .get()
+                    .uri(accountsServiceUrl + "/api/accounts/" + login)
+                    .headers(h -> h.setBearerAuth(accessToken))
+                    .retrieve()
+                    .body(Object[].class);
+            
+            if (accounts != null) {
+                for (Object accountObj : accounts) {
+                    if (accountObj instanceof Map<?, ?>) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> account = (Map<String, Object>) accountObj;
 
-                                            // currency может прийти как строка ("USD") или как объект { name: "USD", title: "..." }
-                                            Object currencyObj = account.get("currency");
-                                            String accountCurrency = null;
-                                            if (currencyObj instanceof String) {
-                                                accountCurrency = (String) currencyObj;
-                                            } else if (currencyObj instanceof Map<?, ?>) {
-                                                Object name = ((Map<?, ?>) currencyObj).get("name");
-                                                if (name != null) {
-                                                    accountCurrency = String.valueOf(name);
-                                                }
-                                            }
+                        // currency может прийти как строка ("USD") или как объект { name: "USD", title: "..." }
+                        Object currencyObj = account.get("currency");
+                        String accountCurrency = null;
+                        if (currencyObj instanceof String) {
+                            accountCurrency = (String) currencyObj;
+                        } else if (currencyObj instanceof Map<?, ?>) {
+                            Object name = ((Map<?, ?>) currencyObj).get("name");
+                            if (name != null) {
+                                accountCurrency = String.valueOf(name);
+                            }
+                        }
 
-                                            Boolean exists = (Boolean) account.get("exists");
+                        Boolean exists = (Boolean) account.get("exists");
 
-                                            if (accountCurrency != null && currency.equals(accountCurrency) && Boolean.TRUE.equals(exists)) {
-                                                Object balanceObj = account.get("balance");
-                                                if (balanceObj != null) {
-                                                    BigDecimal balance = new BigDecimal(balanceObj.toString());
-                                                    log.info("Found balance {} {} for user {}", balance, currency, login);
-                                                    return balance;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                
-                                log.warn("No account found for user {} in currency {}", login, currency);
-                                return BigDecimal.valueOf(-1);
-                            });
-                })
-                .doOnError(error -> log.error("Error getting user balance: {}", error.getMessage(), error))
-                .onErrorReturn(BigDecimal.valueOf(-1));
+                        if (accountCurrency != null && currency.equals(accountCurrency) && Boolean.TRUE.equals(exists)) {
+                            Object balanceObj = account.get("balance");
+                            if (balanceObj != null) {
+                                BigDecimal balance = new BigDecimal(balanceObj.toString());
+                                log.info("Found balance {} {} for user {}", balance, currency, login);
+                                return balance;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            log.warn("No account found for user {} in currency {}", login, currency);
+            return BigDecimal.valueOf(-1);
+        } catch (Exception error) {
+            log.error("Error getting user balance [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
+            return BigDecimal.valueOf(-1);
+        }
     }
 
     /**
      * Проверяет, есть ли у пользователя счет в указанной валюте
      */
-    public Mono<Boolean> hasAccount(String login, String currency) {
-        return getUserBalance(login, currency)
-                .map(balance -> balance.compareTo(BigDecimal.ZERO) >= 0) // Счет существует, если баланс >= 0
-                .doOnError(error -> log.error("Error checking account existence: {}", error.getMessage(), error))
-                .onErrorReturn(false);
+    public Boolean hasAccount(String login, String currency) {
+        BigDecimal balance = getUserBalance(login, currency);
+        return balance.compareTo(BigDecimal.ZERO) >= 0; // Счет существует, если баланс >= 0
     }
 
-    private Mono<String> fetchServiceAccessToken() {
-        String form = "grant_type=client_credentials&client_id=" + clientId + "&client_secret=" + clientSecret;
-        return webClientBuilder.build().post()
-                .uri(tokenUri)
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .bodyValue(form)
-                .retrieve()
-                .bodyToMono(java.util.Map.class)
-                .map(m -> (String) m.get("access_token"))
-                .doOnError(error -> log.warn("Failed to fetch service access token for accounts: {}", error.getMessage()))
-                .onErrorResume(error -> Mono.just(""));
+    private String fetchServiceAccessToken() {
+        try {
+            String form = "grant_type=client_credentials&client_id=" + clientId + "&client_secret=" + clientSecret;
+            log.debug("[HTTP] Fetching OAuth2 token from Keycloak");
+            
+            @SuppressWarnings("unchecked")
+            Map<String, Object> tokenResponse = restClient.post()
+                    .uri(tokenUri)
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .body(form)
+                    .retrieve()
+                    .body(Map.class);
+            
+            if (tokenResponse != null && tokenResponse.containsKey("access_token")) {
+                return (String) tokenResponse.get("access_token");
+            }
+            log.error("Failed to fetch service access token for accounts: empty response from Keycloak");
+            return null;
+        } catch (Exception error) {
+            log.error("Failed to fetch service access token for accounts [{}]: {}", error.getClass().getSimpleName(), error.getMessage(), error);
+            return null;
+        }
     }
 }

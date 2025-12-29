@@ -5,25 +5,82 @@ pipeline {
         DOCKER_REGISTRY = credentials('DOCKER_REGISTRY')
         DB_PASSWORD     = credentials('DB_PASSWORD')
         GITHUB_USERNAME = credentials('GITHUB_USERNAME')
-        DB_NAME         = 'mydb'
-        DB_USER         = 'myuser'
+        DB_NAME         = 'bankapp'
+        DB_USER         = 'root'
         IMAGE_TAG       = "${env.BUILD_NUMBER}"
+        NAMESPACE_TEST  = 'test'
+        NAMESPACE_PROD  = 'prod'
+    }
+
+    parameters {
+        booleanParam(
+            name: 'DEPLOY_INFRASTRUCTURE',
+            defaultValue: true,
+            description: 'Развернуть инфраструктурные компоненты (Kafka, Zipkin, Prometheus, Grafana, ELK)'
+        )
+        booleanParam(
+            name: 'DEPLOY_APPLICATIONS',
+            defaultValue: true,
+            description: 'Развернуть микросервисы приложения'
+        )
+        booleanParam(
+            name: 'RUN_TESTS',
+            defaultValue: true,
+            description: 'Запустить тесты'
+        )
     }
 
     stages {
+        stage('Checkout') {
+            steps {
+                checkout([
+                    $class: 'GitSCM',
+                    branches: scm.branches,
+                    extensions: scm.extensions + [
+                        [$class: 'CloneOption', timeout: 20, depth: 0, noTags: false, shallow: false]
+                    ],
+                    userRemoteConfigs: scm.userRemoteConfigs
+                ])
+            }
+        }
+
         stage('Build & Unit Tests') {
+            when {
+                expression { params.RUN_TESTS }
+            }
             parallel {
                 stage('Front-ui service') {
                     steps {
                         dir('front-ui') {
-                            sh 'mvn clean test'
+                            sh './mvnw clean test'
                         }
                     }
                 }
                 stage('Accounts service') {
                     steps {
                         dir('accounts') {
-                            sh 'mvn clean test'
+                            sh './mvnw clean test'
+                        }
+                    }
+                }
+                stage('Cash service') {
+                    steps {
+                        dir('cash') {
+                            sh './mvnw clean test'
+                        }
+                    }
+                }
+                stage('Transfer service') {
+                    steps {
+                        dir('transfer') {
+                            sh './mvnw clean test'
+                        }
+                    }
+                }
+                stage('Exchange service') {
+                    steps {
+                        dir('exchange') {
+                            sh './mvnw clean test'
                         }
                     }
                 }
@@ -31,133 +88,521 @@ pipeline {
         }
 
         stage('Build Docker Images') {
+            when {
+                expression { params.DEPLOY_APPLICATIONS }
+            }
             steps {
                 sh """
-                docker build -t ${DOCKER_REGISTRY}/front-ui:${IMAGE_TAG} front-ui
-                docker build -t ${DOCKER_REGISTRY}/accounts:${IMAGE_TAG} accounts
+                echo "🐳 Building Docker images..."
+                docker build --no-cache -t bankapp/front-ui:${IMAGE_TAG} front-ui
+                docker build --no-cache -t bankapp/accounts:${IMAGE_TAG} accounts
+                docker build --no-cache -t bankapp/cash:${IMAGE_TAG} cash
+                docker build --no-cache -t bankapp/transfer:${IMAGE_TAG} transfer
+                docker build --no-cache -t bankapp/exchange:${IMAGE_TAG} exchange
+                docker build --no-cache -t bankapp/exchange-generator:${IMAGE_TAG} exchange-generator
+                docker build --no-cache -t bankapp/notifications:${IMAGE_TAG} notifications
+                docker build --no-cache -t bankapp/blocker:${IMAGE_TAG} blocker
                 """
             }
         }
 
-        stage('Push Docker Images') {
+        stage('Load Images to Minikube') {
+            when {
+                expression { params.DEPLOY_APPLICATIONS }
+            }
             steps {
-                withCredentials([string(credentialsId: 'GHCR_TOKEN', variable: 'GHCR_TOKEN')]) {
-                    sh """
-                    echo \$GHCR_TOKEN | docker login ghcr.io -u ${GITHUB_USERNAME} --password-stdin
-                    docker push ${DOCKER_REGISTRY}/front-ui:${IMAGE_TAG}
-                    docker push ${DOCKER_REGISTRY}/accounts:${IMAGE_TAG}
-                    """
+                sh """
+                echo "📦 Loading images to Minikube..."
+                minikube image load bankapp/front-ui:${IMAGE_TAG}
+                minikube image load bankapp/accounts:${IMAGE_TAG}
+                minikube image load bankapp/cash:${IMAGE_TAG}
+                minikube image load bankapp/transfer:${IMAGE_TAG}
+                minikube image load bankapp/exchange:${IMAGE_TAG}
+                minikube image load bankapp/exchange-generator:${IMAGE_TAG}
+                minikube image load bankapp/notifications:${IMAGE_TAG}
+                minikube image load bankapp/blocker:${IMAGE_TAG}
+                """
+            }
+        }
+
+        stage('Deploy Infrastructure to TEST') {
+            when {
+                allOf {
+                    branch 'dev'
+                    expression { params.DEPLOY_INFRASTRUCTURE }
+                }
+            }
+            parallel {
+                stage('Deploy Kafka') {
+                    steps {
+                        sh """
+                            echo "🚀 Deploying Kafka to TEST..."
+                            kubectl create namespace ${NAMESPACE_TEST} --dry-run=client -o yaml | kubectl apply -f -
+                            
+                            helm upgrade --install kafka helm/charts/kafka \\
+                              --namespace ${NAMESPACE_TEST} \\
+                              --set kafka.replicaCount=1 \\
+                              --set kafkaUi.enabled=true \\
+                              --wait --timeout=10m
+                            
+                            echo "✅ Kafka deployed"
+                        """
+                    }
+                }
+                stage('Deploy Zipkin') {
+                    steps {
+                        sh """
+                            echo "🚀 Deploying Zipkin to TEST..."
+                            kubectl create namespace ${NAMESPACE_TEST} --dry-run=client -o yaml | kubectl apply -f -
+                            
+                            helm upgrade --install zipkin helm/charts/zipkin \\
+                              --namespace ${NAMESPACE_TEST} \\
+                              --set image.tag=3.4.2 \\
+                              --set storage.type=mem \\
+                              --wait --timeout=5m
+                            
+                            echo "✅ Zipkin deployed"
+                        """
+                    }
+                }
+                stage('Deploy Prometheus') {
+                    steps {
+                        sh """
+                            echo "🚀 Deploying Prometheus to TEST..."
+                            kubectl create namespace ${NAMESPACE_TEST} --dry-run=client -o yaml | kubectl apply -f -
+                            
+                            helm upgrade --install prometheus helm/charts/prometheus \\
+                              --namespace ${NAMESPACE_TEST} \\
+                              --wait --timeout=5m
+                            
+                            echo "✅ Prometheus deployed"
+                        """
+                    }
+                }
+                stage('Deploy Grafana') {
+                    steps {
+                        sh """
+                            echo "🚀 Deploying Grafana to TEST..."
+                            kubectl create namespace ${NAMESPACE_TEST} --dry-run=client -o yaml | kubectl apply -f -
+                            
+                            helm upgrade --install grafana helm/charts/grafana \\
+                              --namespace ${NAMESPACE_TEST} \\
+                              --wait --timeout=5m
+                            
+                            echo "✅ Grafana deployed"
+                        """
+                    }
+                }
+                stage('Deploy ELK Stack') {
+                    steps {
+                        sh """
+                            echo "🚀 Deploying ELK Stack to TEST..."
+                            kubectl create namespace ${NAMESPACE_TEST} --dry-run=client -o yaml | kubectl apply -f -
+                            
+                            # Elasticsearch
+                            helm upgrade --install elasticsearch helm/charts/elasticsearch \\
+                              --namespace ${NAMESPACE_TEST} \\
+                              --wait --timeout=10m
+                            
+                            # Logstash
+                            helm upgrade --install logstash helm/charts/logstash \\
+                              --namespace ${NAMESPACE_TEST} \\
+                              --wait --timeout=5m
+                            
+                            # Kibana
+                            helm upgrade --install kibana helm/charts/kibana \\
+                              --namespace ${NAMESPACE_TEST} \\
+                              --wait --timeout=5m
+                            
+                            echo "✅ ELK Stack deployed"
+                        """
+                    }
                 }
             }
         }
 
-//         stage('Install PostgreSQL to TEST') {
-//             steps {
-//                 sh """
-//                 helm repo add bitnami https://charts.bitnami.com/bitnami
-//                 helm repo update
-//
-//                 helm upgrade --install postgres bitnami/postgresql \\
-//                   --namespace test --create-namespace \\
-//                   --set auth.database=${DB_NAME} \\
-//                   --set auth.username=${DB_USER} \\
-//                   --set auth.password=${DB_PASSWORD}
-//                 """
-//             }
-//         }
-//
-//         stage('Create DB Secrets for TEST') {
-//             steps {
-//                 sh """
-//                 kubectl create secret generic customer-service-customer-db \\
-//                   --from-literal=password=${DB_PASSWORD} \\
-//                   -n test --dry-run=client -o yaml | kubectl apply -f -
-//
-//                 kubectl create secret generic order-service-order-db \\
-//                   --from-literal=password=${DB_PASSWORD} \\
-//                   -n test --dry-run=client -o yaml | kubectl apply -f -
-//                 """
-//             }
-//         }
-//
-//         stage('Helm Deploy to TEST') {
-//             steps {
-//                 sh """
-//                 helm upgrade --install customer-service my-microservices-app/charts/customer-service \\
-//                   --namespace test --create-namespace \\
-//                   --set image.repository=${DOCKER_REGISTRY}/customer-service \\
-//                   --set image.tag=${IMAGE_TAG} \\
-//                   --set ingress.enabled=true \\
-//                   --set ingress.hosts[0].host=customer.test.local \\
-//                   --set ingress.hosts[0].paths[0].path="/" \\
-//                   --set ingress.hosts[0].paths[0].pathType="ImplementationSpecific"
-//
-//                 helm upgrade --install order-service my-microservices-app/charts/order-service \\
-//                   --namespace test --create-namespace \\
-//                   --set image.repository=${DOCKER_REGISTRY}/order-service \\
-//                   --set image.tag=${IMAGE_TAG} \\
-//                   --set ingress.enabled=true \\
-//                   --set ingress.hosts[0].host=order.test.local \\
-//                   --set ingress.hosts[0].paths[0].path="/" \\
-//                   --set ingress.hosts[0].paths[0].pathType="ImplementationSpecific"
-//                 """
-//             }
-//         }
-//
-//         stage('Manual Approval for PROD') {
-//             steps {
-//                 input message: 'Deploy to PROD environment?', ok: 'Yes, deploy'
-//             }
-//         }
-//
-//         stage('Install PostgreSQL to PROD') {
-//             steps {
-//                 sh """
-//                 helm upgrade --install postgres bitnami/postgresql \\
-//                   --namespace prod --create-namespace \\
-//                   --set auth.database=${DB_NAME} \\
-//                   --set auth.username=${DB_USER} \\
-//                   --set auth.password=${DB_PASSWORD}
-//                 """
-//             }
-//         }
-//
-//         stage('Create DB Secrets for PROD') {
-//             steps {
-//                 sh """
-//                 kubectl create secret generic customer-service-customer-db \\
-//                   --from-literal=password=${DB_PASSWORD} \\
-//                   -n prod --dry-run=client -o yaml | kubectl apply -f -
-//
-//                 kubectl create secret generic order-service-order-db \\
-//                   --from-literal=password=${DB_PASSWORD} \\
-//                   -n prod --dry-run=client -o yaml | kubectl apply -f -
-//                 """
-//             }
-//         }
-//
-//         stage('Helm Deploy to PROD') {
-//             steps {
-//                 sh """
-//                 helm upgrade --install customer-service my-microservices-app/charts/customer-service \\
-//                   --namespace prod --create-namespace \\
-//                   --set image.repository=${DOCKER_REGISTRY}/customer-service \\
-//                   --set image.tag=${IMAGE_TAG} \\
-//                   --set ingress.enabled=true \\
-//                   --set ingress.hosts[0].host=customer.prod.local \\
-//                   --set ingress.hosts[0].paths[0].path="/" \\
-//                   --set ingress.hosts[0].paths[0].pathType="ImplementationSpecific"
-//
-//                 helm upgrade --install order-service my-microservices-app/charts/order-service \\
-//                   --namespace prod --create-namespace \\
-//                   --set image.repository=${DOCKER_REGISTRY}/order-service \\
-//                   --set image.tag=${IMAGE_TAG} \\
-//                   --set ingress.enabled=true \\
-//                   --set ingress.hosts[0].host=order.prod.local \\
-//                   --set ingress.hosts[0].paths[0].path="/" \\
-//                   --set ingress.hosts[0].paths[0].pathType="ImplementationSpecific"
-//                 """
-//             }
-//         }
+        stage('Verify Infrastructure TEST') {
+            when {
+                allOf {
+                    branch 'dev'
+                    expression { params.DEPLOY_INFRASTRUCTURE }
+                }
+            }
+            steps {
+                sh """
+                    echo "🔍 Verifying infrastructure in TEST..."
+                    
+                    # Kafka
+                    kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=kafka -n ${NAMESPACE_TEST} --timeout=300s || echo "⚠️  Kafka not ready"
+                    
+                    # Zipkin
+                    kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=zipkin -n ${NAMESPACE_TEST} --timeout=300s || echo "⚠️  Zipkin not ready"
+                    
+                    # Prometheus
+                    kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=prometheus -n ${NAMESPACE_TEST} --timeout=300s || echo "⚠️  Prometheus not ready"
+                    
+                    # Grafana
+                    kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=grafana -n ${NAMESPACE_TEST} --timeout=300s || echo "⚠️  Grafana not ready"
+                    
+                    # Elasticsearch
+                    kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=elasticsearch -n ${NAMESPACE_TEST} --timeout=600s || echo "⚠️  Elasticsearch not ready"
+                    
+                    echo "✅ Infrastructure verification completed"
+                """
+            }
+        }
+
+
+        stage('Deploy Applications to TEST') {
+            when {
+                allOf {
+                    branch 'dev'
+                    expression { params.DEPLOY_APPLICATIONS }
+                }
+            }
+            steps {
+                sh """
+                    echo "🚀 Deploying BankApp to TEST using Helm umbrella chart..."
+                    
+                    kubectl create namespace ${NAMESPACE_TEST} --dry-run=client -o yaml | kubectl apply -f -
+                    
+                    helm upgrade --install bankapp helm/ \\
+                      --namespace ${NAMESPACE_TEST} \\
+                      --set front-ui.image.tag=${IMAGE_TAG} \\
+                      --set accounts.image.tag=${IMAGE_TAG} \\
+                      --set cash.image.tag=${IMAGE_TAG} \\
+                      --set transfer.image.tag=${IMAGE_TAG} \\
+                      --set exchange.image.tag=${IMAGE_TAG} \\
+                      --set exchange-generator.image.tag=${IMAGE_TAG} \\
+                      --set notifications.image.tag=${IMAGE_TAG} \\
+                      --set blocker.image.tag=${IMAGE_TAG} \\
+                      --set front-ui.image.pullPolicy=Never \\
+                      --set accounts.image.pullPolicy=Never \\
+                      --set cash.image.pullPolicy=Never \\
+                      --set transfer.image.pullPolicy=Never \\
+                      --set exchange.image.pullPolicy=Never \\
+                      --set exchange-generator.image.pullPolicy=Never \\
+                      --set notifications.image.pullPolicy=Never \\
+                      --set blocker.image.pullPolicy=Never \\
+                      --wait --timeout=15m
+                    
+                    echo "✅ BankApp deployed to TEST"
+                """
+            }
+        }
+
+        stage('Verify Applications TEST') {
+            when {
+                allOf {
+                    branch 'dev'
+                    expression { params.DEPLOY_APPLICATIONS }
+                }
+            }
+            steps {
+                sh """
+                    echo "🔍 Verifying applications in TEST..."
+                    
+                    # PostgreSQL
+                    kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=postgresql -n ${NAMESPACE_TEST} --timeout=300s || echo "⚠️  PostgreSQL not ready"
+                    
+                    # Keycloak
+                    kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=keycloak -n ${NAMESPACE_TEST} --timeout=300s || echo "⚠️  Keycloak not ready"
+                    
+                    # Front-UI
+                    kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=front-ui -n ${NAMESPACE_TEST} --timeout=300s || echo "⚠️  Front-UI not ready"
+                    
+                    # Accounts
+                    kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=accounts -n ${NAMESPACE_TEST} --timeout=300s || echo "⚠️  Accounts not ready"
+                    
+                    # Cash
+                    kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=cash -n ${NAMESPACE_TEST} --timeout=300s || echo "⚠️  Cash not ready"
+                    
+                    # Transfer
+                    kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=transfer -n ${NAMESPACE_TEST} --timeout=300s || echo "⚠️  Transfer not ready"
+                    
+                    # Exchange
+                    kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=exchange -n ${NAMESPACE_TEST} --timeout=300s || echo "⚠️  Exchange not ready"
+                    
+                    echo "✅ Applications verification completed"
+                    
+                    # Show all pods
+                    echo ""
+                    echo "📦 All pods in TEST:"
+                    kubectl get pods -n ${NAMESPACE_TEST}
+                """
+            }
+        }
+
+        stage('Start Port Forwarding TEST') {
+            when {
+                allOf {
+                    branch 'dev'
+                    expression { params.DEPLOY_APPLICATIONS || params.DEPLOY_INFRASTRUCTURE }
+                }
+            }
+            steps {
+                sh """
+                    echo "🔌 Starting port-forward for TEST environment..."
+                    
+                    # Запускаем скрипт port-forward в фоновом режиме
+                    if [ -f "start-port-forward.sh" ]; then
+                        bash start-port-forward.sh &
+                        echo "✅ Port forwarding started"
+                        echo "🌐 Access points:"
+                        echo "   - Front-UI: http://localhost:8080"
+                        echo "   - Keycloak: http://localhost:8090"
+                        echo "   - Zipkin: http://localhost:9411"
+                        echo "   - Prometheus: http://localhost:9090"
+                        echo "   - Grafana: http://localhost:3000"
+                        echo "   - Kibana: http://localhost:5601"
+                        echo "   - Kafka UI: http://localhost:8085"
+                    else
+                        echo "⚠️  start-port-forward.sh not found"
+                    fi
+                """
+            }
+        }
+
+        stage('Manual Approval for PROD') {
+            when {
+                allOf {
+                    branch 'main'
+                    expression { params.DEPLOY_INFRASTRUCTURE || params.DEPLOY_APPLICATIONS }
+                }
+            }
+            steps {
+                script {
+                    echo "🔔 Требуется подтверждение для деплоя в PRODUCTION"
+                    echo "🎯 Namespace: ${NAMESPACE_PROD}"
+                    echo "📦 Image Tag: ${IMAGE_TAG}"
+                    echo "⚠️  ВНИМАНИЕ: Это production окружение!"
+                }
+                input message: 'Deploy to PROD environment?', ok: 'Yes, deploy to PROD'
+            }
+        }
+
+        stage('Deploy Infrastructure to PROD') {
+            when {
+                allOf {
+                    branch 'main'
+                    expression { params.DEPLOY_INFRASTRUCTURE }
+                }
+            }
+            parallel {
+                stage('Deploy Kafka PROD') {
+                    steps {
+                        sh """
+                            echo "🚀 Deploying Kafka to PROD..."
+                            kubectl create namespace ${NAMESPACE_PROD} --dry-run=client -o yaml | kubectl apply -f -
+                            
+                            helm upgrade --install kafka helm/charts/kafka \\
+                              --namespace ${NAMESPACE_PROD} \\
+                              --set kafka.replicaCount=3 \\
+                              --set kafkaUi.enabled=true \\
+                              --set kafka.resources.limits.cpu=2000m \\
+                              --set kafka.resources.limits.memory=4Gi \\
+                              --wait --timeout=15m
+                            
+                            echo "✅ Kafka deployed to PROD"
+                        """
+                    }
+                }
+                stage('Deploy Zipkin PROD') {
+                    steps {
+                        sh """
+                            echo "🚀 Deploying Zipkin to PROD..."
+                            kubectl create namespace ${NAMESPACE_PROD} --dry-run=client -o yaml | kubectl apply -f -
+                            
+                            helm upgrade --install zipkin helm/charts/zipkin \\
+                              --namespace ${NAMESPACE_PROD} \\
+                              --set image.tag=3.4.2 \\
+                              --set storage.type=elasticsearch \\
+                              --set storage.elasticsearch.hosts=http://bankapp-elasticsearch:9200 \\
+                              --set resources.limits.memory=2Gi \\
+                              --set resources.limits.cpu=1000m \\
+                              --wait --timeout=10m
+                            
+                            echo "✅ Zipkin deployed to PROD"
+                        """
+                    }
+                }
+                stage('Deploy Prometheus PROD') {
+                    steps {
+                        sh """
+                            echo "🚀 Deploying Prometheus to PROD..."
+                            kubectl create namespace ${NAMESPACE_PROD} --dry-run=client -o yaml | kubectl apply -f -
+                            
+                            helm upgrade --install prometheus helm/charts/prometheus \\
+                              --namespace ${NAMESPACE_PROD} \\
+                              --set storage.size=50Gi \\
+                              --set retention=30d \\
+                              --wait --timeout=10m
+                            
+                            echo "✅ Prometheus deployed to PROD"
+                        """
+                    }
+                }
+                stage('Deploy Grafana PROD') {
+                    steps {
+                        sh """
+                            echo "🚀 Deploying Grafana to PROD..."
+                            kubectl create namespace ${NAMESPACE_PROD} --dry-run=client -o yaml | kubectl apply -f -
+                            
+                            helm upgrade --install grafana helm/charts/grafana \\
+                              --namespace ${NAMESPACE_PROD} \\
+                              --wait --timeout=10m
+                            
+                            echo "✅ Grafana deployed to PROD"
+                        """
+                    }
+                }
+                stage('Deploy ELK Stack PROD') {
+                    steps {
+                        sh """
+                            echo "🚀 Deploying ELK Stack to PROD..."
+                            kubectl create namespace ${NAMESPACE_PROD} --dry-run=client -o yaml | kubectl apply -f -
+                            
+                            # Elasticsearch
+                            helm upgrade --install elasticsearch helm/charts/elasticsearch \\
+                              --namespace ${NAMESPACE_PROD} \\
+                              --set persistence.size=100Gi \\
+                              --wait --timeout=15m
+                            
+                            # Logstash
+                            helm upgrade --install logstash helm/charts/logstash \\
+                              --namespace ${NAMESPACE_PROD} \\
+                              --wait --timeout=10m
+                            
+                            # Kibana
+                            helm upgrade --install kibana helm/charts/kibana \\
+                              --namespace ${NAMESPACE_PROD} \\
+                              --wait --timeout=10m
+                            
+                            echo "✅ ELK Stack deployed to PROD"
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Deploy Applications to PROD') {
+            when {
+                allOf {
+                    branch 'main'
+                    expression { params.DEPLOY_APPLICATIONS }
+                }
+            }
+            steps {
+                sh """
+                    echo "🚀 Deploying BankApp to PROD using Helm umbrella chart..."
+                    
+                    kubectl create namespace ${NAMESPACE_PROD} --dry-run=client -o yaml | kubectl apply -f -
+                    
+                    helm upgrade --install bankapp helm/ \\
+                      --namespace ${NAMESPACE_PROD} \\
+                      --set front-ui.image.tag=${IMAGE_TAG} \\
+                      --set accounts.image.tag=${IMAGE_TAG} \\
+                      --set cash.image.tag=${IMAGE_TAG} \\
+                      --set transfer.image.tag=${IMAGE_TAG} \\
+                      --set exchange.image.tag=${IMAGE_TAG} \\
+                      --set exchange-generator.image.tag=${IMAGE_TAG} \\
+                      --set notifications.image.tag=${IMAGE_TAG} \\
+                      --set blocker.image.tag=${IMAGE_TAG} \\
+                      --set front-ui.image.pullPolicy=Never \\
+                      --set accounts.image.pullPolicy=Never \\
+                      --set cash.image.pullPolicy=Never \\
+                      --set transfer.image.pullPolicy=Never \\
+                      --set exchange.image.pullPolicy=Never \\
+                      --set exchange-generator.image.pullPolicy=Never \\
+                      --set notifications.image.pullPolicy=Never \\
+                      --set blocker.image.pullPolicy=Never \\
+                      --set postgresql.resources.limits.memory=2Gi \\
+                      --set postgresql.resources.limits.cpu=1000m \\
+                      --set keycloak.resources.limits.memory=2Gi \\
+                      --set keycloak.resources.limits.cpu=2000m \\
+                      --wait --timeout=20m
+                    
+                    echo "✅ BankApp deployed to PROD"
+                """
+            }
+        }
+
+        stage('Verify Deployment PROD') {
+            when {
+                allOf {
+                    branch 'main'
+                    expression { params.DEPLOY_APPLICATIONS || params.DEPLOY_INFRASTRUCTURE }
+                }
+            }
+            steps {
+                sh """
+                    echo "🔍 Verifying deployment in PROD..."
+                    
+                    echo "📦 All pods in PROD:"
+                    kubectl get pods -n ${NAMESPACE_PROD}
+                    
+                    echo ""
+                    echo "🔌 All services in PROD:"
+                    kubectl get svc -n ${NAMESPACE_PROD}
+                    
+                    echo ""
+                    echo "✅ PROD deployment verification completed"
+                """
+            }
+        }
+    }
+
+    post {
+        success {
+            script {
+                def namespace = env.BRANCH_NAME == 'main' ? NAMESPACE_PROD : NAMESPACE_TEST
+                echo "✅ Pipeline успешно завершен!"
+                echo "🎯 Namespace: ${namespace}"
+                echo "📦 Image Tag: ${IMAGE_TAG}"
+                
+                if (params.DEPLOY_INFRASTRUCTURE) {
+                    echo ""
+                    echo "🏗️  Infrastructure deployed:"
+                    echo "   - Kafka (with UI)"
+                    echo "   - Zipkin (Distributed Tracing)"
+                    echo "   - Prometheus (Metrics)"
+                    echo "   - Grafana (Dashboards)"
+                    echo "   - ELK Stack (Logging)"
+                }
+                
+                if (params.DEPLOY_APPLICATIONS) {
+                    echo ""
+                    echo "🚀 Applications deployed:"
+                    echo "   - PostgreSQL"
+                    echo "   - Keycloak"
+                    echo "   - Front-UI"
+                    echo "   - Accounts"
+                    echo "   - Cash"
+                    echo "   - Transfer"
+                    echo "   - Exchange"
+                    echo "   - Exchange-Generator"
+                    echo "   - Notifications"
+                    echo "   - Blocker"
+                }
+                
+                echo ""
+                echo "🌐 Access URLs (после port-forward):"
+                echo "   - Front-UI: http://localhost:8080"
+                echo "   - Keycloak: http://localhost:8090"
+                echo "   - Zipkin: http://localhost:9411"
+                echo "   - Prometheus: http://localhost:9090"
+                echo "   - Grafana: http://localhost:3000 (admin/admin)"
+                echo "   - Kibana: http://localhost:5601"
+                echo "   - Kafka UI: http://localhost:8085"
+            }
+        }
+        failure {
+            echo "❌ Pipeline завершился с ошибкой"
+            echo "📋 Проверьте Console Output для деталей"
+            echo "💡 Убедитесь, что Minikube запущен и имеет достаточно ресурсов"
+        }
+        always {
+            echo "🏁 Pipeline завершен"
+        }
     }
 }

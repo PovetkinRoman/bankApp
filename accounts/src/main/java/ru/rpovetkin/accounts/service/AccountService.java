@@ -46,7 +46,6 @@ public class AccountService {
         
         List<AccountDto> accounts = new ArrayList<>();
         
-        // Создаем DTO для всех поддерживаемых валют
         for (Currency currency : Currency.values()) {
             Optional<UserAccount> accountOpt = existingAccounts.stream()
                     .filter(acc -> acc.getCurrency().equals(currency))
@@ -90,7 +89,6 @@ public class AccountService {
 
         User user = userOpt.get();
         
-        // Проверяем, не существует ли уже счет в этой валюте
         Optional<UserAccount> existingAccount = userAccountRepository.findByUserIdAndCurrency(user.getId(), request.getCurrency());
         if (existingAccount.isPresent()) {
             return AccountOperationResponse.builder()
@@ -109,7 +107,6 @@ public class AccountService {
         UserAccount savedAccount = userAccountRepository.save(newAccount);
         log.debug("Account created successfully: {}", savedAccount.getId());
 
-        // Отправляем уведомление о создании счета
         notificationService.sendSuccessNotification(
             user.getLogin(),
             "Новый счет создан",
@@ -170,7 +167,6 @@ public class AccountService {
 
         log.debug("Deposit successful. New balance: {} {}", savedAccount.getBalance(), savedAccount.getCurrency());
 
-        // Отправляем уведомление о пополнении
         notificationService.sendSuccessNotification(
             user.getLogin(),
             "Счет пополнен",
@@ -229,7 +225,6 @@ public class AccountService {
 
         UserAccount account = accountOpt.get();
         
-        // Проверяем достаточность средств
         if (account.getBalance().compareTo(request.getAmount()) < 0) {
             return AccountOperationResponse.builder()
                     .success(false)
@@ -243,7 +238,6 @@ public class AccountService {
 
         log.debug("Withdrawal successful. New balance: {} {}", savedAccount.getBalance(), savedAccount.getCurrency());
 
-        // Отправляем уведомление о снятии
         notificationService.sendInfoNotification(
             user.getLogin(),
             "Средства сняты",
@@ -302,7 +296,6 @@ public class AccountService {
         log.debug("Creating default accounts for user: {}", user.getLogin());
         
         for (Currency currency : Currency.values()) {
-            // Проверяем, не существует ли уже счет в этой валюте
             Optional<UserAccount> existingAccount = userAccountRepository.findByUserIdAndCurrency(user.getId(), currency);
             
             if (existingAccount.isEmpty()) {

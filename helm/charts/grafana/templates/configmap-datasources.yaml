@@ -1,0 +1,22 @@
+{{- if .Values.grafana.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "grafana.fullname" . }}-datasources
+  labels:
+    {{- include "grafana.labels" . | nindent 4 }}
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: {{ .Values.grafana.datasources.prometheus.name }}
+        type: {{ .Values.grafana.datasources.prometheus.type }}
+        access: {{ .Values.grafana.datasources.prometheus.access }}
+        url: {{ .Values.grafana.datasources.prometheus.url }}
+        isDefault: {{ .Values.grafana.datasources.prometheus.isDefault }}
+        editable: true
+        jsonData:
+          timeInterval: "5s"
+          httpMethod: "POST"
+{{- end }}
+

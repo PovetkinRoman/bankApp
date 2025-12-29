@@ -25,7 +25,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         log.info("Loading user by username: {}", username);
         
         try {
-            UserDto user = accountsService.getUserByLogin(username).block();
+            UserDto user = accountsService.getUserByLogin(username);
             if (user == null) {
                 throw new UsernameNotFoundException("User not found: " + username);
             }
@@ -37,7 +37,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                     .build();
                     
         } catch (Exception e) {
-            log.error("Error loading user: {}", e.getMessage());
+            log.error("Error loading user [{}]: {}", e.getClass().getSimpleName(), e.getMessage());
             throw new UsernameNotFoundException("User not found: " + username);
         }
     }
